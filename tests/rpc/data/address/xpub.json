@@ -1,0 +1,12 @@
+[
+    [[], "testnet", "tpubD6NzVbkrYhZ4Y6YYLhPsm1vVhs7CDSvoxfTTohcNPigN2RkeMJL3gTWav9fCicJsC7eSyARLKi8Q3UU825cz65meRQFFfqTYfBBy3MHC6Vn"],
+    [[], "mainnet", "xpub661MyMwAqRbcGJMgtWQnZ6b8Nk1YE4RkR2sAT9ZE3ovUH95wH5UxY1qkg7aRC7MdQD7YMauTncJMMHyWdDmkCeKMMoVwzJoK5DbZHHhinUQ"],
+    [[], "liquid", "xpub661MyMwAqRbcGJMgtWQnZ6b8Nk1YE4RkR2sAT9ZE3ovUH95wH5UxY1qkg7aRC7MdQD7YMauTncJMMHyWdDmkCeKMMoVwzJoK5DbZHHhinUQ"],
+    [[0], "localtest", "tpubD9wHvxq4yutRJBbRis4guqLvvAZqppKmMJmqDi4HVtVRTRKKTMzomHx77PqcprGZf6UuzwiWn8QWbUx3ECSUStzMHFPJM2e16VUoqEGnkk7"],
+    [[6], "localtest", "tpubD9wHvxq4yutRaYSLLTxkMuSGafH6NyQMJeGhqsug25o2p9KMNqZAcSV1eYcX31eVXf5vS8MYUPp5Cr2HHAkmpgAHQHa7iG4bqW6ajLq6WVk"],
+    [[12, 123], "localtest-liquid", "tpubDBdwuiH7nSNmLs5ffMyv3jXvZrqFgimAbxXvxhWgXWATBTYPjiBbEDRzanF6YBHCaPoMF8XJNJdsUeXZHBuy3tkUSbEYh3o1M6fEfMfdBV5"],
+    [[18, 986], "mainnet", "xpub6BYx1MizD2XPpY6EuF5Pso8cG5fVHJEWniziGqXcrrcqH96MUiPcuNQkfKSnGx9tCvBJBZx35fiZE3zBbVkZqH89TU4W6HkyE9fSUx9QHNX"],
+    [[2147483651, 2147483648], "mainnet", "xpub69w5Svpcz1iNw383Q4dcKTH7DVwPinVYL8Ka7S61gskwY8SW4YeeCny4xdxhR9yFhPxGDJ9Yne8PNQFoqkVdUK2whQ9bJiZuMarKPtCixrX"],
+    [[2147483651, 2147483651], "liquid", "xpub69w5Svpcz1iP4ocLTZ93HDnRkFwKRUomwEZwFuafNnDhTWirvUFxbtou6KQMT83gnyjZAKmsD8oTST6FTj5dgAZn5EP6KMPZwQGEQu1tqez"],
+    [[2147483692, 0, 1, 2], "testnet-liquid", "tpubDFHUCdwiKzeySTBkMyPec9y9VSwwVgn1AftmefpKLYTPrChSCTbHAnbXtSQTB8qEvR8H6nt3sBwNAUeYZK5oc75dWDiYWBrYcMRYW2DGU1Z"]
+]

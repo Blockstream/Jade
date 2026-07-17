@@ -1,0 +1,11 @@
+[
+    ["localtest", 0, 1, 345, null, 0, null, "2MyMy6Ey7a5dmWJW1D9M7RFwjmXD1ECrgy4"],
+    ["testnet", 0, 1, 568, null, 51840, null, "2MxbBuvnRvgL3uTDtTkufPTdzuwuXE9HCNj"],
+    ["mainnet", 3, 1, 88, "", 0, null, "36kTtrBFR5NQmzBxAuNWcmLk22WsuhRq2S"],
+    ["mainnet", 0, 1, 568, "xpub6BYx1MizD2XPpY6EuF5Pso8cG5fVHJEWniziGqXcrrcqH96MUiPcuNQkfKSnGx9tCvBJBZx35fiZE3zBbVkZqH89TU4W6HkyE9fSUx9QHNX", 0, null, "338M4PG24m1gZggrzQV1s9vr3dZZ31kLsU"],
+    ["localtest-liquid", 6, 1, 345, null, 65535, null, "Azpx2UGRpzEQ6pt6yCbPYGnjqNaTtxN2ZdLmMMjWMVvJdzd5uD9cysaRc4Es5auve68RAwijQqReG3AT"],
+    ["testnet-liquid", 3, 1, 244, null, 65535, null, "vjU6NdME2viTa8BzBA6qNG5jQKLfGfLvC93f4fRwZ9SR4pE7KBWQNbGUi2bodfxiMACFDombViiC5Vej"],
+    ["liquid", 10, 1, 122, null, 65535, null, "VJLGotGqjthW3NY7JFZ7EaJZo8rnuRi23waPVY7FwJTYxtFNrNLy6CC4VEQoKRmd5VkL2mmuo64LfZNy"],
+    ["testnet-liquid", 0, 1, 9, null, 65535, null, "vjTzk5t4D8J3j73rt2QWsD9UMSs28KcNnYSGovgGBKcpfHpihSz5bsMmUNAkdohYRHXPztnqgZqaLgEk"],
+    ["testnet-liquid", 0, 1, 9, null, 65535, true, "vjTzk5t4D8J3j73rt2QWsD9UMSs28KcNnYSGovgGBKcpfHpihSz5bsMmUNAkdohYRHXPztnqgZqaLgEk"],
+    ["testnet-liquid", 0, 1, 9, null, 65535, false, "8z6YuTaMWRf4UeqAGKmQ64Bi4wPWtw7pqm"]]

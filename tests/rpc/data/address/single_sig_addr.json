@@ -1,0 +1,19 @@
+[  
+    ["localtest", "sh(wpkh(k))", null, [2147483648, 2147483648, 2147483657], "2N8Yn3oXF7Pg38yBpuvoheDS7981vW4vy5b"],
+    ["localtest", "wpkh(k)", null, [2147483648, 2147483648, 2147483658], "bcrt1qkrkcltr7kx5s5alsvnpvkcfunlrjtwx942zmn4"],
+    ["localtest", "pkh(k)", null, [2147483648, 2147483648, 2147483659], "mwJDHFp93fuHZysBwU7RTiFXrJZXXcPuUc"],
+    ["localtest-liquid", "sh(wpkh(k))", null, [2147483648, 2147483648, 2147483649], "AzpnFQq17AnWm4gvL2oHLRucFawmq8VWFyaxfPX3EgrihEdwDXWmb1QmA7QrRu5RCy3wDtSe8h9WxKbQ"],
+    ["localtest-liquid", "wpkh(k)", null, [2147483648, 2147483648, 2147483650], "el1qqwud2rtjxwgfxc9wrey504mtjqujrmzsc442zway65gkuj2f0mm4xfv8h3sqfz223jxjrj307zyqln2dywxmsvpvs9x2tvufj"],
+    ["localtest-liquid", "pkh(k)", null, [2147483648, 2147483648, 2147483651], "CTEuAWMSL94hM2PbTzoe8TGLjyVkkSgdPFas7eUMouiGk5Q2SfzadGnGduPwvoVK1ZpthykJup8A8Eh2"],
+    ["mainnet", "sh(wpkh(k))", null, [2147483648, 2147483648, 2147483657], "3GzZz4bDVwAgwBZHEoBq2GSqvmokj9e4Jx"],
+    ["mainnet", "wpkh(k)", null, [2147483648, 2147483648, 2147483657], "bc1qpky3r9yuz5gguvuqkrf2dfqtqgutr9evgnjmq6"],
+    ["mainnet", "pkh(k)", null, [2147483648, 2147483648, 2147483657], "12EZzC9ck31rxaFYKbGwVj1gYXsUwfHuWj"],
+    ["testnet", "sh(wpkh(k))", null, [2147483648, 2147483648, 2147483657], "2N8Yn3oXF7Pg38yBpuvoheDS7981vW4vy5b"],
+    ["testnet", "wpkh(k)", null, [2147483648, 2147483648, 2147483657], "tb1qpky3r9yuz5gguvuqkrf2dfqtqgutr9evz4fgmf"],
+    ["testnet", "pkh(k)", null, [2147483648, 2147483648, 2147483657], "mgkXHFEbZ4T7jgjA3AFKKeE1QXUBrX7qQC"],
+    ["liquid", "sh(wpkh(k))", null, [2147483648, 2147483648, 2147483657], "VJLGcUjN2q6HHuNUAQJ2LEASQnr5LkD2DgDwT2vcyQjKhA3B5a2VAgp94Gj5rSXYiD6eHmGJmVSHY5xG"],
+    ["testnet-liquid", "wpkh(k)", null, [2147483648, 2147483648, 2147483657], "tlq1qq28n8pj790vsyd6t5lr6n0puhrp7hd8wvcgrlm8knxm684lxq6pzjrvfzx2fc9gs3cecpvxj56jqkq3ckxtjc88gqxa6j2cv7"],
+    ["localtest-liquid", "pkh(k)", null, [2147483648, 2147483648, 2147483657], "CTEjtdpkvj7mrGtgMTrmDfSnH9DdN9Rzi2tzsxsFNujSU8qhYzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi"],
+    ["localtest-liquid", "pkh(k)", true, [2147483648, 2147483648, 2147483657], "CTEjtdpkvj7mrGtgMTrmDfSnH9DdN9Rzi2tzsxsFNujSU8qhYzNnQaWx24j5hX8iWcaZgTZJ6Y3sedLi"],
+    ["localtest-liquid", "pkh(k)", false, [2147483648, 2147483648, 2147483657], "2dafKNiCKbRum9S1u5BYqTByZT5R9zSqcWy"]
+]
