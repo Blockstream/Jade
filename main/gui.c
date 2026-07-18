@@ -1672,7 +1672,8 @@ static void update_text_node_text(gui_view_node_t* node, const char* text)
     JADE_ASSERT(ret >= 0); // truncation is acceptable here, as is empty string
 
     // free the old text node and replace with the new pointer
-    free(node->text->text);
+    // Use wally_free_string in case the text is sensitive
+    wally_free_string(node->text->text);
     node->text->text = new_text;
 
     // resolve text references

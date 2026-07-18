@@ -7,8 +7,11 @@
 #define CHAR_BACKSPACE '|'
 #define CHAR_ENTER '~'
 static const char ENTRY_CHARS[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', CHAR_BACKSPACE, CHAR_ENTER };
-// The number of available digits, i.e. not including backspace or enter
-#define NUM_ENTRY_DIGITS (sizeof(ENTRY_CHARS) / sizeof(ENTRY_CHARS[0]) - 2)
+enum {
+    NUM_ENTRY_CHARS = sizeof(ENTRY_CHARS) / sizeof(ENTRY_CHARS[0]),
+    // The number of available digits, i.e. not including backspace or enter
+    NUM_ENTRY_DIGITS = NUM_ENTRY_CHARS - 2,
+};
 
 static inline bool entry_invert_navigation(void)
 {
@@ -21,17 +24,108 @@ static inline bool entry_invert_navigation(void)
 #endif
 }
 
-static uint32_t get_max_digit_entry_char(const digit_entry_t* digit_entry)
+static uint8_t get_digit_entry_size(const digit_entry_t* digit_entry)
 {
-    if (digit_entry->entry_type == DIGIT_ENTRY_INDEX) {
-        return NUM_ENTRY_DIGITS + 2; // 0-9 + backspace + 'enter' to enter a short number
+    JADE_ASSERT(digit_entry);
+    const uint8_t max_digits = digit_entry->max_digits ? digit_entry->max_digits : DIGIT_ENTRY_SIZE;
+    JADE_ASSERT(max_digits > 0 && max_digits <= DIGIT_ENTRY_SIZE);
+    return max_digits;
+}
+
+static bool digit_entry_allows_enter(const digit_entry_t* digit_entry)
+{
+    JADE_ASSERT(digit_entry);
+    return digit_entry->entry_type == DIGIT_ENTRY_INDEX || digit_entry->entry_type == DIGIT_ENTRY_WORD_NUMBER;
+}
+
+static uint32_t get_candidate_entry_value(const digit_entry_t* digit_entry, const uint8_t value)
+{
+    JADE_ASSERT(digit_entry);
+    JADE_ASSERT(value < NUM_ENTRY_DIGITS);
+
+    uint32_t candidate = 0;
+    for (uint8_t i = 0; i < digit_entry->selected_digit; ++i) {
+        JADE_ASSERT(digit_entry->digit_status[i] == SET);
+        JADE_ASSERT(digit_entry->digit[i] < NUM_ENTRY_DIGITS);
+        candidate = candidate * 10 + digit_entry->digit[i];
     }
-    return NUM_ENTRY_DIGITS + 1; // 0-9 + backspace only since PIN entry requires all digits
+    return candidate * 10 + value;
+}
+
+static bool digit_entry_digit_allowed(const digit_entry_t* digit_entry, const uint8_t value)
+{
+    JADE_ASSERT(digit_entry);
+    JADE_ASSERT(value < NUM_ENTRY_DIGITS);
+
+    const uint8_t entry_size = get_digit_entry_size(digit_entry);
+    JADE_ASSERT(digit_entry->selected_digit < entry_size);
+
+    if (!digit_entry->max_value) {
+        return true;
+    }
+
+    return get_candidate_entry_value(digit_entry, value) <= digit_entry->max_value;
+}
+
+static bool digit_entry_value_allowed(const digit_entry_t* digit_entry, const uint8_t value)
+{
+    JADE_ASSERT(digit_entry);
+    JADE_ASSERT(value < NUM_ENTRY_CHARS);
+
+    if (value < NUM_ENTRY_DIGITS) {
+        return digit_entry_digit_allowed(digit_entry, value);
+    }
+    if (ENTRY_CHARS[value] == CHAR_BACKSPACE) {
+        return true;
+    }
+    if (digit_entry_allows_enter(digit_entry)) {
+        return ENTRY_CHARS[value] == CHAR_ENTER;
+    }
+    return false;
+}
+
+static void normalise_current_digit_entry_value(digit_entry_t* digit_entry)
+{
+    JADE_ASSERT(digit_entry);
+    if (digit_entry_value_allowed(digit_entry, digit_entry->current_selected_value)) {
+        return;
+    }
+
+    if (digit_entry_allows_enter(digit_entry) && digit_entry->selected_digit > 0) {
+        digit_entry->current_selected_value = NUM_ENTRY_CHARS - 1;
+        JADE_ASSERT(ENTRY_CHARS[digit_entry->current_selected_value] == CHAR_ENTER);
+        JADE_ASSERT(digit_entry_value_allowed(digit_entry, digit_entry->current_selected_value));
+        return;
+    }
+
+    for (uint8_t i = 0; i < NUM_ENTRY_CHARS; ++i) {
+        digit_entry->current_selected_value = i;
+        if (digit_entry_value_allowed(digit_entry, digit_entry->current_selected_value)) {
+            return;
+        }
+    }
+
+    JADE_ASSERT(false);
+}
+
+static void step_current_digit_entry_value(digit_entry_t* digit_entry, const int8_t direction)
+{
+    JADE_ASSERT(digit_entry);
+    JADE_ASSERT(direction == -1 || direction == 1);
+
+    for (uint8_t i = 0; i < NUM_ENTRY_CHARS; ++i) {
+        digit_entry->current_selected_value
+            = (digit_entry->current_selected_value + NUM_ENTRY_CHARS + direction) % NUM_ENTRY_CHARS;
+        if (digit_entry_value_allowed(digit_entry, digit_entry->current_selected_value)) {
+            return;
+        }
+    }
+    JADE_ASSERT(false);
 }
 
 static inline char get_current_digit_entry_char(const digit_entry_t* digit_entry)
 {
-    JADE_ASSERT(digit_entry->current_selected_value < get_max_digit_entry_char(digit_entry));
+    JADE_ASSERT(digit_entry_value_allowed(digit_entry, digit_entry->current_selected_value));
     return ENTRY_CHARS[digit_entry->current_selected_value];
 }
 
@@ -50,6 +144,7 @@ static void reinitialise_current_entry_digit(digit_entry_t* digit_entry)
         digit_entry->current_selected_value = get_uniform_random_byte(NUM_ENTRY_DIGITS);
         break;
     }
+    normalise_current_digit_entry_value(digit_entry);
 }
 
 static void update_digit_node(digit_entry_t* digit_entry, uint8_t i)
@@ -106,15 +201,21 @@ void make_digit_entry_activity(digit_entry_t* digit_entry, const char* title, co
     gui_set_parent(node, vsplit);
 
     const size_t toppad = CONFIG_DISPLAY_HEIGHT > 200 ? 20 : CONFIG_DISPLAY_HEIGHT > 160 ? 12 : 4;
-    const size_t lrpad = (CONFIG_DISPLAY_WIDTH - (6 * 35)) / 2;
+    const uint8_t entry_size = get_digit_entry_size(digit_entry);
+    const size_t lrpad = (CONFIG_DISPLAY_WIDTH - (entry_size * 35)) / 2;
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 6, 35, 35, 35, 35, 35, 35);
+    if (entry_size == 4) {
+        gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 4, 35, 35, 35, 35);
+    } else {
+        JADE_ASSERT(entry_size == DIGIT_ENTRY_SIZE);
+        gui_make_hsplit(&hsplit, GUI_SPLIT_ABSOLUTE, 6, 35, 35, 35, 35, 35, 35);
+    }
     gui_set_margins(hsplit, GUI_MARGIN_ALL_DIFFERENT, toppad, lrpad, toppad + 8, lrpad);
     gui_set_parent(hsplit, vsplit);
 
     reinitialise_current_entry_digit(digit_entry);
 
-    for (size_t i = 0; i < DIGIT_ENTRY_SIZE; ++i) {
+    for (size_t i = 0; i < entry_size; ++i) {
         digit_entry->digit[i] = 0xFF;
         digit_entry->digit_status[i] = i == 0 ? SELECTED : EMPTY;
 
@@ -151,7 +252,8 @@ void make_digit_entry_activity(digit_entry_t* digit_entry, const char* title, co
 static bool next_selected_digit(digit_entry_t* digit_entry)
 {
     JADE_ASSERT(digit_entry);
-    JADE_ASSERT(digit_entry->selected_digit < DIGIT_ENTRY_SIZE);
+    const uint8_t entry_size = get_digit_entry_size(digit_entry);
+    JADE_ASSERT(digit_entry->selected_digit < entry_size);
 
     // make sure the '<' is not selected
     JADE_ASSERT(digit_entry->current_selected_value < 10);
@@ -165,7 +267,7 @@ static bool next_selected_digit(digit_entry_t* digit_entry)
     ++digit_entry->selected_digit;
 
     // reached the last digit - cannot select next, return false
-    if (digit_entry->selected_digit >= DIGIT_ENTRY_SIZE) {
+    if (digit_entry->selected_digit >= entry_size) {
         return false;
     }
 
@@ -181,7 +283,7 @@ static bool next_selected_digit(digit_entry_t* digit_entry)
 static bool prev_selected_digit(digit_entry_t* digit_entry)
 {
     JADE_ASSERT(digit_entry);
-    JADE_ASSERT(digit_entry->selected_digit < DIGIT_ENTRY_SIZE);
+    JADE_ASSERT(digit_entry->selected_digit < get_digit_entry_size(digit_entry));
 
     // at the first digit - cannot select previous, return false
     if (digit_entry->selected_digit == 0) {
@@ -224,14 +326,11 @@ bool run_digit_entry_loop(digit_entry_t* digit_entry)
 
         switch (ev_id) {
         case GUI_WHEEL_LEFT_EVENT:
-            digit_entry->current_selected_value
-                = (digit_entry->current_selected_value + get_max_digit_entry_char(digit_entry) - 1)
-                % get_max_digit_entry_char(digit_entry);
+            step_current_digit_entry_value(digit_entry, -1);
             update_digit_node(digit_entry, digit_entry->selected_digit);
             break;
         case GUI_WHEEL_RIGHT_EVENT:
-            digit_entry->current_selected_value
-                = (digit_entry->current_selected_value + 1) % get_max_digit_entry_char(digit_entry);
+            step_current_digit_entry_value(digit_entry, 1);
             update_digit_node(digit_entry, digit_entry->selected_digit);
             break;
 
@@ -245,8 +344,7 @@ bool run_digit_entry_loop(digit_entry_t* digit_entry)
                     }
                     break;
                 case CHAR_ENTER:
-                    // only valid for digit_entry_type == DIGIT_ENTRY_INDEX
-                    JADE_ASSERT(digit_entry->entry_type == DIGIT_ENTRY_INDEX);
+                    JADE_ASSERT(digit_entry_allows_enter(digit_entry));
                     // If enter clicked on first digit, abandon entry
                     if (digit_entry->selected_digit == 0) {
                         return false; // number entry abandoned
@@ -274,7 +372,7 @@ void reset_digit_entry(digit_entry_t* digit_entry, const char* title)
     reinitialise_current_entry_digit(digit_entry);
 
     // Mark all digits as unset
-    for (size_t i = 0; i < DIGIT_ENTRY_SIZE; ++i) {
+    for (size_t i = 0; i < get_digit_entry_size(digit_entry); ++i) {
         digit_entry->digit[i] = 0xFF;
         digit_entry->digit_status[i] = i == 0 ? SELECTED : EMPTY;
         update_digit_node(digit_entry, i);
@@ -289,10 +387,11 @@ void reset_digit_entry(digit_entry_t* digit_entry, const char* title)
 uint32_t get_entry_as_number(const digit_entry_t* digit_entry)
 {
     JADE_ASSERT(digit_entry);
-    if (digit_entry->entry_type == DIGIT_ENTRY_INDEX) {
-        JADE_ASSERT(digit_entry->selected_digit > 0 && digit_entry->selected_digit <= DIGIT_ENTRY_SIZE); // entry valid
+    if (digit_entry_allows_enter(digit_entry)) {
+        JADE_ASSERT(
+            digit_entry->selected_digit > 0 && digit_entry->selected_digit <= get_digit_entry_size(digit_entry));
     } else {
-        JADE_ASSERT(digit_entry->selected_digit == DIGIT_ENTRY_SIZE); // entry complete
+        JADE_ASSERT(digit_entry->selected_digit == get_digit_entry_size(digit_entry)); // entry complete
     }
 
     uint32_t val = 0;
