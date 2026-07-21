@@ -58,6 +58,9 @@ class JadeConfig:
     def set_mnemonic(self, mnemonic):
         """Set the current jade mnemonic (with caching)."""
         if mnemonic != self.current_mnemonic:
+            # reset the jade
+            rslt = self.jade.clean_reset()
+            assert rslt is True
             # mnemonic differs from the one currently set: change and remember it
             rslt = self.jade.set_mnemonic(mnemonic)
             assert rslt is True
