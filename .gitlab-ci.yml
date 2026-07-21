@@ -30,10 +30,10 @@ include:
   - gitlab/release.yml
   - gitlab/diy_fw.yml
   - gitlab/docker.yml
-  - gitlab/security.yml
   - template: Security/SAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
   - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - gitlab/security.yml
 
 #
 # Jade FW build template
