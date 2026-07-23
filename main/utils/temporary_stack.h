@@ -3,13 +3,9 @@
 
 #include "jade_assert.h"
 
-// Helper to run function which may require a large stack on a temporary stack.
-// Funciton should take an optional void* context, and return bool.
-// (ie. 'bool f(void* ctx)' - more user friendly that the underlying 'void f(void)')
+// Helper to run function which may require a larger temporary stack.
+// Function should take an optional void* context, and return bool.
 typedef bool (*temporary_stack_function_t)(void*);
-
-// Temporarily switch the stack of the current task for a (presumably larger) stack to run the passed function
-bool run_on_temporary_stack(size_t stack_size, temporary_stack_function_t fn, void* ctx);
 
 // Run the passed function in an entirely new (short lived) task with the given stack size.
 // The task must run without pausing and without user interaction or it will time out.
