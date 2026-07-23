@@ -190,12 +190,6 @@ const uint8_t _binary_pinserver_public_key_pub_start[33]
 volatile bool _libjade_stop_requested = false; // Used to stop the firmware
 
 // HW: Task API
-bool run_on_temporary_stack(size_t stack_size, temporary_stack_function_t fn, void* ctx) { return fn(ctx); }
-
-bool run_in_temporary_task(const size_t stack_size, temporary_stack_function_t fn, void* ctx) { return fn(ctx); }
-
-void temp_stack_init(void) {}
-
 void sensitive_init(void) {}
 
 void sensitive_push(const char* file, int line, void* addr, size_t size) {}

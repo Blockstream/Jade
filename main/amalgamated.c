@@ -166,9 +166,7 @@ void __wrap_abort(void);
 #include "./utils/network.c"
 #include "./utils/psbt.c"
 #include "./utils/shake256.c"
-#ifndef CONFIG_LIBJADE
 #include "./utils/temporary_stack.c"
-#endif // CONFIG_LIBJADE
 #include "./utils/urldecode.c"
 #include "./utils/util.c"
 #include "./utils/wally_ext.c"

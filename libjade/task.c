@@ -104,8 +104,9 @@ BaseType_t xTaskCreatePinnedToCore(TaskFunction_t func, const char* name, uint32
         JADE_LOGE("pthread_attr_init failed for task %s", name);
         return pdFALSE;
     }
-    if (stack_size < PTHREAD_STACK_MIN) {
-        stack_size = PTHREAD_STACK_MIN;
+    // libjade (espcially with libsanitizer) will require larger stack sizes
+    if (stack_size < 1024 * 256) {
+        stack_size = 1024 * 256;
     }
     if (strcmp(name, "jade_camera") == 0) {
         // give the camera thread more stack

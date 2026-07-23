@@ -29,9 +29,6 @@ TaskHandle_t xTaskGetCurrentTaskHandle(void);
 
 BaseType_t xTaskCreatePinnedToCore(TaskFunction_t func, const char* name, uint32_t stack_size, void* params,
     uint32_t ux_prio, TaskHandle_t* output, uint32_t xCoreID);
-BaseType_t xTaskCreatePinnedToCoreWithCaps(TaskFunction_t func, const char* const name, uint32_t stack_size,
-    void* const params, UBaseType_t ux_prio, TaskHandle_t* const output, const BaseType_t xCoreID,
-    UBaseType_t uxMemoryCaps);
 
 unsigned int uxTaskPriorityGet(void* task);
 unsigned int uxTaskGetStackHighWaterMark(void* task);
