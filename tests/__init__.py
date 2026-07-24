@@ -111,3 +111,14 @@ def transport_is_not(targets):
     for t in targets:
         assert t in ('libjade', 'serial', 'ble'), f'{t}'
     return get_jade_config().transport not in targets
+
+
+def transport_is(targets):
+    """Determine if the current transport is (or contained in) 'targets'.
+       Can be used to skip tests, e.g:
+       @pytest.mark.skipif(transport_is('libjade'), reason='skip for libjade')
+    """
+    targets = targets if isinstance(targets, (list, tuple)) else [targets]
+    for t in targets:
+        assert t in ('libjade', 'serial', 'ble'), f'{t}'
+    return get_jade_config().transport in targets

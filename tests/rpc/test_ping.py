@@ -4,11 +4,6 @@ from . import *
 NUM_VALUES_VERINFO = 22
 
 
-def wait(seconds, force=False):
-    if transport_is_not('libjade'):
-        time.sleep(seconds)
-
-
 def test_ping_protocol(jade):
     """Test ping doesn't break signing protocol"""
     # Random ae data as irrelevant, so long as same in both cases

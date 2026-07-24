@@ -1,5 +1,13 @@
 # RPC tests package marker for unittest discovery.
+import time
+
 from .. import *
+
+
+def wait(seconds, force=False):
+    """Wait for transport timing-sensitive protocol tests"""
+    if force or transport_is_not('libjade'):
+        time.sleep(seconds)
 
 
 def get_genesis_blockhash(network):
