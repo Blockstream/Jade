@@ -1,6 +1,7 @@
 #ifndef AMALGAMATED_BUILD
 #include <string.h>
 
+#include "../bip39.h"
 #include "../button_events.h"
 #include "../jade_assert.h"
 #include "../ui.h"
@@ -28,7 +29,7 @@ gui_activity_t* make_mnemonic_setup_method_activity(const bool advanced)
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_MNEMONIC_TYPE },
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
-    // In advanced mode offer 12/14 word new-mnemonics.
+    // In advanced mode offer all standard BIP39 mnemonic lengths.
     // Go straight to 12-word new-mnemonic setup in basic case.
     btn_data_t menubtns[] = { { .txt = "Create New Wallet",
                                   .font = GUI_DEFAULT_FONT,
@@ -50,13 +51,53 @@ gui_activity_t* make_new_mnemonic_activity(void)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "12 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_12 },
-        { .txt = "24 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_24 } };
+        { .txt = "15 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_15 },
+        { .txt = "18 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_18 },
+        { .txt = "More Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_MORE } };
 
-    gui_activity_t* const act = make_menu_activity("Recovery Phrase", hdrbtns, 2, menubtns, 2);
+    gui_activity_t* const act = make_menu_activity("Recovery Phrase", hdrbtns, 2, menubtns, 4);
 
     // Set the intially selected item to the '12 words' button
     gui_set_activity_initial_selection(menubtns[0].btn);
 
+    return act;
+}
+
+gui_activity_t* make_new_mnemonic_more_activity(void)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_NEW_MNEMONIC },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t menubtns[] = { { .txt = "21 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_21 },
+        { .txt = "24 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NEW_MNEMONIC_24 } };
+
+    gui_activity_t* const act = make_menu_activity("Recovery Phrase", hdrbtns, 2, menubtns, 2);
+    gui_set_activity_initial_selection(menubtns[0].btn);
+    return act;
+}
+
+gui_activity_t* make_restore_mnemonic_more_activity(const bool temporary_restore)
+{
+    btn_data_t hdrbtns[] = { { .txt = "=",
+                                 .font = JADE_SYMBOLS_16x16_FONT,
+                                 .ev_id = temporary_restore ? BTN_MNEMONIC_EXIT : BTN_RESTORE_MNEMONIC },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t menubtns[] = { { .txt = "Other Lengths", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC },
+        { .txt = "21 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_21 },
+        { .txt = "24 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_24 },
+        { .txt = "Scan QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_QR } };
+
+#ifdef CONFIG_HAS_CAMERA
+    const size_t nbtns = 4;
+    const size_t selected = temporary_restore ? 3 : 1;
+#else
+    const size_t nbtns = 3;
+    const size_t selected = 1;
+#endif
+
+    gui_activity_t* const act = make_menu_activity("Restore Wallet", hdrbtns, 2, menubtns, nbtns);
+    gui_set_activity_initial_selection(menubtns[selected].btn);
     return act;
 }
 
@@ -69,21 +110,14 @@ gui_activity_t* make_restore_mnemonic_activity(const bool temporary_restore)
         { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
 
     btn_data_t menubtns[] = { { .txt = "12 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_12 },
-        { .txt = "24 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_24 },
-        { .txt = "Scan QR", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_QR } };
+        { .txt = "15 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_15 },
+        { .txt = "18 Words", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_18 },
+        { .txt = "More Options", .font = GUI_DEFAULT_FONT, .ev_id = BTN_RESTORE_MNEMONIC_MORE } };
 
-#ifdef CONFIG_HAS_CAMERA
-    const size_t nbtns = 3;
-    const size_t selected = temporary_restore ? 2 : 0;
-#else
-    const size_t nbtns = 2;
-    const size_t selected = 0;
-#endif
+    gui_activity_t* const act = make_menu_activity("Restore Wallet", hdrbtns, 2, menubtns, 4);
 
-    gui_activity_t* const act = make_menu_activity("Restore Wallet", hdrbtns, 2, menubtns, nbtns);
-
-    // Set the intially selected item to the '12 words' or 'Scan QR' buttons
-    gui_set_activity_initial_selection(menubtns[selected].btn);
+    // Set the initially selected item to the '12 words' button.
+    gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
 }
@@ -104,19 +138,21 @@ gui_activity_t* make_bip85_mnemonic_words_activity(void)
     return act;
 }
 
-static void make_show_new_mnemonic_page(
-    link_activity_t* page_act, const size_t nwords, const size_t first_index, const char* words[4])
+static void make_show_new_mnemonic_page(link_activity_t* page_act, const size_t nwords, const size_t first_index,
+    const char* words[4], const size_t page_words)
 {
     JADE_ASSERT(page_act);
-    JADE_ASSERT(words && words[0] && words[1] && words[2] && words[3]);
+    JADE_ASSERT(words);
+    JADE_ASSERT(page_words == 3 || page_words == 4);
+    for (size_t i = 0; i < page_words; ++i) {
+        JADE_ASSERT(words[i]);
+    }
 
-    // Support 12-word and 24-word mnemonics only
-    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(jade_bip39_word_count_valid(nwords));
     JADE_ASSERT(first_index < nwords);
-    JADE_ASSERT(first_index % 4 == 0);
 
     const bool first_page = first_index == 0;
-    const bool last_page = first_index == nwords - 4;
+    const bool last_page = first_index + page_words == nwords;
 
     const uint32_t prev_ev_id = first_page ? BTN_MNEMONIC_EXIT : BTN_MNEMONIC_PREV;
     const uint32_t next_ev_id = last_page ? BTN_MNEMONIC_VERIFY : BTN_MNEMONIC_NEXT;
@@ -127,15 +163,24 @@ static void make_show_new_mnemonic_page(
     gui_view_node_t* parent = add_title_bar(act, "Recovery Phrase", hdrbtns, 2, NULL);
 
     // Rows are the index-prefixed words in a single column
-    // Display 4 words per page, in a column
+    // Display up to 4 words per page, in a column.
     // NOTE: the words prefixed by their index, eg. "1: river"
     gui_view_node_t* vsplit;
-    gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+    switch (page_words) {
+    case 3:
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 3, 34, 33, 33);
+        break;
+    case 4:
+        gui_make_vsplit(&vsplit, GUI_SPLIT_RELATIVE, 4, 25, 25, 25, 25);
+        break;
+    default:
+        JADE_ASSERT(false);
+    }
     gui_set_padding(vsplit, GUI_MARGIN_ALL_DIFFERENT, 4, 12, 14, 32);
     gui_set_parent(vsplit, parent);
 
     char prefixed_word[16];
-    for (int irow = 0; irow < 4; ++irow) {
+    for (size_t irow = 0; irow < page_words; ++irow) {
         // index-prefixed word, eg. "1:  river"
         const int ret = snprintf(prefixed_word, sizeof(prefixed_word), "%2u:  %s", first_index + irow + 1, words[irow]);
         JADE_ASSERT(ret > 0 && ret < sizeof(prefixed_word));
@@ -162,22 +207,28 @@ void make_show_mnemonic_activities(gui_activity_t** first_activity_ptr, gui_acti
     JADE_INIT_OUT_PPTR(last_activity_ptr);
     JADE_ASSERT(word_offs);
 
-    // Support 12-word and 24-word mnemonics only
-    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(jade_bip39_word_count_valid(nwords));
 
     // Chain the screen activities
     link_activity_t page_act = {};
     linked_activities_info_t act_info = {};
 
-    const size_t npages = nwords / 4; // 4 words per page
+    const size_t npages = (nwords + 3) / 4;
     const char* words[4] = {};
+    size_t first_index = 0;
     for (size_t j = 0; j < npages; ++j) {
-        for (size_t w = 0; w < 4; ++w) {
-            words[w] = mnemonic + word_offs[j * 4 + w];
+        const size_t remaining_pages = npages - j;
+        const size_t remaining_words = nwords - first_index;
+        const size_t page_words = (remaining_words + remaining_pages - 1) / remaining_pages;
+        JADE_ASSERT(page_words == 3 || page_words == 4);
+        for (size_t w = 0; w < page_words; ++w) {
+            words[w] = mnemonic + word_offs[first_index + w];
         }
-        make_show_new_mnemonic_page(&page_act, nwords, j * 4, words);
+        make_show_new_mnemonic_page(&page_act, nwords, first_index, words, page_words);
         gui_chain_activities(&page_act, &act_info);
+        first_index += page_words;
     }
+    JADE_ASSERT(first_index == nwords);
 
     *first_activity_ptr = act_info.first_activity;
     *last_activity_ptr = act_info.last_activity;

@@ -100,7 +100,7 @@ bool bcur_parse_bip39(
     }
     size_t num_words = 0;
     cberr = cbor_value_get_array_length(&mapItem, &num_words);
-    if (cberr != CborNoError || (num_words != 12 && num_words != 24) || !cbor_value_is_container(&mapItem)) {
+    if (cberr != CborNoError || !jade_bip39_word_count_valid(num_words) || !cbor_value_is_container(&mapItem)) {
         return false;
     }
     CborValue arrayItem;

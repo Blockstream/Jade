@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "bcur.h"
+#include "bip39.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "keychain.h"
@@ -23,6 +24,7 @@
 #include <sodium/utils.h>
 
 #include <wally_bip32.h>
+#include <wally_bip39.h>
 #include <wally_bip85.h>
 
 #include <cdecoder.h>
@@ -33,6 +35,39 @@ int register_multisig_file(const char* multisig_file, size_t multisig_file_len, 
 
 static const char TEST_MNEMONIC[] = "fish inner face ginger orchard permit useful method fence kidney chuckle party "
                                     "favorite sunset draw limb science crane oval letter slot invite sadness banana";
+
+// Fixed English vectors use zero-filled entropy and the standard "TREZOR" test passphrase.
+static const struct {
+    size_t nwords;
+    const char* entropy_hex;
+    const char* mnemonic;
+    const char* seed_hex;
+} BIP39_TEST_VECTORS[] = {
+    { 12, "00000000000000000000000000000000",
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+        "c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141"
+        "630c7a3c4ab7c81b2f001698e7463b04" },
+    { 15, "0000000000000000000000000000000000000000",
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
+        "abandon address",
+        "fa08713f46bf5cb48728ceb70e3aae1bc53c5cb7b4e29c5610261d1cbb7be3bed4d805256fec515754d2be35974fc5da678"
+        "168e9d9bb0cb70948026923b0def3" },
+    { 18, "000000000000000000000000000000000000000000000000",
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
+        "abandon abandon abandon abandon agent",
+        "035895f2f481b1b0f01fcf8c289c794660b289981a78f8106447707fdd9666ca06da5a9a565181599b79f53b844d8a71dd9"
+        "f439c52a3d7b3e8a79c906ac845fa" },
+    { 21, "00000000000000000000000000000000000000000000000000000000",
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
+        "abandon abandon abandon abandon abandon abandon abandon admit",
+        "e7dadc189d2e8d07ac278d9ec98a1d2d327e4a6b7df494c00cbf2cbf2d3543dac7000fc72d4ada8d9997dc8db388ff22c6"
+        "d79f604a7455f2df5534a28eee04c6" },
+    { 24, "0000000000000000000000000000000000000000000000000000000000000000",
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon "
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+        "bda85446c68413707090a52022edd26a1c9462295029f2e60cd7c4f2bbd3097170af7a4d73245cafa9c3cca8d561a7c3de6"
+        "f5d4a10be8ed2a5e608d68f92fcc8" },
+};
 static const char SERVICE_PATH_HEX[] = "00c9678fbd9d9f6a96bd43221d56733b5aba8f528487602b894e72d0f56e380f7d145b65639db7e"
                                        "e4f528a3fcfb8277b0cbbea00ef64767a531e9a447cacbfbc";
 
@@ -40,8 +75,8 @@ static const char SERVICE_PATH_HEX[] = "00c9678fbd9d9f6a96bd43221d56733b5aba8f52
 // (Payload data is padded to next multiple of 16, and is concatenated between iv and hmac)
 // 16 (iv) + 208 (length of data stored (78 (key) + 64 (ga path) + 64 (blinding key)) padded to next 16x) + 32 (hmac)
 static const size_t FULL_KEY_BLOBLEN = 256;
-// 16 (iv) + 32 (12-word entropy (16) padded to next 16x) + 32 (hmac)
-static const size_t MNEMONIC_12_ENTROPY_BLOBLEN = 80;
+// 16 (iv) + 32 (12- to 21-word entropy padded to next 16x) + 32 (hmac)
+static const size_t MNEMONIC_SHORT_ENTROPY_BLOBLEN = 80;
 // 16 (iv) + 48 (24-word entropy (32) padded to next 16x) + 32 (hmac)
 static const size_t MNEMONIC_24_ENTROPY_BLOBLEN = 96;
 
@@ -153,8 +188,46 @@ static bool test_simple_restore(void)
     return true;
 }
 
-// Generate new mnemonics/wallets
-// NOTE: only 12- and 24- words supported
+static bool test_bip39_vectors(void)
+{
+    for (size_t i = 0; i < sizeof(BIP39_TEST_VECTORS) / sizeof(BIP39_TEST_VECTORS[0]); ++i) {
+        const size_t expected_entropy_len = jade_bip39_entropy_len_from_word_count(BIP39_TEST_VECTORS[i].nwords);
+        uint8_t entropy[BIP39_ENTROPY_LEN_256] = { 0 };
+        size_t entropy_len = 0;
+        if (!expected_entropy_len
+            || wally_hex_to_bytes(BIP39_TEST_VECTORS[i].entropy_hex, entropy, sizeof(entropy), &entropy_len) != WALLY_OK
+            || entropy_len != expected_entropy_len) {
+            FAIL();
+        }
+
+        char* mnemonic = NULL;
+        if (bip39_mnemonic_from_bytes(NULL, entropy, entropy_len, &mnemonic) != WALLY_OK || !mnemonic
+            || strcmp(mnemonic, BIP39_TEST_VECTORS[i].mnemonic) || !jade_bip39_mnemonic_validate(mnemonic)) {
+            if (mnemonic) {
+                WALLY_FREE_STR(mnemonic);
+            }
+            FAIL();
+        }
+
+        uint8_t seed[BIP39_SEED_LEN_512];
+        size_t seed_len = 0;
+        uint8_t expected_seed[BIP39_SEED_LEN_512];
+        size_t expected_seed_len = 0;
+        if (bip39_mnemonic_to_seed(mnemonic, "TREZOR", seed, sizeof(seed), &seed_len) != WALLY_OK
+            || wally_hex_to_bytes(
+                   BIP39_TEST_VECTORS[i].seed_hex, expected_seed, sizeof(expected_seed), &expected_seed_len)
+                != WALLY_OK
+            || seed_len != sizeof(seed) || expected_seed_len != sizeof(expected_seed)
+            || sodium_memcmp(seed, expected_seed, sizeof(seed))) {
+            WALLY_FREE_STR(mnemonic);
+            FAIL();
+        }
+        WALLY_FREE_STR(mnemonic);
+    }
+    return true;
+}
+
+// Generate new mnemonics/wallets.
 static bool test_new_wallets(const size_t nwords)
 {
     char* mnemonic;
@@ -316,7 +389,6 @@ static bool test_storage_with_pin(jade_process_t* process)
 }
 
 // Test storing mnemonic entropy in storage, and deriving wallet with passphrase when reloading
-// NOTE: only 12- and 24- words supported
 static bool test_storage_with_passphrase(jade_process_t* process, const size_t nwords)
 {
     JADE_ASSERT(process);
@@ -354,7 +426,7 @@ static bool test_storage_with_passphrase(jade_process_t* process, const size_t n
     if (!storage_get_encrypted_blob(blob, sizeof(blob), &blob_len)) {
         FAIL();
     }
-    const size_t expected_blob_len = nwords == 12 ? MNEMONIC_12_ENTROPY_BLOBLEN : MNEMONIC_24_ENTROPY_BLOBLEN;
+    const size_t expected_blob_len = nwords == 24 ? MNEMONIC_24_ENTROPY_BLOBLEN : MNEMONIC_SHORT_ENTROPY_BLOBLEN;
     if (blob_len != expected_blob_len) {
         FAIL();
     }
@@ -1536,12 +1608,17 @@ bool debug_selfcheck(jade_process_t* process)
         FAIL();
     }
 
-    // Check 12- and 24-word mnemonic generation, with and without passphrase
-    if (!test_new_wallets(12)) {
+    // Check fixed vectors for every standard BIP39 mnemonic length.
+    if (!test_bip39_vectors()) {
         FAIL();
     }
-    if (!test_new_wallets(24)) {
-        FAIL();
+
+    // Check mnemonic generation, with and without passphrase.
+    static const size_t mnemonic_word_counts[] = { 12, 15, 18, 21, 24 };
+    for (size_t i = 0; i < sizeof(mnemonic_word_counts) / sizeof(mnemonic_word_counts[0]); ++i) {
+        if (!test_new_wallets(mnemonic_word_counts[i])) {
+            FAIL();
+        }
     }
 
     // Test can write and read-back key data from storage
@@ -1551,11 +1628,10 @@ bool debug_selfcheck(jade_process_t* process)
     }
 
     // Test save/load when using passphrase
-    if (!test_storage_with_passphrase(process, 12)) {
-        FAIL();
-    }
-    if (!test_storage_with_passphrase(process, 24)) {
-        FAIL();
+    for (size_t i = 0; i < sizeof(mnemonic_word_counts) / sizeof(mnemonic_word_counts[0]); ++i) {
+        if (!test_storage_with_passphrase(process, mnemonic_word_counts[i])) {
+            FAIL();
+        }
     }
 
     // Test multisig file import/export

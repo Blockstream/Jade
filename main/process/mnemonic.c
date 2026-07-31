@@ -35,7 +35,9 @@ typedef enum { MNEMONIC_SIMPLE, MNEMONIC_ADVANCED, WORDLIST_PASSPHRASE } wordlis
 gui_activity_t* make_mnemonic_setup_type_activity(void);
 gui_activity_t* make_mnemonic_setup_method_activity(bool advanced);
 gui_activity_t* make_new_mnemonic_activity(void);
+gui_activity_t* make_new_mnemonic_more_activity(void);
 gui_activity_t* make_restore_mnemonic_activity(bool temporary_restore);
+gui_activity_t* make_restore_mnemonic_more_activity(bool temporary_restore);
 
 void make_show_mnemonic_activities(gui_activity_t** first_activity_ptr, gui_activity_t** last_activity_ptr,
     const char* mnemonic, uint16_t word_offs[], size_t nwords);
@@ -77,16 +79,15 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
         return true;
     }
 
-    // CompactSeedQR is simply the mnemonic entropy
-    // Only 12 or 24 word mnemonics are supported (ie. 128 & 256 bit entropy)
+    // CompactSeedQR is simply the mnemonic entropy.
     size_t entropy_len = 0;
-    uint8_t entropy[BIP32_ENTROPY_LEN_256]; // Sufficient for 12 and 24 words
+    uint8_t entropy[BIP39_ENTROPY_LEN_256];
     JADE_WALLY_VERIFY(bip39_mnemonic_to_bytes(NULL, mnemonic, entropy, sizeof(entropy), &entropy_len));
-    JADE_ASSERT(entropy_len == BIP32_ENTROPY_LEN_128 || entropy_len == BIP32_ENTROPY_LEN_256);
+    JADE_ASSERT(jade_bip39_word_count_from_entropy_len(entropy_len));
 
     // Convert the entropy into a small (v1 or v2) qr-code
     QRCode qrcode;
-    const uint8_t qrcode_version = entropy_len == BIP32_ENTROPY_LEN_128 ? 1 : 2;
+    const uint8_t qrcode_version = entropy_len == BIP39_ENTROPY_LEN_128 ? 1 : 2;
     uint8_t qrbuffer[96]; // underlying qrcode data/work area - opaque
     JADE_ASSERT(sizeof(qrbuffer) > qrcode_getBufferSize(qrcode_version));
     const int qret = qrcode_initBytes(&qrcode, qrbuffer, qrcode_version, ECC_LOW, entropy, entropy_len);
@@ -259,8 +260,7 @@ static void change_mnemonic_word_separator(char* mnemonic, const size_t len, con
 // NOTE: this function replaces spaces with \0's in the passed mnemonic!
 static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
 {
-    // Support 12-word and 24-word mnemonics only
-    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(jade_bip39_word_count_valid(nwords));
     JADE_ASSERT(mnemonic);
 
     // Show the warning banner screen, user to confirm
@@ -273,7 +273,7 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
     }
 
     // Change the word separator to a null so we can treat each word as a terminated string.
-    uint16_t word_offs[MNEMONIC_MAXWORDS]; // large enough for 12 and 24 word mnemonic
+    uint16_t word_offs[MNEMONIC_MAXWORDS];
     change_mnemonic_word_separator(mnemonic, mnemonic_len, ' ', '\0', word_offs, nwords);
     bool mnemonic_confirmed = false;
 
@@ -319,13 +319,13 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
 
             // Pick some other words from the mnemonic as options, but avoid
             // the words currently displayed on screen (neighbouring words).
-            // Large enough for 12 and 24 word mnemonic
+            // Large enough for any standard BIP39 mnemonic.
             bool already_picked[MNEMONIC_MAXWORDS] = { false };
             already_picked[i] = true;
             already_picked[i + 1] = true;
             already_picked[i + 2] = true;
 
-            // Large enough for 12 and 24 word mnemonic
+            // Large enough for any standard BIP39 mnemonic.
             // (Only really needs to be as big as 'num_words_options' so MAXWORDS is plenty)
             size_t random_words[MNEMONIC_MAXWORDS] = { 0 };
             random_words[0] = selected;
@@ -392,8 +392,7 @@ cleanup:
 // NOTE: only the English wordlist is supported.
 static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemonic_len)
 {
-    // Support 12-word and 24-word mnemonics only
-    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(jade_bip39_word_count_valid(nwords));
     JADE_ASSERT(mnemonic);
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
@@ -572,7 +571,7 @@ static size_t valid_final_words(const char** mnemonic_words, const size_t num_mn
     size_t* possible_word_list, const size_t possible_word_list_len)
 {
     JADE_ASSERT(mnemonic_words);
-    JADE_ASSERT(num_mnemonic_words == 11 || num_mnemonic_words == 23);
+    JADE_ASSERT(jade_bip39_word_count_valid(num_mnemonic_words + 1));
     JADE_ASSERT(possible_word_list);
     JADE_ASSERT(possible_word_list_len);
 
@@ -616,9 +615,8 @@ static size_t get_wordlist_words(
     JADE_ASSERT(output);
     JADE_ASSERT(output_len >= (8 + 1) * nwords); // words plus trailing space
 
-    // Only 12 and 24 word mnemonics are supported
     const bool is_mnemonic = (purpose == MNEMONIC_SIMPLE) || (purpose == MNEMONIC_ADVANCED);
-    JADE_ASSERT(nwords == 12 || nwords == 24 || !is_mnemonic);
+    JADE_ASSERT(jade_bip39_word_count_valid(nwords) || !is_mnemonic);
 
     gui_view_node_t* btns[26] = {};
     const size_t btns_len = sizeof(btns) / sizeof(btns[0]);
@@ -670,7 +668,8 @@ static size_t get_wordlist_words(
                         num_filter_words
                             = valid_final_words(wordlist_words, word_index, final_words, MAX_NUM_FINAL_WORDS);
                         p_filter_words = final_words;
-                        JADE_ASSERT(num_filter_words == (nwords == 12 ? 128 : 8)); // expected due to checksum bits
+                        const size_t checksum_bits = nwords / 3;
+                        JADE_ASSERT(num_filter_words == (1U << (11 - checksum_bits)));
 
                         // When we select from the valid words, randomise the initally selected word
                         random_first_selection_word = true;
@@ -881,8 +880,7 @@ static size_t get_wordlist_words(
 // NOTE: only the English wordlist is supported.
 static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char* mnemonic, const size_t mnemonic_len)
 {
-    // Support 12-word and 24-word mnemonics only
-    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(jade_bip39_word_count_valid(nwords));
     JADE_ASSERT(mnemonic);
     JADE_ASSERT(mnemonic_len == MNEMONIC_BUFLEN);
 
@@ -894,7 +892,7 @@ static bool mnemonic_recover(const size_t nwords, const bool advanced_mode, char
         return false;
     }
 
-    if (words_entered != nwords || bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
+    if (words_entered != nwords || !jade_bip39_mnemonic_validate(mnemonic)) {
         // Invalid mnemonic entered
         JADE_LOGW("Invalid mnemonic entered");
         await_error("Invalid recovery phrase");
@@ -1008,8 +1006,12 @@ static bool import_seedqr(
 
     JADE_ASSERT(bytes[bytes_len] == '\0');
 
-    // Must be a string of appropriate length and all digits
-    if ((bytes_len != 48 && bytes_len != 96) || !string_all((const char*)bytes, isdigit)) {
+    // Must be a string of four-digit word indices for a standard BIP39 word count.
+    if (bytes_len % 4 != 0 || !string_all((const char*)bytes, isdigit)) {
+        return false;
+    }
+    const size_t num_words = bytes_len / 4;
+    if (!jade_bip39_word_count_valid(num_words)) {
         return false;
     }
 
@@ -1019,7 +1021,6 @@ static bool import_seedqr(
     index_code[4] = '\0';
 
     size_t write_pos = 0;
-    const size_t num_words = bytes_len == 48 ? 12 : 24;
     for (size_t i = 0; i < num_words; ++i) {
         memcpy(index_code, bytes + (i * 4), 4);
         const size_t index = strtol(index_code, NULL, 10);
@@ -1065,8 +1066,8 @@ static bool import_compactseedqr(
     JADE_ASSERT(buf_len);
     JADE_INIT_OUT_SIZE(written);
 
-    // Any buffer of appropriate length will work as a compactseedqr as it's just raw entropy
-    if ((bytes_len != BIP32_ENTROPY_LEN_128 && bytes_len != BIP32_ENTROPY_LEN_256)) {
+    // Any standard BIP39 entropy length works as CompactSeedQR raw entropy.
+    if (!jade_bip39_word_count_from_entropy_len(bytes_len)) {
         return false;
     }
 
@@ -1121,7 +1122,7 @@ bool import_and_validate_mnemonic(qr_data_t* qr_data)
     size_t written = 0;
     bool ret;
     if (import_mnemonic(qr_data->data, qr_data->len, mnemonic, sizeof(mnemonic), &written)
-        && bip39_mnemonic_validate(NULL, mnemonic) == WALLY_OK) {
+        && jade_bip39_mnemonic_validate(mnemonic)) {
         JADE_ASSERT(written);
         JADE_ASSERT(written <= sizeof(mnemonic));
         JADE_ASSERT(mnemonic[written - 1] == '\0');
@@ -1302,7 +1303,12 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     } else {
         // Initial welcome screen, or straight to 'recovery' screen if doing temporary restore
         if (temporary_restore) {
+#ifdef CONFIG_HAS_CAMERA
+            // Prefer the page containing Scan QR, while keeping all manual lengths accessible.
+            act = make_restore_mnemonic_more_activity(temporary_restore);
+#else
             act = make_restore_mnemonic_activity(temporary_restore);
+#endif
         } else {
             const char* message[] = { "For setup instructions", "visit blockstream.com/", "jade" };
             if (await_continueback_activity(NULL, message, 3, true, "blkstrm.com/jade")) {
@@ -1359,13 +1365,33 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
                 act = make_new_mnemonic_activity();
                 continue;
 
+            case BTN_NEW_MNEMONIC_MORE:
+                act = make_new_mnemonic_more_activity();
+                continue;
+
             case BTN_RESTORE_MNEMONIC:
                 act = make_restore_mnemonic_activity(temporary_restore);
+                continue;
+
+            case BTN_RESTORE_MNEMONIC_MORE:
+                act = make_restore_mnemonic_more_activity(temporary_restore);
                 continue;
 
             // Await user mnemonic entry/confirmation
             case BTN_NEW_MNEMONIC_12:
                 got_mnemonic = mnemonic_new(12, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_NEW_MNEMONIC_15:
+                got_mnemonic = mnemonic_new(15, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_NEW_MNEMONIC_18:
+                got_mnemonic = mnemonic_new(18, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_NEW_MNEMONIC_21:
+                got_mnemonic = mnemonic_new(21, mnemonic, sizeof(mnemonic));
                 break;
 
             case BTN_NEW_MNEMONIC_24:
@@ -1374,6 +1400,18 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
 
             case BTN_RESTORE_MNEMONIC_12:
                 got_mnemonic = mnemonic_recover(12, advanced_mode, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_RESTORE_MNEMONIC_15:
+                got_mnemonic = mnemonic_recover(15, advanced_mode, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_RESTORE_MNEMONIC_18:
+                got_mnemonic = mnemonic_recover(18, advanced_mode, mnemonic, sizeof(mnemonic));
+                break;
+
+            case BTN_RESTORE_MNEMONIC_21:
+                got_mnemonic = mnemonic_recover(21, advanced_mode, mnemonic, sizeof(mnemonic));
                 break;
 
             case BTN_RESTORE_MNEMONIC_24:
@@ -1396,7 +1434,7 @@ void initialise_with_mnemonic(const bool temporary_restore, const bool force_qr_
     // a. newly created mnemonics should always be valid
     // b. restore by kb-entry includes explicit validation
     // c. qr-scanner includes a validation check before returning the scanned mnemonic
-    if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
+    if (!jade_bip39_mnemonic_validate(mnemonic)) {
         JADE_LOGE("Invalid mnemonic unexpected");
         await_error("Invalid recovery phrase");
         goto cleanup;
