@@ -33,6 +33,12 @@ actual mixed trade anger aisle',
     abandon abandon abandon abandon cactus'
 })
 
+# Seeds used in tests
+seeds = SimpleNamespace(**{
+    # Default singlesig seed
+    'singlesig': 'b90e532426d0dc20fffe01037048c018e940300038b165c211915c672e07762c'
+})
+
 
 _jade_config = None  # Global jade config for the connected Jade being tested
 

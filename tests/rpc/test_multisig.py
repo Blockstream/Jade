@@ -341,16 +341,21 @@ def test_generic_multisig_matches_ga_signatures_liquid(jade, test_case):
 
 
 @pytest.mark.mnemonic(mnemonics.invalidatecache)
+@pytest.mark.seed(seeds.singlesig)
 @with_test_cases('tests/rpc/data/multisig/multisig_reg_ss_*.json')
-def test_generic_multisig_ss_signer(jade, test_case):
+def test_generic_multisig_ss_signer(jade, mnemonic, test_case):
     """
     Register multisig wallets again - this checks that a second user from the multisig
     gets the same receive-address.  ie. in the tests 'multisig_reg_ss' the 'single sig'
     signer is also in the multisig, so we can check it from this signer also.
     """
-    # Load anothe seed for this test and invalidate mnemonic cache
-    rslt = jade.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
-    assert rslt is True
+    # set_seed() starts with clean_reset(), which removes all registrations.
+    # Recreate this wallet under the main signer, then switch to the singlesig
+    # signer without resetting so that we can exercise cross-wallet access.
+    assert jade.set_mnemonic(mnemonics.default)
+    _check_multisig_registration(jade, test_case)
+    assert jade.set_seed(bytes.fromhex(TEST_SEED_SINGLE_SIG))
+
     # Test trying to access the multisig description registered under the
     # main test mnemonic fails (as must be registered by accessing wallet)
     inputdata = test_case['input']

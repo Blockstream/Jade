@@ -62,6 +62,20 @@ class JadeConfig:
             rslt = self.jade.set_mnemonic(mnemonic)
             assert rslt is True
             self.current_mnemonic = mnemonic
+            # invalidate seed
+            self.current_seed = None
+        time.sleep(1)
+
+    def set_seed(self, seed):
+        """Set the current Jade seed."""
+        # reset the jade
+        rslt = self.jade.clean_reset()
+        assert rslt is True
+        # set seed
+        rslt = self.jade.set_seed(bytes.fromhex(seed))
+        assert rslt is True
+        # invalidate mnemonic
+        self.current_mnemonic = None
         time.sleep(1)
 
     def disconnect(self):
@@ -144,6 +158,8 @@ def pytest_configure(config):
     # pytest: global test initialization
     config.addinivalue_line('markers',
                             'mnemonic(value): set a custom Jade mnemonic before the test')
+    config.addinivalue_line('markers',
+                            'seed(value): set a custom Jade seed before the test')
     set_jade_config(JadeConfig(config))
     _remove_pin_files()
 
@@ -158,6 +174,12 @@ def pytest_unconfigure(config):
 def _get_test_mnemonic(item):
     """Helper to fetch the mnemonic used by a test_ function."""
     marker = item.get_closest_marker('mnemonic')
+    return marker.args[0] if marker and marker.args else ''
+
+
+def _get_test_seed(item):
+    """Helper to fetch the seed used by a test_ function."""
+    marker = item.get_closest_marker('seed')
     return marker.args[0] if marker and marker.args else ''
 
 
@@ -184,5 +206,9 @@ def mnemonic(request):
        and give the mnemonic to use as a pytest mark, e.g.:
        @pytest.mark.mnemonic(mnemonics.singlesig)
     """
-    m = _get_test_mnemonic(request.node) or mnemonics.default
-    get_jade_config().jade.set_mnemonic(m)
+    s = _get_test_seed(request.node)
+    if s == '':  # no seed, set mnemonic
+        m = _get_test_mnemonic(request.node) or mnemonics.default
+        get_jade_config().jade.set_mnemonic(m)
+    else:  # if there is seed ignore mnemonic and set seed
+        get_jade_config().set_seed(s)
