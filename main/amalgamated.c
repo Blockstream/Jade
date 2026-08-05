@@ -28,6 +28,7 @@ void __wrap_abort(void);
 #include "./assets.c"
 #include "./attestation/attestation.c"
 #include "./bcur.c"
+#include "./bip39.c"
 #ifdef CONFIG_BT_ENABLED
 #include "./ble/ble.c"
 #endif // CONFIG_BT_ENABLED

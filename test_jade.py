@@ -255,6 +255,16 @@ demand stereo wedding olive'
 TEST_MNEMONIC_12_IDENTITY = 'alcohol woman abuse must during monitor noble \
 actual mixed trade anger aisle'
 
+# Fixed vectors covering every standard BIP39 mnemonic length.  The numeric
+# and compact forms represent the same zero-filled entropy as each phrase.
+STANDARD_BIP39_TEST_VECTORS = [
+    (' '.join(['abandon'] * 11 + ['about']), '0000' * 11 + '0003', bytes(16)),
+    (' '.join(['abandon'] * 14 + ['address']), '0000' * 14 + '0027', bytes(20)),
+    (' '.join(['abandon'] * 17 + ['agent']), '0000' * 17 + '0039', bytes(24)),
+    (' '.join(['abandon'] * 20 + ['admit']), '0000' * 20 + '0029', bytes(28)),
+    (' '.join(['abandon'] * 23 + ['art']), '0000' * 23 + '0102', bytes(32)),
+]
+
 # Seedsigner's own test vectors
 # See: https://github.com/SeedSigner/seedsigner/blob/dev/docs/seed_qr/README.md
 SEEDSIGNER_MNEMONIC_TEST_VECTORS = [
@@ -2262,6 +2272,15 @@ def test_mnemonic_import(jade):
     assert xpub_root2 == xpub_root0
     assert xpub_root3 == xpub_root0
 
+    # Check all standard BIP39 lengths as text, SeedQR word indices and
+    # CompactSeedQR entropy.
+    for mnemonic, seedqr, compactseedqr in STANDARD_BIP39_TEST_VECTORS:
+        xpub_root0 = _set_wallet(jade, mnemonic=mnemonic)
+        xpub_root1 = _set_wallet(jade, mnemonic=seedqr)
+        xpub_root2 = _set_wallet(jade, mnemonic=compactseedqr)
+        assert xpub_root1 == xpub_root0
+        assert xpub_root2 == xpub_root0
+
     # Check that mnemonic-prefixes are accepted even if they are prefixes to multiple
     # words, provided one of them is an exact/full match for the entire word.
     # eg. 'pen' is a prefix to 'pen', 'penalty' and 'pencil' - but is accepted as it
@@ -2302,6 +2321,9 @@ def test_mnemonic_import_bad(jade):
         TEST_MNEMONIC_BCUR_BIP39_TOO_FEW,        # too few words
         TEST_MNEMONIC_BCUR_BIP39_LONG_WORD,      # word too long
         TEST_MNEMONIC_BCUR_BIP39_EMPTY_WORD,     # empty word
+        # libwally extensions outside the standard BIP39 entropy range
+        wally.bip39_mnemonic_from_bytes(None, bytes(36)),
+        wally.bip39_mnemonic_from_bytes(None, bytes(40)),
     ]
     for i, bad_mnemonic in enumerate(bad_mnemonics):
         request = jade.build_request('badmnemonic_' + str(i), 'debug_set_mnemonic',

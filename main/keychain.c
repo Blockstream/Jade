@@ -1,6 +1,7 @@
 #ifndef AMALGAMATED_BUILD
 #include "keychain.h"
 #include "aes.h"
+#include "bip39.h"
 #include "jade_assert.h"
 #include "jade_wally_verify.h"
 #include "random.h"
@@ -194,8 +195,7 @@ void keychain_cache_mnemonic_entropy(const char* mnemonic)
     JADE_WALLY_VERIFY(
         bip39_mnemonic_to_bytes(NULL, mnemonic, mnemonic_entropy, sizeof(mnemonic_entropy), &mnemonic_entropy_len));
 
-    // Only 12 or 24 word mnemonics are supported
-    JADE_ASSERT(mnemonic_entropy_len == BIP39_ENTROPY_LEN_128 || mnemonic_entropy_len == BIP39_ENTROPY_LEN_256);
+    JADE_ASSERT(jade_bip39_word_count_from_entropy_len(mnemonic_entropy_len));
 }
 
 // Clear the network type restriction
@@ -270,14 +270,13 @@ void keychain_get_new_mnemonic(char** mnemonic, const size_t nwords)
 {
     JADE_INIT_OUT_PPTR(mnemonic);
 
-    // Support 12-word and 24-word mnemonics only
-    JADE_ASSERT(nwords == 12 || nwords == 24);
+    JADE_ASSERT(jade_bip39_word_count_valid(nwords));
 
-    // Large enough for 12 and 24 word mnemonic
+    // Large enough for any standard BIP39 mnemonic.
     uint8_t entropy[BIP39_ENTROPY_LEN_256];
     SENSITIVE_PUSH(entropy, sizeof(entropy));
 
-    const size_t entropy_len = nwords == 12 ? BIP39_ENTROPY_LEN_128 : BIP39_ENTROPY_LEN_256;
+    const size_t entropy_len = jade_bip39_entropy_len_from_word_count(nwords);
     get_random(entropy, entropy_len);
     const int wret = bip39_mnemonic_from_bytes(NULL, entropy, entropy_len, mnemonic);
     SENSITIVE_POP(entropy);
@@ -328,8 +327,8 @@ bool keychain_derive_from_mnemonic(const char* mnemonic, const char* passphrase,
         }
     }
 
-    // Mnemonic must be valid
-    if (bip39_mnemonic_validate(NULL, mnemonic) != WALLY_OK) {
+    // Mnemonic must have a valid checksum and a standard BIP39 word count.
+    if (!jade_bip39_mnemonic_validate(mnemonic)) {
         JADE_LOGE("Invalid mnemonic");
         return false;
     }
@@ -557,8 +556,7 @@ bool keychain_store(const uint8_t* aeskey, const size_t aeslen)
     // 1. Get serialised data to encrypt/persist
     if (mnemonic_entropy_len) {
         // Use mnemonic entropy
-        // Only 12 or 24 word mnemonics are supported
-        JADE_ASSERT(mnemonic_entropy_len == BIP39_ENTROPY_LEN_128 || mnemonic_entropy_len == BIP39_ENTROPY_LEN_256);
+        JADE_ASSERT(jade_bip39_word_count_from_entropy_len(mnemonic_entropy_len));
         JADE_ASSERT(mnemonic_entropy_len <= sizeof(mnemonic_entropy));
         JADE_ASSERT(mnemonic_entropy_len < sizeof(serialized));
         p_serialized_data = mnemonic_entropy;
@@ -613,8 +611,8 @@ bool keychain_load(const uint8_t* aeskey, const size_t aeslen)
     }
 
     // 2. Cache mnemonic entropy or deserialise keychain
-    if (serialized_data_len == BIP39_ENTROPY_LEN_128 || serialized_data_len == BIP39_ENTROPY_LEN_256) {
-        // Write mnemonic entropy - only 12 or 24 word mnemonics are supported
+    if (jade_bip39_word_count_from_entropy_len(serialized_data_len)) {
+        // Write mnemonic entropy.
         memcpy(mnemonic_entropy, serialized, serialized_data_len);
         mnemonic_entropy_len = serialized_data_len;
     } else if (serialized_data_len == SERIALIZED_KEY_LEN) {
