@@ -4,6 +4,7 @@
 #include "libjade_port.h"
 #include <limits.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
@@ -35,12 +36,79 @@ static pthread_cond_t* _get_task_cond(void)
 }
 
 #define MAX_WAITERS 32
-static pthread_mutex_t _waiter_mutex = PTHREAD_MUTEX_INITIALIZER;
-static struct {
+typedef enum {
+    WAITER_STATE_RUNNING, // registered, not currently blocked in vTaskDelay(portMAX_DELAY)
+    WAITER_STATE_WAITING, // blocked in pthread_cond_wait
+} waiter_state_t;
+
+typedef struct {
     pthread_t tid;
-    pthread_cond_t* cond;
-} _waiters[MAX_WAITERS];
-static size_t _waiter_count = 0;
+    pthread_cond_t* cond; // non-NULL only while WAITING
+    bool delete_requested; // vTaskDelete() was requested for this thread
+    waiter_state_t state;
+} waiter_t;
+
+static pthread_mutex_t _libjade_waiter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static waiter_t _libjade_waiters[MAX_WAITERS];
+static size_t _libjade_num_waiters = 0;
+
+static bool _waiter_find(pthread_mutex_t* mutex, const pthread_t tid, size_t* index)
+{
+    // 'mutex' must be held by the caller
+    (void)mutex;
+    JADE_ASSERT(index);
+
+    for (size_t i = 0; i < _libjade_num_waiters; i++) {
+        if (pthread_equal(_libjade_waiters[i].tid, tid)) {
+            *index = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+// remove any waiter registry entry for the given thread
+static void _waiter_remove(pthread_mutex_t* mutex, const pthread_t tid)
+{
+    // 'mutex' must be held by the caller
+    (void)mutex;
+    size_t waiter_index = 0;
+    if (_waiter_find(mutex, tid, &waiter_index)) {
+        _libjade_waiters[waiter_index] = _libjade_waiters[--_libjade_num_waiters];
+    }
+}
+
+// register the calling thread's waiter entry
+static waiter_t* _waiter_register_self(pthread_mutex_t* mutex, const pthread_t tid)
+{
+    // 'mutex' must be held by the caller
+    (void)mutex;
+    size_t waiter_index = 0;
+    if (_waiter_find(mutex, tid, &waiter_index)) {
+        return &_libjade_waiters[waiter_index];
+    }
+    JADE_ASSERT(_libjade_num_waiters < MAX_WAITERS);
+    waiter_t* w = &_libjade_waiters[_libjade_num_waiters++];
+    w->tid = tid;
+    w->cond = NULL;
+    w->delete_requested = false;
+    w->state = WAITER_STATE_RUNNING;
+    return w;
+}
+
+// TLS destructor: remove any waiter registry entry for this thread when it exits,
+// regardless of the exit path
+static void _waiter_cleanup(void* p)
+{
+    (void)p;
+    pthread_mutex_lock(&_libjade_waiter_mutex);
+    _waiter_remove(&_libjade_waiter_mutex, pthread_self());
+    pthread_mutex_unlock(&_libjade_waiter_mutex);
+}
+
+static pthread_key_t _waiter_cleanup_key;
+static pthread_once_t _waiter_cleanup_key_once = PTHREAD_ONCE_INIT;
+static void _waiter_cleanup_key_init(void) { pthread_key_create(&_waiter_cleanup_key, _waiter_cleanup); }
 
 // HW: TLS/Sensitive
 static void* _tls_ptrs[3];
@@ -81,15 +149,33 @@ typedef struct {
 
 void* pthread_shim_func(void* arg)
 {
+    // extract function and argument from the shim args
     pthread_shim_args_t* args = (pthread_shim_args_t*)arg;
+    JADE_ASSERT(args && args->func && args->name);
     TaskFunction_t func = args->func;
     void* func_arg = args->arg;
 
-    JADE_ASSERT(args->name);
+    // set the thread name for debugging purposes
     libjade_thread_setname(args->name);
     free(args->name);
     free(args);
+
+    // arm TLS cleanup so any waiter registry entry for this thread is removed
+    // when it exits, on any exit path (normal return or pthread_exit()).
+    pthread_once(&_waiter_cleanup_key_once, _waiter_cleanup_key_init);
+    pthread_setspecific(_waiter_cleanup_key, (void*)1);
+
+    // register this thread in the waiter registry so vTaskDelete() can find it
+    pthread_mutex_lock(&_libjade_waiter_mutex);
+    _waiter_register_self(&_libjade_waiter_mutex, pthread_self());
+    pthread_mutex_unlock(&_libjade_waiter_mutex);
+
     func(func_arg);
+
+    // remove the registry entry
+    pthread_mutex_lock(&_libjade_waiter_mutex);
+    _waiter_remove(&_libjade_waiter_mutex, pthread_self());
+    pthread_mutex_unlock(&_libjade_waiter_mutex);
     return NULL;
 }
 
@@ -167,20 +253,28 @@ void vTaskDelay(TickType_t delay)
     if (delay == portMAX_DELAY) {
         pthread_cond_t* cond = _get_task_cond();
         const pthread_t self = pthread_self();
-        pthread_mutex_lock(&_waiter_mutex);
-        JADE_ASSERT(_waiter_count < MAX_WAITERS);
-        _waiters[_waiter_count].tid = self;
-        _waiters[_waiter_count].cond = cond;
-        _waiter_count++;
-        pthread_cond_wait(cond, &_waiter_mutex);
-        // remove self from registry
-        for (size_t i = 0; i < _waiter_count; i++) {
-            if (pthread_equal(_waiters[i].tid, self)) {
-                _waiters[i] = _waiters[--_waiter_count];
-                break;
-            }
+        pthread_mutex_lock(&_libjade_waiter_mutex);
+        // arm TLS cleanup so this thread's entry is removed on *any* exit
+        // path (this also covers threads not created via pthread_shim_func)
+        pthread_once(&_waiter_cleanup_key_once, _waiter_cleanup_key_init);
+        pthread_setspecific(_waiter_cleanup_key, (void*)1);
+        waiter_t* w = _waiter_register_self(&_libjade_waiter_mutex, self);
+        if (w->delete_requested) {
+            // delete was already requested for this thread (see vTaskDelete) so exit
+            // without waiting
+            _waiter_remove(&_libjade_waiter_mutex, self);
+            pthread_mutex_unlock(&_libjade_waiter_mutex);
+            pthread_exit(NULL);
+            return;
         }
-        pthread_mutex_unlock(&_waiter_mutex);
+        w->cond = cond;
+        w->state = WAITER_STATE_WAITING;
+        while (!w->delete_requested) {
+            pthread_cond_wait(cond, &_libjade_waiter_mutex);
+        }
+        // Woken (delete requested): remove self from registry and exit.
+        _waiter_remove(&_libjade_waiter_mutex, self);
+        pthread_mutex_unlock(&_libjade_waiter_mutex);
         // jade often uses vTaskDelay(portMAX_DELAY) in a loop so we need to exit the thread here
         pthread_exit(NULL);
         return;
@@ -208,14 +302,23 @@ void vTaskDelete(void* task)
     if (task == NULL) {
         pthread_exit(NULL);
     } else {
-        pthread_mutex_lock(&_waiter_mutex);
-        for (size_t i = 0; i < _waiter_count; i++) {
-            if (pthread_equal(_waiters[i].tid, (pthread_t)task)) {
-                pthread_cond_signal(_waiters[i].cond);
-                break;
+        pthread_mutex_lock(&_libjade_waiter_mutex);
+        size_t waiter_index = 0;
+        if (_waiter_find(&_libjade_waiter_mutex, (pthread_t)task, &waiter_index)) {
+            waiter_t* w = &_libjade_waiters[waiter_index];
+            // mark the thread for deletion and signal it if WAITING.
+            // A waiting thread will wake and exit now, a running thread will exit
+            // when it next reaches vTaskDelay(portMAX_DELAY).
+            w->delete_requested = true;
+            if (w->state == WAITER_STATE_WAITING) {
+                // thread is currently blocked on its cond var so signal it to exit
+                JADE_ASSERT(w->cond != NULL);
+                pthread_cond_signal(w->cond);
+                w->cond = NULL;
+                w->state = WAITER_STATE_RUNNING;
             }
         }
-        pthread_mutex_unlock(&_waiter_mutex);
+        pthread_mutex_unlock(&_libjade_waiter_mutex);
     }
 }
 
