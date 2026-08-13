@@ -33,11 +33,11 @@
 
 // A genuine production v2 Jade may be awaiting mandatory attestation data
 #if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) && defined(CONFIG_SECURE_BOOT)                                              \
-    && defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS)
+    && defined(CONFIG_SECURE_BOOT_V2_ALLOW_EFUSE_RD_DIS) && !defined(CONFIG_JADE_FAKEPROD)
 #include "attestation/attestation.h"
 static inline bool awaiting_attestation_data(void) { return !attestation_initialised(); }
 #else
-// Jade v1.x and diy devices are never awaiting mandatory attestation data
+// Jade v1.x, diy, and fakeprod devices are never awaiting mandatory attestation data
 static inline bool awaiting_attestation_data(void) { return false; }
 #endif
 

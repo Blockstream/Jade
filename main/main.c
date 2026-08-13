@@ -108,7 +108,9 @@ static void ensure_boot_flags(void)
 #ifndef CONFIG_IDF_TARGET_ESP32S3
     esp_efuse_disable_basic_rom_console();
 #endif
+#ifndef CONFIG_JADE_FAKEPROD
     esp_efuse_disable_rom_download_mode();
+#endif
 #endif
 }
 

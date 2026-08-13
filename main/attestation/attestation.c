@@ -36,7 +36,7 @@
 #define JADE_ATTEST_EFUSE EFUSE_BLK_KEY5
 #define JADE_ATTEST_HMAC_EFUSE_ID (JADE_ATTEST_EFUSE - EFUSE_BLK_KEY0)
 
-#if defined(CONFIG_DEBUG_MODE) && !defined(CONFIG_SECURE_BOOT)
+#if defined(CONFIG_DEBUG_MODE) && (!defined(CONFIG_SECURE_BOOT) || defined(CONFIG_JADE_FAKEPROD))
 #define ALLOW_REINITIALISE 1
 #endif
 
@@ -48,6 +48,11 @@ static const char JADE_ATTEST_PARTITION_NAME[] = "attest";
 static const uint8_t ATTEST_PUBKEY_HASH[SHA256_LEN]
     = { 0x75, 0xd6, 0x18, 0x75, 0xde, 0x1a, 0x11, 0xa6, 0xab, 0x7c, 0xd0, 0xf9, 0xb8, 0x5c, 0x48, 0x2a, 0x35, 0x46,
           0xf4, 0xe0, 0xb5, 0xe6, 0x81, 0x62, 0x2a, 0x0c, 0xff, 0x7b, 0x1d, 0xca, 0xe4, 0x0f };
+#elif defined(CONFIG_JADE_FAKEPROD)
+// SHA256 of the fakeprod attestation authority pubkey pem (tools/fakeprod_attest.pem)
+static const uint8_t ATTEST_PUBKEY_HASH[SHA256_LEN]
+    = { 0xe1, 0x6a, 0x5a, 0xb6, 0xd9, 0x44, 0x4f, 0xa5, 0x20, 0x9f, 0x41, 0xf4, 0xaf, 0x77, 0xc6, 0x36, 0xfe, 0x36,
+          0xed, 0x95, 0x56, 0x4c, 0x72, 0xa2, 0x9b, 0xf4, 0xf7, 0xe5, 0x16, 0x37, 0x95, 0xbe };
 #endif
 
 // Data saved to (logically write-once) partition
@@ -150,7 +155,15 @@ static bool load_attestation_data(attestation_data_t* attestation_data)
     // Version - atm should always be 1
     uint8_t version = 0;
     READ_FIELD(&version, sizeof(version));
+
+#ifdef CONFIG_JADE_FAKEPROD
+    if (version != JADE_ATTEST_CURRENT_VERSION) {
+        JADE_LOGE("Attestation data unexpected version %u", version);
+        return false;
+    }
+#else
     JADE_ASSERT(version == JADE_ATTEST_CURRENT_VERSION);
+#endif
 
     // Read the encrypted attestation data struct
     READ_FIELD(attestation_data, sizeof(attestation_data_t));

@@ -6,6 +6,7 @@ CONFIG=""
 ARCH=""
 DEVELOPMENT=""
 NORADIO=""
+FAKEPROD=""
 CI=""
 LOG=""
 DEBUG=""
@@ -24,6 +25,7 @@ function usage {
     echo "WARNING: THIS SCRIPT IS FOR JADE DEVELOPMENT ONLY";
     echo "JADE OPTIONS:"
     echo "    --noradio    Disable Bluetooth support"
+    echo "    --fakeprod    Prod-like build with secureboot (implies --debug)"
     echo "    --log        Enable logging"
     echo "    --log-cbor   Enable CBOR logging messages over the serial API"
     echo "    --log-wifi   Enable text logging over WiFi"
@@ -69,6 +71,15 @@ function remove_config()
     sed -i "/^$REGEX/d" sdkconfig.defaults
 }
 
+function remove_config_if_present()
+{
+    # Remove config value if present: ignore if missing
+    REGEX="$1="
+    if grep -q "$REGEX" "sdkconfig.defaults"; then
+        sed -i "/^$REGEX/d" sdkconfig.defaults
+    fi
+}
+
 while true; do
     case "$1" in
         jade)       CONFIG=$1; ARCH="esp32"; shift ;;
@@ -78,6 +89,7 @@ while true; do
         qemu)       CONFIG=$1; ARCH="esp32"; shift ;;
         --dev)      DEVELOPMENT="y"; shift ;;
         --noradio)  NORADIO=1; shift ;;
+        --fakeprod)  FAKEPROD=1; shift ;;
         --ci)       CI="1"; shift ;;
         --log)      LOG=uart; shift ;;
         --log-cbor) LOG=cbor; shift ;;
@@ -111,6 +123,10 @@ else
     if [ -n "$PSRAM" ] || [ -n "$WEBDISPLAY" ]; then
         usage "--[psram|webdisplay|webdisplay-larger] must not be given for non-qemu"
     fi
+fi
+
+if [ -n "$FAKEPROD" ] && [ -n "$DEVELOPMENT" ]; then
+    usage "--fakeprod must not be given with --dev"
 fi
 
 # TODO: standardize the naming convention for prod/dev configs
@@ -245,6 +261,10 @@ if [ -n "$JTAG" ]; then
     set_config CONFIG_JADE_USE_USB_JTAG_SERIAL y
     set_config CONFIG_LIBC_STDIN_LINE_ENDING_LF y
     set_config CONFIG_LIBC_STDOUT_LINE_ENDING_LF y
+    # setting present on PROD configs but not on DEV configs
+    remove_config_if_present CONFIG_ESP_CONSOLE_NONE
+    set_config CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG y
+    remove_config_if_present CONFIG_USJ_ENABLE_USB_SERIAL_JTAG
 fi
 if [ -n "$PSRAM" ]; then
     echo "updating config file for PSRAM support ..."
@@ -284,6 +304,35 @@ fi
 if [ -n "$UNAMALGAMATED" ]; then
     echo "updating config file for unamalgamated build ..."
     set_config CONFIG_AMALGAMATED_BUILD n
+fi
+if [ -n "$FAKEPROD" ]; then
+    echo "updating config file for fakeprod build ..."
+    # Sign with the non-secret fakeprod key so the unit can always
+    # be re-flashed with newly-signed firmware. A single signature is accepted
+    # (CONFIG_SECURE_BOOT_V2_MIN_SIGNATURES=1).
+    SIGNING_KEY="tools/fakeprod_v2.pem"
+    if [ ! -f "$SIGNING_KEY" ]; then
+        echo "error: fakeprod signing key $SIGNING_KEY not found" >&2
+        exit 1
+    fi
+    set_config CONFIG_SECURE_BOOT_BUILD_SIGNED_BINARIES y
+    set_config CONFIG_SECURE_BOOT_SIGNING_KEY "\"$SIGNING_KEY\""
+    # Single in-tree key is sufficient for the dev unit
+    set_config CONFIG_SECURE_BOOT_V2_MIN_SIGNATURES 1
+    # Show panic backtraces instead of rebooting silently
+    remove_config CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT
+    set_config CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT y
+    # Development-mode flash encryption (re-flashable)
+    remove_config CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE
+    set_config CONFIG_SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT y
+    # Keep JTAG usable on the dev unit
+    set_config CONFIG_SECURE_BOOT_ALLOW_JTAG y
+    # Keep ROM download mode so esptool can still reflash the unit
+    remove_config CONFIG_SECURE_DISABLE_ROM_DL_MODE
+    # Skip the irreversible ROM-download-mode efuse write in ensure_boot_flags()
+    set_config CONFIG_JADE_FAKEPROD y
+    # Always enable debug mode in fakeprod
+    set_config CONFIG_DEBUG_MODE y
 fi
 echo "============================================"
 

@@ -323,6 +323,12 @@ menu "Blockstream Jade"
             Enables USB JTAG serial rather than CDC tinyusb, implies no tinyusb/host storage/etc
             default n
 
+    config JADE_FAKEPROD
+        bool "Fakeprod, prod-like build with secureboot but dev flashable"
+        default n
+        help
+            Prod-like build with secureboot but dev flashable.
+
     config HAS_BATTERY
         bool "Enable Battery Functions"
         help
