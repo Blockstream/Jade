@@ -38,7 +38,12 @@ static bool qr_extract_payload(qr_data_t* qr_data)
             JADE_LOGW("QUIRC error %s", k_quirc_strerror(error_status));
         } else if (!result.valid) {
             JADE_LOGW("QUIRC invalid result");
-        } else if (result.data.data_type == K_QUIRC_DATA_TYPE_KANJI) {
+        } else if (result.data.data_type & K_QUIRC_DATA_TYPE_KANJI) {
+            // NOTE: data_type is a bitmask of every segment mode in the symbol,
+            // so this must be a mask test. An equality test passed any
+            // mixed-mode code that ended in another mode - eg. a Kanji segment
+            // followed by a one-byte segment reported BYTE, and its Shift-JIS
+            // bytes reached the string handling below.
             JADE_LOGW("QUIRC unexpected data type: %d", result.data.data_type);
         } else if (!result.data.payload_len) {
             JADE_LOGW("QUIRC empty string");
