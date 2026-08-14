@@ -77,6 +77,11 @@ typedef struct {
 } bytes_info_t;
 
 const char* get_jade_id(void);
+
+#ifdef CONFIG_HEAP_TRACING
+void dump_mem_report(void);
+#endif
+
 WARN_UNUSED_RESULT bool jade_process_init(
     TaskHandle_t** serial_handle, TaskHandle_t** ble_handle, TaskHandle_t** qemu_tcp_handle, TaskHandle_t** gui_handle);
 

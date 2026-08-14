@@ -30,6 +30,9 @@
 #endif
 #include <esp_app_desc.h>
 #include <esp_system.h>
+#ifdef CONFIG_HEAP_TRACING
+#include <esp_heap_trace.h>
+#endif
 
 // A genuine production v2 Jade may be awaiting mandatory attestation data
 #if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) && defined(CONFIG_SECURE_BOOT)                                              \
@@ -2594,6 +2597,15 @@ static void display_screen(jade_process_t* process, gui_activity_t* act)
     // Switch to passed screen, and at that point free all other managed activities
     // Should be no-op if we didn't switch away from this screen
     gui_set_current_activity_ex(act, true);
+
+#ifdef CONFIG_HEAP_TRACING
+    // Stop the trace started when the dashboard was last shown, then dump the
+    // internal DRAM heap layout and report allocations which were not freed
+    heap_trace_stop();
+    heap_caps_dump(MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
+    dump_mem_report();
+    heap_trace_start(HEAP_TRACE_ALL);
+#endif
 
     // Refeed sensor entropy every time we return to dashboard screen
     const TickType_t tick_count = xTaskGetTickCount();

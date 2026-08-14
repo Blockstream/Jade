@@ -52,7 +52,7 @@ static char jade_id[16];
 
 #include <esp_heap_trace.h>
 
-#define HEAP_TRACING_NUM_RECORDS 256
+#define HEAP_TRACING_NUM_RECORDS 1024
 static heap_trace_record_t trace_record[HEAP_TRACING_NUM_RECORDS];
 #endif /* CONFIG_HEAP_TRACING */
 
@@ -354,7 +354,7 @@ void jade_process_push_out_message(const uint8_t* data, const size_t size, const
 }
 
 #ifdef CONFIG_HEAP_TRACING
-static void dump_mem_report(void)
+void dump_mem_report(void)
 {
     size_t count = heap_trace_get_count();
     heap_trace_record_t record;

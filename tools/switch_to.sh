@@ -7,6 +7,7 @@ ARCH=""
 DEVELOPMENT=""
 NORADIO=""
 FAKEPROD=""
+HEAPTRACE=""
 CI=""
 LOG=""
 DEBUG=""
@@ -39,6 +40,7 @@ function usage {
     echo "    --dev        Development (non-production) device (mandatory for qemu)"
     echo "    --ci         Automatically execute the default UX action for CI testing"
     echo "    --debug      Enable debug message handlers for testing"
+    echo "    --heaptrace  Enable standalone heap tracing diagnostics"
     echo "    --unamalgamated    Disable amalgamation of source files when building"
     echo "    --skip-reconfigure Make config changes but do not reconfigure the build"
     if [ -n "$1" ]; then
@@ -95,6 +97,7 @@ while true; do
         --log-cbor) LOG=cbor; shift ;;
         --log-wifi) LOG=wifi; shift ;;
         --debug)    DEBUG=1; shift ;;
+        --heaptrace) HEAPTRACE=1; shift ;;
         --jtag)     JTAG=1; shift ;;
         --psram)    PSRAM=1; shift ;;
         --unamalgamated) UNAMALGAMATED=1; shift ;;
@@ -333,6 +336,12 @@ if [ -n "$FAKEPROD" ]; then
     set_config CONFIG_JADE_FAKEPROD y
     # Always enable debug mode in fakeprod
     set_config CONFIG_DEBUG_MODE y
+fi
+if [ -n "$HEAPTRACE" ]; then
+    echo "updating config file for heap tracing ..."
+    # Enable standalone heap tracing for fragmentation/leak diagnostics
+    set_config CONFIG_HEAP_TRACING_STANDALONE y
+    set_config CONFIG_HEAP_TRACING_STACK_DEPTH 8
 fi
 echo "============================================"
 
