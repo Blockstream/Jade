@@ -113,7 +113,7 @@ static bool test_bcur_decode_encode(void)
         JADE_ASSERT(result->type);
         JADE_ASSERT(result->cbor_len);
         JADE_ASSERT(result->cbor_data);
-        if (strncmp(expected_type, result->type, strlen(expected_type))) {
+        if (strcmp(expected_type, result->type)) {
             FREE_DECODER_AND_FAIL(decoder);
         }
         if (result->cbor_len != payload_len || memcmp(result->cbor_data, payload, result->cbor_len)) {
@@ -130,8 +130,7 @@ static bool test_bcur_decode_encode(void)
             = ur_encoder_new(expected_type, payload, payload_len, encoder_max_fragment_len, 0, 10);
         JADE_ASSERT(encoder);
         char* parts[3] = { NULL, NULL, NULL };
-        if (!ur_encoder_next_part(encoder, &parts[0]) || !parts[0]
-            || strncmp(parts[0], qr_part1of2, strlen(qr_part1of2))) {
+        if (!ur_encoder_next_part(encoder, &parts[0]) || !parts[0] || strcmp(parts[0], qr_part1of2)) {
             FREE_ENCODED_PARTS(parts);
             FREE_ENCODER_AND_FAIL(encoder);
         }
@@ -141,8 +140,7 @@ static bool test_bcur_decode_encode(void)
             FREE_ENCODER_AND_FAIL(encoder);
         }
 
-        if (!ur_encoder_next_part(encoder, &parts[1]) || !parts[1]
-            || strncmp(parts[1], qr_part2of2, strlen(qr_part2of2))) {
+        if (!ur_encoder_next_part(encoder, &parts[1]) || !parts[1] || strcmp(parts[1], qr_part2of2)) {
             FREE_ENCODED_PARTS(parts);
             FREE_ENCODER_AND_FAIL(encoder);
         }
@@ -154,7 +152,10 @@ static bool test_bcur_decode_encode(void)
 
         // We can continue to generate additional parts - these are fountain-code fragments
         // which can stand in for any missed fragments.  NOTE: the sequence-numbers appear 'overflowed'.
-        if (!ur_encoder_next_part(encoder, &parts[2]) || !parts[2]
+        // NOTE: deliberately a prefix comparison, unlike the checks above -
+        // only the header is fixed, the fountain-fragment body varies. The
+        // length check stops a header-only string from passing.
+        if (!ur_encoder_next_part(encoder, &parts[2]) || !parts[2] || strlen(parts[2]) <= strlen("UR:CRYPTO-PSBT/3-2/")
             || strncmp(parts[2], "UR:CRYPTO-PSBT/3-2/", strlen("UR:CRYPTO-PSBT/3-2/"))) {
             FREE_ENCODED_PARTS(parts);
             FREE_ENCODER_AND_FAIL(encoder);
@@ -232,7 +233,7 @@ static bool test_bcur_decode_encode(void)
                     JADE_ASSERT(result->type);
                     JADE_ASSERT(result->cbor_len);
                     JADE_ASSERT(result->cbor_data);
-                    if (strncmp(expected_type, result->type, strlen(expected_type))) {
+                    if (strcmp(expected_type, result->type)) {
                         FREE_ENCODED_PARTS(parts);
                         FREE_DECODER_AND_FAIL(decoder);
                     }
