@@ -9,6 +9,11 @@ if(DEFINED ESP_PLATFORM AND ESP_PLATFORM EQUAL 1)
     project(jade)
     idf_component_get_property(cbor_component espressif__cbor COMPONENT_LIB)
     target_compile_definitions(${cbor_component} PRIVATE CBOR_PARSER_MAX_RECURSIONS=20)
+    # Jade scans a 220x220 crop, which k_quirc would measure the white level
+    # over on a 3x3 grid - too coarse to follow a dim corner. Keep in step
+    # with libjade/CMakeLists.txt.
+    idf_component_get_property(k_quirc_component k_quirc COMPONENT_LIB)
+    target_compile_definitions(${k_quirc_component} PRIVATE K_QUIRC_THRESHOLD_GRID=6)
 else()
     add_subdirectory(libjade)
 endif()
