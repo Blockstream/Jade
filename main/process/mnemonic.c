@@ -19,8 +19,6 @@
 
 #include "process_utils.h"
 
-#include <cdecoder.h>
-
 #define MAX_NUM_FINAL_WORDS 128
 #define NUM_WORDS_SELECT 10
 #define WORD_ENTRY_KEYS_LEN 26
