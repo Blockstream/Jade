@@ -26,9 +26,11 @@ add_subdirectory(${IDF_PATH}/components/mbedtls/mbedtls
                  ${CMAKE_CURRENT_BINARY_DIR}/mbedtls)
 
 set(CBOR_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../managed_components/espressif__cbor/tinycbor/src")
+set(CBOR_MAX_RECURSIONS 20)
 file(GLOB CBOR_SOURCES "${CBOR_SOURCE_DIR}/*.c")
 add_library(cbor_target STATIC ${CBOR_SOURCES})
 target_include_directories(cbor_target PUBLIC "${CBOR_SOURCE_DIR}")
+target_compile_definitions(cbor_target PRIVATE CBOR_PARSER_MAX_RECURSIONS=${CBOR_MAX_RECURSIONS})
 set(CBOR_INCLUDE_DIR "${CBOR_SOURCE_DIR}")
 set(ESP_MOCKED "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
@@ -121,7 +123,7 @@ target_include_directories(jade PRIVATE ${COMMON_INCLUDES})
 
 set_source_files_properties(libjade.c PROPERTIES COMPILE_OPTIONS
   "-Wall;-W;-Wno-format;-Wno-unused-function;-Wno-unused-parameter;-Wno-sign-compare;-Wno-missing-field-initializers;-Wno-narrowing")
-target_compile_definitions(jade PRIVATE LIBJADE_BUILD)
+target_compile_definitions(jade PRIVATE LIBJADE_BUILD CBOR_PARSER_MAX_RECURSIONS=${CBOR_MAX_RECURSIONS})
 
 # libjade selfcheck overrides - used for internal firmware unit tests.
 # build with -DSELFCHECK=<test> to link libjade/selfcheck/<test>.c
@@ -135,7 +137,7 @@ endif()
 add_library(jade_static STATIC ${COMMON_SRC})
 target_link_libraries(jade_static PRIVATE m z mbedtls mbedcrypto mbedx509 bcur)
 target_include_directories(jade_static PRIVATE ${COMMON_INCLUDES})
-target_compile_definitions(jade_static PRIVATE LIBJADE_BUILD)
+target_compile_definitions(jade_static PRIVATE LIBJADE_BUILD CBOR_PARSER_MAX_RECURSIONS=${CBOR_MAX_RECURSIONS})
 
 add_executable(libjade_daemon daemon.c)
 target_link_libraries(libjade_daemon PRIVATE jade_static bcur cbor_target otpauth_migrate_target m z mbedtls mbedcrypto mbedx509 Threads::Threads)
