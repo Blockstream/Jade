@@ -797,7 +797,7 @@ bool test_bcur_decode_bad_cases(void)
 // ('ver * ver * 8' seems to give 6 icons, which seems reasonable)
 static bool test_bcur_icons(void)
 {
-    const uint8_t payload[12 * 12 * 8];
+    const uint8_t payload[12 * 12 * 8] = { 0 };
     for (uint8_t ver = 4; ver <= 12; ++ver) {
         const size_t payload_len = ver * ver * 8;
         Icon* icons = NULL;
@@ -821,7 +821,7 @@ static bool test_bcur_large_payload_many_icons(void)
 {
     const int qr_version = 4; // smallest supported
     const int payload_len = 22 * 1024; // 22k, should result ~1000 fragments
-    uint8_t* payload = JADE_MALLOC_PREFER_SPIRAM(payload_len);
+    uint8_t* payload = JADE_CALLOC_PREFER_SPIRAM(1, payload_len);
     Icon* icons = NULL;
     size_t num_icons = 0;
     bcur_create_qr_icons(payload, payload_len, "test-type", qr_version, &icons, &num_icons);
