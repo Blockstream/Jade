@@ -155,8 +155,7 @@ static void esp_lcd_init(void* _ignored)
 
     ESP_ERROR_CHECK(spi_bus_initialize(CONFIG_DISPLAY_SPI_HOST, &buscfg, SPI_DMA_CH_AUTO));
 
-    esp_lcd_panel_io_spi_config_t io_config = {
-        .dc_gpio_num = CONFIG_DISPLAY_PIN_DC,
+    esp_lcd_panel_io_spi_config_t io_config = { .dc_gpio_num = CONFIG_DISPLAY_PIN_DC,
         .cs_gpio_num = CONFIG_DISPLAY_PIN_CS,
         .pclk_hz = CONFIG_DISPLAY_SPI_CLOCK,
         .lcd_cmd_bits = 8,
@@ -166,6 +165,9 @@ static void esp_lcd_init(void* _ignored)
         .on_color_trans_done = color_trans_done,
 #endif
         .trans_queue_depth = TRANSFER_QUEUE_DEPTH,
+#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)
+        .flags.psram_dma_direct = 1
+#endif
     };
 
     ESP_ERROR_CHECK(
