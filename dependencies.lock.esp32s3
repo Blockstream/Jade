@@ -153,7 +153,7 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.5.4
+    version: 5.5.5
 direct_dependencies:
 - espressif/button
 - espressif/cbor
@@ -169,6 +169,6 @@ direct_dependencies:
 - espressif/tinyusb
 - espressif/usb_host_msc
 - idf
-manifest_hash: f1ba59b9d5246ecb4183fbc1651e42cd9d43bb3b734129f8badc4e2de5724cba
+manifest_hash: e077536db210d4255cd8eb1ff1d04b1649f8f6ee324398bbc4afe27cca00fe4d
 target: esp32s3
 version: 2.0.0
