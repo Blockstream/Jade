@@ -288,18 +288,18 @@ bool get_identity_pubkey(const char* identity, const size_t identity_len, const 
         return false;
     }
 
-    // Get a keypair and curve for this identity
-    mbedtls_ecp_keypair keypair = { 0 };
-    SENSITIVE_PUSH(&keypair, sizeof(keypair));
-    mbedtls_ecp_keypair_init(&keypair);
-    bool result = false;
-
     // Prefix deduced from type - ie. slip13 vs slip17
     const size_t slip_prefix = get_key_derivation_prefix(type, type_len);
     if (!slip_prefix) {
         JADE_LOGE("Unsupported key derivation type '%.*s'", type_len, type);
         return false;
     }
+
+    // Get a keypair and curve for this identity
+    mbedtls_ecp_keypair keypair = { 0 };
+    SENSITIVE_PUSH(&keypair, sizeof(keypair));
+    mbedtls_ecp_keypair_init(&keypair);
+    bool result = false;
 
     if (!get_internal_keypair(slip_prefix, identity, identity_len, index, curve_name, curve_name_len, &keypair)) {
         JADE_LOGE(
