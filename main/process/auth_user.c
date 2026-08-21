@@ -203,6 +203,8 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
     SENSITIVE_PUSH(pin, sizeof(pin));
     uint8_t aeskey[AES_KEY_LEN_256];
     SENSITIVE_PUSH(aeskey, sizeof(aeskey));
+    uint8_t aeskey_new[AES_KEY_LEN_256];
+    SENSITIVE_PUSH(aeskey_new, sizeof(aeskey_new));
 
     // Do the pinserver 'getpin' process
     const char* unlock_pin_msg = suppress_pin_change_confirmation ? "Enter Current PIN" : "Unlock Jade";
@@ -259,9 +261,6 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
     if (change_pin_requested) {
         const char* question[] = { "Do you want to", "change your PIN?" };
         if (suppress_pin_change_confirmation || await_yesno_activity("Change PIN", question, 2, true, NULL)) {
-            uint8_t aeskey_new[AES_KEY_LEN_256];
-            SENSITIVE_PUSH(aeskey_new, sizeof(aeskey_new));
-
             if (set_pin_get_aeskey(process, "Enter New PIN", pin, sizeof(pin), aeskey_new, sizeof(aeskey_new))) {
                 JADE_LOGI("PIN changed on server");
                 if (keychain_reencrypt(aeskey, sizeof(aeskey), aeskey_new, sizeof(aeskey_new))) {
@@ -276,7 +275,6 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
                 await_error("Change-PIN abandoned");
                 goto cleanup;
             }
-            SENSITIVE_POP(aeskey_new);
         }
     }
 
@@ -286,6 +284,7 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
     JADE_LOGI("Success");
 
 cleanup:
+    SENSITIVE_POP(aeskey_new);
     SENSITIVE_POP(aeskey);
     SENSITIVE_POP(pin);
     return rslt;
