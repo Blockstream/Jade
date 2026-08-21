@@ -41,6 +41,10 @@ void get_commitments_process(void* process_ptr)
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_commitments");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
+
+    uint8_t master_blinding_key[HMAC_SHA512_LEN];
+    SENSITIVE_PUSH(master_blinding_key, sizeof(master_blinding_key));
+
     GET_MSG_PARAMS(process);
     const char* errmsg = NULL;
 
@@ -75,7 +79,6 @@ void get_commitments_process(void* process_ptr)
     }
 
     // generate the abf (and vbf if necessary)
-    uint8_t master_blinding_key[HMAC_SHA512_LEN];
     if (!params_get_master_blindingkey(&params, master_blinding_key, sizeof(master_blinding_key), &errmsg)) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
@@ -128,6 +131,6 @@ void get_commitments_process(void* process_ptr)
     JADE_LOGI("Success");
 
 cleanup:
-    return;
+    SENSITIVE_POP(master_blinding_key);
 }
 #endif // AMALGAMATED_BUILD

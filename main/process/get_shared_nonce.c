@@ -3,6 +3,7 @@
 #include "../keychain.h"
 #include "../multisig.h"
 #include "../process.h"
+#include "../sensitive.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../wallet.h"
@@ -43,6 +44,10 @@ void get_shared_nonce_process(void* process_ptr)
     // We expect a current message to be present
     ASSERT_CURRENT_MESSAGE(process, "get_shared_nonce");
     ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process);
+
+    uint8_t master_blinding_key[HMAC_SHA512_LEN];
+    SENSITIVE_PUSH(master_blinding_key, sizeof(master_blinding_key));
+
     GET_MSG_PARAMS(process);
 
     size_t script_len = 0;
@@ -81,7 +86,6 @@ void get_shared_nonce_process(void* process_ptr)
     }
 
     const char* errmsg = NULL;
-    uint8_t master_blinding_key[HMAC_SHA512_LEN];
     if (!params_get_master_blindingkey(&params, master_blinding_key, sizeof(master_blinding_key), &errmsg)) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
@@ -112,6 +116,6 @@ void get_shared_nonce_process(void* process_ptr)
     JADE_LOGI("Success");
 
 cleanup:
-    return;
+    SENSITIVE_POP(master_blinding_key);
 }
 #endif // AMALGAMATED_BUILD

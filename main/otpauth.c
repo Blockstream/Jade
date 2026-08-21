@@ -752,11 +752,13 @@ static bool get_otp_encryption_key(uint8_t* aeskey, const size_t aeskey_len)
 
     // Derive an key from the seed (use mainnet version flag as irrelevant here)
     struct ext_key key = {};
+    SENSITIVE_PUSH(&key, sizeof(key));
     JADE_WALLY_VERIFY(bip32_key_from_seed_custom(keychain_get()->seed, keychain_get()->seed_len, BIP32_VER_MAIN_PRIVATE,
         OTP_HMAC_KEY, sizeof(OTP_HMAC_KEY), 0, &key));
 
     JADE_STATIC_ASSERT(sizeof(key.priv_key) - 1 == AES_KEY_LEN_256);
     memcpy(aeskey, key.priv_key + 1, sizeof(key.priv_key) - 1);
+    SENSITIVE_POP(&key);
     return true;
 }
 
