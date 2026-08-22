@@ -167,6 +167,13 @@ static bool load_attestation_data(attestation_data_t* attestation_data)
         return false;
     }
 
+    // The attestation data hash is 256 bits of private per-device entropy
+    // that does not expose any underlying sensitive information.
+    // Add it to the entropy pool for random number generation, to make
+    // enumeration of random state completely unfeasible across devices,
+    // even in the event of the hardware RNG being compromised or faulty.
+    refeed_entropy(hash_calc, sizeof(hash_calc));
+
     // Attestation data read from partition and appears sound
     return true;
 }
