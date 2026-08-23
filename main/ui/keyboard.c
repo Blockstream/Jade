@@ -158,6 +158,14 @@ void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title)
         for (size_t i = 0; i < kb_entry->num_kbs; ++i) {
             make_keyboard_screen(&kb_screen_act, title, kb_entry->keyboards[i], has_next_kb_btn,
                 &kb_entry->textbox_nodes[i], kb_entry->blocked_chars);
+
+            // Initially select the 'shift/next kb' button on all kb screens bar the first,
+            // as these screens are only ever reached by clicking that button, and it remains
+            // selected whenever the user later returns to the screen - the first kb screen is
+            // not reached by a button click, so retains the default initial selection.
+            if (i > 0) {
+                gui_set_activity_initial_selection(kb_screen_act.next_button);
+            }
             gui_chain_activities(&kb_screen_act, &act_info);
         }
 
