@@ -1,6 +1,6 @@
 services:
   dev:
-    image: blockstream/jade_builder@sha256:8b739db85b6b99664db0e3ece57cddfa4e0fee4101a20ca930c391273f21e2f9
+    image: blockstream/jade_builder@sha256:cbf0aabee7513dc8cad8f1d69a5e00f5b73bcd0965a44254627c0de4bfc8c4f2
     volumes:
       - .:/host/jade/
       - /dev/serial/by-id:/dev/serial/by-id
