@@ -3,11 +3,11 @@
 #
 
 # See gitlab/docker.yml to build this image yourself.
-FROM blockstream/jade_builder_base@sha256:17574abe64b0915026f324d8df40bf81a60406966b7841e55d3792967d596176
+FROM blockstream/jade_builder_base@sha256:c6ae8bea021bce54f8e0ef09b87c4294182eb9a0faf02bc536af035492c47db6
 
 # These ARGs are easily parseable (eg by HWI)
-ARG ESP_IDF_BRANCH=v5.5.4
-ARG ESP_IDF_COMMIT=735507283d5b2f9fb363a1901172dbd9e847945d
+ARG ESP_IDF_BRANCH=v5.5.5
+ARG ESP_IDF_COMMIT=b774170ff46c393eeb5e495ea37936038d3f4f4f
 
 COPY requirements.txt /
 
