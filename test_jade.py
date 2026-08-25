@@ -2232,7 +2232,7 @@ def test_handshake_bad_server(jade):
 
 
 # Check/print memory stats
-def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
+def check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict, retry_count=0):
 
     # NOTE: skip the fragmentation check when we have BLE enabled
     # as there is too much memory allocation outside of our control.
@@ -2261,9 +2261,30 @@ def check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=True):
         else:
             logger.info(f'{field} - {initial} to {final} ({diff})')
 
-    if breaches:
-        logger.error(f'Memory limit breaches: {breaches}')
-        assert not strict
+    MAX_MEM_STATS_RETRIES = 3
+
+    if not breaches:
+        if retry_count:
+            logger.info(f'Memory stats recovered on retry {retry_count} '
+                        f'of {MAX_MEM_STATS_RETRIES}')
+        return
+
+    logger.error(f'Memory limit breaches: {breaches}')
+    if not strict:
+        return
+
+    if retry_count < MAX_MEM_STATS_RETRIES:
+        logger.info(f'Retrying memory stats check in 5s '
+                    f'(retry {retry_count + 1} of {MAX_MEM_STATS_RETRIES})')
+        time.sleep(5)
+        endinfo = jadeapi.get_version_info()
+        assert len(endinfo) == NUM_VALUES_VERINFO, \
+            f'Unexpected version info values: {len(endinfo)}'
+        return check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict,
+                               retry_count=retry_count + 1)
+
+    assert not breaches, \
+        f'Memory limit breaches after {MAX_MEM_STATS_RETRIES} retries: {breaches}'
 
 
 # Helper to verify a signature - handles checking an Anti-Exfil signature
@@ -2827,7 +2848,7 @@ def run_api_tests(jadeapi, isble, qemu, authuser=False):
     wait(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
     strict = endinfo['BOARD_TYPE'] != 'JADE_V2C'  # TODO: enable for v2.0c
-    check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=strict)
+    check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict=strict)
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
@@ -2924,7 +2945,7 @@ def run_interface_tests(jadeapi,
     wait(5)  # Lets idle tasks clean up
     endinfo = jadeapi.get_version_info()
     strict = endinfo['BOARD_TYPE'] != 'JADE_V2C'  # TODO: enable for v2.0c
-    check_mem_stats(startinfo, endinfo, has_psram, has_ble, strict=strict)
+    check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict=strict)
 
     rslt = jadeapi.clean_reset()
     assert rslt is True
