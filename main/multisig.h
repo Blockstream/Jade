@@ -62,8 +62,8 @@ WARN_UNUSED_RESULT bool multisig_data_from_bytes(const uint8_t* bytes, size_t by
 WARN_UNUSED_RESULT bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* output,
     signer_t* signer_details, size_t signer_details_len, size_t* written, const char** errmsg);
 
-WARN_UNUSED_RESULT bool multisig_validate_paths(
-    const bool is_change, CborValue* all_signer_paths, bool* all_paths_as_expected, bool* final_elements_consistent);
+WARN_UNUSED_RESULT bool multisig_validate_paths(bool is_change, CborValue* all_signer_paths, size_t num_signer_paths,
+    bool* all_paths_as_expected, bool* final_elements_consistent);
 
 WARN_UNUSED_RESULT bool multisig_get_pubkeys(const uint8_t* xpubs, size_t num_xpubs, CborValue* all_signer_paths,
     uint8_t* pubkeys, size_t pubkeys_len, size_t* written);

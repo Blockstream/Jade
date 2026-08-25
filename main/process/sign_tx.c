@@ -87,11 +87,12 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
     JADE_ASSERT(process);
     JADE_ASSERT(params);
     JADE_ASSERT(network_id != NETWORK_NONE);
-    JADE_ASSERT(tx);
+    JADE_ASSERT(tx && tx->num_outputs);
     JADE_INIT_OUT_PPTR(output_info);
 
     CborValue wallet_outputs;
-    const bool have_outputs = rpc_get_array("change", params, &wallet_outputs);
+    size_t num_wallet_outputs = 0;
+    const bool have_outputs = rpc_get_array("change", params, &wallet_outputs, &num_wallet_outputs);
     // For Bitcoin, we only need the output info if the caller gave it.
     // For Liquid, we always need output_info to 'unblind' confidential txs.
     if (have_outputs || for_liquid) {
@@ -107,10 +108,7 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
     multisig_data_t* multisig_data = NULL;
     descriptor_data_t* descriptor = NULL;
 
-    size_t num_array_items = 0;
-    if (!cbor_value_is_array(&wallet_outputs)
-        || cbor_value_get_array_length(&wallet_outputs, &num_array_items) != CborNoError
-        || num_array_items != tx->num_outputs) {
+    if (num_wallet_outputs != tx->num_outputs) {
         errmsg = "Unexpected number of output entries for transaction";
         goto cleanup;
     }
@@ -473,8 +471,10 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid asset info passed");
             goto cleanup;
         }
-        jade_process_free_on_exit(process, assets);
-        JADE_LOGI("Read %d assets from message", num_assets);
+        if (assets) {
+            jade_process_free_on_exit(process, assets);
+            JADE_LOGI("Read %d assets from message", num_assets);
+        }
     }
 
     const char* errmsg = NULL;

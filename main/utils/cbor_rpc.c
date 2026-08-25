@@ -489,12 +489,16 @@ bool rpc_has_field_data(const char* field, const CborValue* value)
     return rpc_get_data(field, value, &result) && !cbor_value_is_null(&result);
 }
 
-bool rpc_get_array(const char* field, const CborValue* value, CborValue* result)
+bool rpc_get_array(const char* field, const CborValue* value, CborValue* result, size_t* num_array_items)
 {
     JADE_ASSERT(field);
     JADE_ASSERT(value);
     JADE_ASSERT(result);
-    return rpc_get_data(field, value, result) && cbor_value_is_array(result);
+    JADE_INIT_OUT_SIZE(num_array_items);
+    if (!rpc_get_data(field, value, result) || !cbor_value_is_array(result)) {
+        return false;
+    }
+    return cbor_value_get_array_length(result, num_array_items) == CborNoError;
 }
 
 bool rpc_get_map(const char* field, const CborValue* value, CborValue* result)

@@ -14,6 +14,9 @@
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
+// Maximum number of asset info records accepted in a single message
+#define MAX_ASSET_INFO_ELEMS 64u
+
 #define ASSET_CONTRACT_BUFFER_LEN 768
 
 // Compute the asset-id given the contract hash and the issuance prevout details
@@ -68,30 +71,24 @@ static bool get_asset_contract_hash(const CborValue* contract, uint8_t* contract
 // Asset data is optional - but if present it must be correct/valid
 bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t** data, size_t* written)
 {
-    JADE_ASSERT(field);
-    JADE_ASSERT(value);
+    JADE_ASSERT(field && value);
     JADE_INIT_OUT_PPTR(data);
     JADE_INIT_OUT_SIZE(written);
 
     CborValue result;
-    if (!rpc_get_array(field, value, &result)) {
+    size_t num_array_items = 0;
+    if (!rpc_get_array(field, value, &result, &num_array_items) || !num_array_items) {
         // No asset data present is not an error
         return true;
     }
 
-    size_t num_array_items = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
-    if (cberr != CborNoError) {
+    if (num_array_items > MAX_ASSET_INFO_ELEMS) {
+        JADE_LOGE("Too many asset data elements in %s", field);
         return false;
     }
 
-    if (num_array_items == 0) {
-        // No asset data present is not an error
-        return true;
-    }
-
     CborValue arrayItem;
-    cberr = cbor_value_enter_container(&result, &arrayItem);
+    CborError cberr = cbor_value_enter_container(&result, &arrayItem);
     if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
         return false;
     }

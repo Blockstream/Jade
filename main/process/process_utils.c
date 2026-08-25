@@ -234,10 +234,12 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
 
     // Validate paths
     CborValue all_signer_paths;
+    size_t num_signer_paths = 0;
     bool all_paths_as_expected;
     bool final_elements_consistent;
-    if (!rpc_get_array("paths", params, &all_signer_paths)
-        || !multisig_validate_paths(is_change, &all_signer_paths, &all_paths_as_expected, &final_elements_consistent)) {
+    if (!rpc_get_array("paths", params, &all_signer_paths, &num_signer_paths)
+        || !multisig_validate_paths(
+            is_change, &all_signer_paths, num_signer_paths, &all_paths_as_expected, &final_elements_consistent)) {
         *errmsg = "Failed to extract signer paths from parameters";
         return false;
     }
@@ -246,7 +248,8 @@ bool params_multisig_pubkeys(const bool is_change, CborValue* params, multisig_d
     bool flipped_change_element = false;
     if (!all_paths_as_expected) {
         bool unused;
-        if (!multisig_validate_paths(!is_change, &all_signer_paths, &flipped_change_element, &unused)) {
+        if (!multisig_validate_paths(
+                !is_change, &all_signer_paths, num_signer_paths, &flipped_change_element, &unused)) {
             *errmsg = "Expected a valid change or non-change signer path";
             return false;
         }

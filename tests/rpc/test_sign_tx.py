@@ -246,3 +246,128 @@ def test_sign_tx_liquid_singlesig(jade, mnemonic, test_case):
 # @with_test_cases('tests/rpc/data/sign_tx/bad_liquid_ss_tx_*.json')
 # def test_sign_tx_bad_liquid_singlesig(jade, mnemonic, test_case):
 #     _test_sign_tx(jade, test_case)
+
+
+@with_test_cases('tests/rpc/data/sign_tx/liquid_tx_asset_lowr.json')
+def test_sign_liquid_tx_too_many_assets(jade, test_case):
+    """More asset_info records than MAX_ASSET_INFO_ELEMS must be rejected"""
+    if not get_jade_config().has_psram:
+        pytest.skip('Oversized tx test requires PSRAM (larger inbound message buffer)')
+
+    inputdata = test_case['input']
+    assert 'liquid' in inputdata['network']
+    assert inputdata.get('asset_info'), 'test case must provide a valid asset record'
+
+    # Duplicate one valid record to exceed MAX_ASSET_INFO_ELEMS (64).
+    asset_info = [dict(inputdata['asset_info'][0]) for _ in range(64 + 1)]
+
+    try:
+        jade.sign_liquid_tx(inputdata['network'],
+                            inputdata['txn'],
+                            inputdata['inputs'],
+                            inputdata['trusted_commitments'],
+                            inputdata['change'],
+                            inputdata.get('use_ae_signatures', False),
+                            asset_info,
+                            inputdata.get('additional_info'))
+        assert False, 'Expected error for oversized asset_info array'
+    except JadeError as e:
+        assert e.code == JadeError.BAD_PARAMETERS, e
+        assert e.message == 'Invalid asset info passed', e.message
+
+
+@with_test_cases('tests/rpc/data/sign_tx/liquid_tx_swap_maker_send_lbtc_ae.json')
+def test_sign_liquid_tx_too_many_asset_summaries(jade, test_case):
+    """More wallet input/output summary records than the tx bounds must be rejected."""
+    inputdata = test_case['input']
+    assert 'liquid' in inputdata['network']
+
+    # This swap has a single input and output, so each summary must contain at
+    # most one record. Check both the input and output summaries.
+    for field in ('wallet_input_summary', 'wallet_output_summary'):
+        summary = inputdata['additional_info'][field]
+        assert len(summary) == 1, (field, summary)
+
+        # Duplicate one valid record so the array length exceeds the tx bound.
+        inputdata['additional_info'][field] = [dict(summary[0]), dict(summary[0])]
+        try:
+            jade.sign_liquid_tx(inputdata['network'],
+                                inputdata['txn'],
+                                inputdata['inputs'],
+                                inputdata['trusted_commitments'],
+                                inputdata['change'],
+                                inputdata.get('use_ae_signatures', False),
+                                inputdata.get('asset_info'),
+                                inputdata.get('additional_info'))
+            assert False, f'Expected error for oversized {field} array'
+        except JadeError as e:
+            assert e.code == JadeError.BAD_PARAMETERS, e
+            assert e.message == 'Invalid number of asset summaries', e.message
+        finally:
+            # Restore the original single-record summary for the next iteration
+            inputdata['additional_info'][field] = summary
+
+
+def _varint(n):
+    """Encode an integer as a Bitcoin compact-size (varint) integer."""
+    if n < 0xfd:
+        return bytes([n])
+    if n <= 0xffff:
+        return b'\xfd' + n.to_bytes(2, 'little')
+    if n <= 0xffffffff:
+        return b'\xfe' + n.to_bytes(4, 'little')
+    return b'\xff' + n.to_bytes(8, 'little')
+
+
+def _make_tx_bytes(num_inputs, num_outputs):
+    """Build a minimal raw Bitcoin transaction (version 2, no witness) with the
+    given number of inputs/outputs, to exercise the tx input/output caps."""
+    tx = (2).to_bytes(4, 'little')  # version
+    tx += _varint(num_inputs)  # input count
+    for _ in range(num_inputs):
+        tx += bytes(32)  # prevout txid
+        tx += (0).to_bytes(4, 'little')  # prevout index
+        tx += b'\x00'  # empty script
+        tx += (0xffffffff).to_bytes(4, 'little')  # sequence
+    tx += _varint(num_outputs)  # output count
+    for _ in range(num_outputs):
+        tx += (1000).to_bytes(8, 'little')  # value
+        tx += b'\x01' + b'\x51'  # script: OP_TRUE
+    tx += (0).to_bytes(4, 'little')  # locktime
+    return tx
+
+
+def test_sign_tx_too_many_inputs(jade):
+    """A tx with more than MAX_TX_INPUTS inputs must be rejected."""
+    MAX_TX_INPUTS = 256
+    txn = _make_tx_bytes(257, 1)
+    try:
+        txinputs = [None] * (MAX_TX_INPUTS + 1)
+        jade.sign_tx('testnet', txn, txinputs, None, use_ae_signatures=False, use_legacy=False)
+        assert False, 'Expected error for oversized tx input count'
+    except JadeError as e:
+        assert e.code == JadeError.BAD_PARAMETERS, e
+        assert e.message == 'Too many transaction inputs', e.message
+
+
+def test_sign_tx_too_many_outputs(jade):
+    """A tx with more than MAX_TX_OUTPUTS outputs must be rejected."""
+    MAX_TX_OUTPUTS = 64
+    txn = _make_tx_bytes(1, MAX_TX_OUTPUTS + 1)
+    try:
+        jade.sign_tx('testnet', txn, [None], None, use_ae_signatures=False, use_legacy=False)
+        assert False, 'Expected error for oversized tx output count'
+    except JadeError as e:
+        assert e.code == JadeError.BAD_PARAMETERS, e
+        assert e.message == 'Too many transaction outputs', e.message
+
+
+def test_sign_tx_no_outputs(jade):
+    """A tx with no outputs must be rejected"""
+    txn = _make_tx_bytes(1, 0)
+    try:
+        jade.sign_tx('testnet', txn, [None], None, use_ae_signatures=False, use_legacy=False)
+        assert False, 'Expected error for tx with no outputs'
+    except JadeError as e:
+        assert e.code == JadeError.BAD_PARAMETERS, e
+        assert e.message == 'Transaction has no inputs or outputs', e.message

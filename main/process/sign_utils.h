@@ -20,6 +20,10 @@ typedef struct _asset_summary {
     uint64_t validated_value;
 } asset_summary_t;
 
+// Maximum number of inputs/outputs accepted
+#define MAX_TX_INPUTS 256
+#define MAX_TX_OUTPUTS 64
+
 WARN_UNUSED_RESULT bool params_txn_validate(network_t network_id, bool for_liquid, const struct wally_tx* const tx,
     uint64_t* explicit_fee, const char** errmsg);
 

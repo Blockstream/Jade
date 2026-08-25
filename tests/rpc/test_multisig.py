@@ -374,3 +374,15 @@ def test_generic_multisig_ss_signer(jade, mnemonic, test_case):
     # the same addresses as it did previously (for the other signatory)
     _check_multisig_registration(jade, test_case)
     pass
+
+
+def test_register_multisig_too_many_signers(jade):
+    """More signers than MAX_ALLOWED_SIGNERS must be rejected."""
+    try:
+        MAX_ALLOWED_SIGNERS = 15
+        signers = [{}] * (MAX_ALLOWED_SIGNERS + 1)
+        jade.register_multisig('testnet', 'msig_toomany', 'sh(multi(k))', False, 1, signers)
+        assert False, 'Expected error for oversized signers array'
+    except JadeError as e:
+        assert e.code == JadeError.BAD_PARAMETERS, e
+        assert e.message == 'Failed to extract valid co-signers from parameters', e.message

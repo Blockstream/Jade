@@ -36,26 +36,29 @@ static void reply_signatures(const void* ctx, CborEncoder* container)
     JADE_ASSERT(cberr == CborNoError);
 }
 
-static void get_digests_allocate(
-    const char* field, const CborValue* value, rsa_signing_digest_t** data, size_t* written)
+static void get_digests_allocate(const char* field, const CborValue* value, const uint32_t key_bits,
+    rsa_signing_digest_t** data, size_t* written, const char** errmsg)
 {
     JADE_ASSERT(field && value);
     JADE_INIT_OUT_PPTR(data);
     JADE_INIT_OUT_SIZE(written);
 
+    *errmsg = "Failed to extract digests from parameters";
+
     CborValue result;
-    if (!rpc_get_array(field, value, &result)) {
+    size_t num_array_items = 0;
+    if (!rpc_get_array(field, value, &result, &num_array_items) || !num_array_items) {
         return;
     }
 
-    size_t num_array_items = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
-    if (cberr != CborNoError || !num_array_items) {
+    const size_t max_digests = key_bits <= 2048 ? 8 : key_bits < 4096 ? 6 : 4;
+    if (num_array_items > max_digests) {
+        *errmsg = "Unsupported number of digests";
         return;
     }
 
     CborValue arrayItem;
-    cberr = cbor_value_enter_container(&result, &arrayItem);
+    CborError cberr = cbor_value_enter_container(&result, &arrayItem);
     if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
         return;
     }
@@ -82,6 +85,7 @@ static void get_digests_allocate(
         return;
     }
 
+    *errmsg = NULL;
     *written = num_array_items;
     *data = digests;
 }
@@ -108,21 +112,15 @@ void sign_bip85_digests_process(void* process_ptr)
     // Copy digest data
     rsa_signing_digest_t* digests = NULL;
     size_t num_digests = 0;
-    get_digests_allocate("digests", &params, &digests, &num_digests);
+    get_digests_allocate("digests", &params, key_bits, &digests, &num_digests, &errmsg);
 
-    if (num_digests == 0) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract digests from parameters");
+    if (errmsg) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
         goto cleanup;
     }
 
     JADE_ASSERT(digests);
     jade_process_free_on_exit(process, digests);
-
-    const size_t max_digests = key_bits <= 2048 ? 8 : key_bits < 4096 ? 6 : 4;
-    if (num_digests > max_digests) {
-        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Unsupported number of digests");
-        goto cleanup;
-    }
 
     // User to confirm signing
     int ret;

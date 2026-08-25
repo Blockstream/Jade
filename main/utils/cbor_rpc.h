@@ -66,7 +66,8 @@ WARN_UNUSED_RESULT bool rpc_get_bip32_path(
 WARN_UNUSED_RESULT bool rpc_get_bip32_path_from_value(
     CborValue* value, uint32_t* path_ptr, size_t max_path_len, size_t* written);
 
-WARN_UNUSED_RESULT bool rpc_get_array(const char* field, const CborValue* value, CborValue* result);
+WARN_UNUSED_RESULT bool rpc_get_array(
+    const char* field, const CborValue* value, CborValue* result, size_t* num_array_items);
 WARN_UNUSED_RESULT bool rpc_get_map(const char* field, const CborValue* value, CborValue* result);
 
 // Build response objects

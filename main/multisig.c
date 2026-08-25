@@ -400,19 +400,18 @@ bool multisig_load_from_storage(const char* multisig_name, multisig_data_t* outp
     return true;
 }
 
-bool multisig_validate_paths(
-    const bool is_change, CborValue* all_signer_paths, bool* all_paths_as_expected, bool* final_elements_consistent)
+bool multisig_validate_paths(const bool is_change, CborValue* all_signer_paths, const size_t num_signer_paths,
+    bool* all_paths_as_expected, bool* final_elements_consistent)
 {
     JADE_ASSERT(all_signer_paths);
     JADE_ASSERT(all_paths_as_expected);
 
-    bool seen_unusual_path = false;
-    bool seen_final_element_mismatch = false;
-
-    size_t num_array_items = 0;
-    if (cbor_value_get_array_length(all_signer_paths, &num_array_items) != CborNoError || num_array_items == 0) {
+    if (num_signer_paths == 0) {
         return false;
     }
+
+    bool seen_unusual_path = false;
+    bool seen_final_element_mismatch = false;
 
     uint32_t expected_final_path_element;
     uint32_t path[MAX_PATH_LEN];
@@ -421,7 +420,7 @@ bool multisig_validate_paths(
     CborValue arrayItem;
     CborError cberr = cbor_value_enter_container(all_signer_paths, &arrayItem);
     JADE_ASSERT(cberr == CborNoError);
-    for (size_t i = 0; i < num_array_items; ++i) {
+    for (size_t i = 0; i < num_signer_paths; ++i) {
         JADE_ASSERT(!cbor_value_at_end(&arrayItem));
 
         size_t path_len = 0;

@@ -99,3 +99,15 @@ def test_bip85_rsa_signing(jade, test_case):
         assert len(digests) == len(expected)
         sigs = jade.sign_bip85_digests('RSA', keylen, index, digests)
         assert sigs == expected
+
+
+@pytest.mark.parametrize('key_bits, num_digests', [(2048, 9), (4096, 5)])
+def test_sign_bip85_digests_too_many(jade, key_bits, num_digests):
+    # 2048-bit keys support at most 8 digests, 4096-bit keys at most 4; send
+    # one more than the maximum for each size
+    try:
+        jade.sign_bip85_digests('RSA', key_bits, 0, [bytes(32)] * num_digests)
+        assert False, 'Expected error for oversized digests array'
+    except JadeError as e:
+        assert e.code == JadeError.BAD_PARAMETERS, e
+        assert e.message == 'Unsupported number of digests', e.message

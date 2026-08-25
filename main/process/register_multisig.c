@@ -551,24 +551,19 @@ cleanup:
 // Helper to collect signers' details from input cbor message
 static void get_signers_allocate(const char* field, const CborValue* value, signer_t** data, size_t* written)
 {
-    JADE_ASSERT(field);
-    JADE_ASSERT(value);
+    JADE_ASSERT(field && value);
     JADE_INIT_OUT_PPTR(data);
     JADE_INIT_OUT_SIZE(written);
 
     CborValue result;
-    if (!rpc_get_array(field, value, &result)) {
-        return;
-    }
-
     size_t num_array_items = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
-    if (cberr != CborNoError || !num_array_items) {
+    if (!rpc_get_array(field, value, &result, &num_array_items) || !num_array_items
+        || num_array_items > MAX_ALLOWED_SIGNERS) {
         return;
     }
 
     CborValue arrayItem;
-    cberr = cbor_value_enter_container(&result, &arrayItem);
+    CborError cberr = cbor_value_enter_container(&result, &arrayItem);
     if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
         return;
     }

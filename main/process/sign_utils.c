@@ -30,6 +30,22 @@ bool params_txn_validate(const network_t network_id, const bool for_liquid, cons
         return false;
     }
 
+    // Reject empty transactions. A tx must have at least one input and one
+    // output - this also guarantees a non-zero output count for later processing.
+    if (!tx->num_inputs || !tx->num_outputs) {
+        *errmsg = "Transaction has no inputs or outputs";
+        return false;
+    }
+
+    if (tx->num_inputs > MAX_TX_INPUTS) {
+        *errmsg = "Too many transaction inputs";
+        return false;
+    }
+    if (tx->num_outputs > MAX_TX_OUTPUTS) {
+        *errmsg = "Too many transaction outputs";
+        return false;
+    }
+
     if (!for_liquid) {
         return true; // Bitcoin: No further checks needed
     }
@@ -106,29 +122,29 @@ static bool rpc_get_txtype(jade_process_t* process, CborValue* value, TxType_t* 
     return false; // Unknown tx_type
 }
 
-static void rpc_get_asset_summary(
-    jade_process_t* process, const char* field, const CborValue* value, asset_summary_t** data, size_t* written)
+static bool rpc_get_asset_summary(jade_process_t* process, const char* field, const CborValue* value,
+    const size_t max_items, asset_summary_t** data, size_t* written)
 {
-    JADE_ASSERT(field);
-    JADE_ASSERT(value);
+    JADE_ASSERT(field && value);
     JADE_INIT_OUT_PPTR(data);
     JADE_INIT_OUT_SIZE(written);
 
     CborValue result;
-    if (!rpc_get_array(field, value, &result)) {
-        return;
+    size_t num_array_items = 0;
+    if (!rpc_get_array(field, value, &result, &num_array_items) || !num_array_items) {
+        // Summary data is optional
+        return true;
     }
 
-    size_t num_array_items = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &num_array_items);
-    if (cberr != CborNoError || !num_array_items) {
-        return;
+    if (num_array_items > max_items) {
+        JADE_LOGE("Too many asset summary records in message: %zu (max %zu)", num_array_items, max_items);
+        return false;
     }
 
     CborValue arrayItem;
-    cberr = cbor_value_enter_container(&result, &arrayItem);
+    CborError cberr = cbor_value_enter_container(&result, &arrayItem);
     if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
-        return;
+        return true;
     }
 
     asset_summary_t* const sums = JADE_CALLOC(num_array_items, sizeof(asset_summary_t));
@@ -141,7 +157,7 @@ static void rpc_get_asset_summary(
         if (!cbor_value_is_map(&arrayItem)
             || !rpc_get_n_bytes("asset_id", &arrayItem, sizeof(item->asset_id), item->asset_id)
             || !rpc_get_uint64("satoshi", &arrayItem, &item->value)) {
-            return;
+            return true;
         }
 
         cberr = cbor_value_advance(&arrayItem);
@@ -153,6 +169,7 @@ static void rpc_get_asset_summary(
         *written = num_array_items;
         *data = sums;
     }
+    return true;
 }
 
 static bool validate_additional_info(const struct wally_tx* tx, const TxType_t txtype, const bool is_partial,
@@ -219,8 +236,12 @@ bool params_additional_info(jade_process_t* process, CborValue* params, const st
     }
 
     // input/output summaries required for some complex txn types, eg. swaps
-    rpc_get_asset_summary(process, "wallet_input_summary", &additional_info, in_sums, num_in_sums);
-    rpc_get_asset_summary(process, "wallet_output_summary", &additional_info, out_sums, num_out_sums);
+    if (!rpc_get_asset_summary(process, "wallet_input_summary", &additional_info, tx->num_inputs, in_sums, num_in_sums)
+        || !rpc_get_asset_summary(
+            process, "wallet_output_summary", &additional_info, tx->num_outputs, out_sums, num_out_sums)) {
+        *errmsg = "Invalid number of asset summaries";
+        return false;
+    }
 
     // 'partial' flag (defaults to false, initially also defaulted above)
     *is_partial = rpc_get_bool_or("is_partial", &additional_info, false);
@@ -469,22 +490,21 @@ bool params_trusted_commitments(
     const char* errmsg = NULL;
 
     CborValue result;
-    if (!rpc_get_array("trusted_commitments", params, &result)) {
+    size_t num_outputs = 0;
+    if (!rpc_get_array("trusted_commitments", params, &result, &num_outputs)) {
         errmsg = "Failed to extract trusted commitments from parameters";
         goto cleanup;
     }
 
     // Expect one commitment element in the array for each output.
     // (Can be null/zero's for unblinded outputs.)
-    size_t num_outputs = 0;
-    CborError cberr = cbor_value_get_array_length(&result, &num_outputs);
-    if (cberr != CborNoError || !num_outputs || num_outputs != tx->num_outputs) {
+    if (!num_outputs || num_outputs != tx->num_outputs) {
         errmsg = "Unexpected number of trusted commitments for transaction";
         goto cleanup;
     }
 
     CborValue arrayItem;
-    cberr = cbor_value_enter_container(&result, &arrayItem);
+    CborError cberr = cbor_value_enter_container(&result, &arrayItem);
     if (cberr != CborNoError || !cbor_value_is_valid(&arrayItem)) {
         errmsg = "Invalid trusted commitments for transaction";
         goto cleanup;
