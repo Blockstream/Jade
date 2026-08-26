@@ -110,6 +110,20 @@ const char* locale_lang_with_fallback(const locale_multilang_string_t* str, jloc
 // Stubs for code that does not apply to libjade or is not yet implemented
 //
 
+// Attestation
+bool attestation_can_be_initialised(void) { return true; }
+bool attestation_initialise(const char* privkey_pem, size_t privkey_pem_len, const char* ext_pubkey_pem,
+    size_t ext_pubkey_pem_len, const uint8_t* ext_signature, size_t ext_signature_len)
+{
+    return false;
+}
+bool attestation_sign_challenge(const uint8_t* challenge, size_t challenge_len, uint8_t* signature,
+    size_t signature_len, char* pubkey_pem, size_t pubkey_pem_len, size_t* pem_written, uint8_t* ext_signature,
+    size_t ext_signature_len, size_t* ext_sig_written)
+{
+    return false;
+}
+
 // main/idletimer.c
 void idletimer_init(void) {}
 bool idletimer_register_activity(const bool is_ui) { return false; }

@@ -4,7 +4,7 @@
 #include "../ui.h"
 #include "process_utils.h"
 
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_LIBJADE)
 #include "../utils/cbor_rpc.h"
 #include "../utils/malloc_ext.h"
 #include "attestation/attestation.h"
@@ -53,7 +53,7 @@ void sign_attestation_and_send_reply(jade_process_t* process, const uint8_t* cha
     jade_process_reply_to_message_result(&process->ctx, buf, buflen, &output, reply_attestation);
     free(buf);
 }
-#endif // CONFIG_IDF_TARGET_ESP32S3
+#endif // CONFIG_IDF_TARGET_ESP32S3 || CONFIG_LIBJADE
 
 void sign_attestation_process(void* process_ptr)
 {
@@ -64,7 +64,7 @@ void sign_attestation_process(void* process_ptr)
     ASSERT_CURRENT_MESSAGE(process, "sign_attestation");
     GET_MSG_PARAMS(process);
 
-#ifdef CONFIG_IDF_TARGET_ESP32S3
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_LIBJADE)
     if (!attestation_initialised()) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Attestation data not initialised");
         goto cleanup;
@@ -92,9 +92,9 @@ void sign_attestation_process(void* process_ptr)
     sign_attestation_and_send_reply(process, challenge, challenge_len); // sends reply
 
     JADE_LOGI("Success");
-#else // CONFIG_IDF_TARGET_ESP32S3
+#else // CONFIG_IDF_TARGET_ESP32S3 || CONFIG_LIBJADE
     jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Attestation not supported");
-#endif // CONFIG_IDF_TARGET_ESP32S3
+#endif // CONFIG_IDF_TARGET_ESP32S3 || CONFIG_LIBJADE
 
 cleanup:
     return;
