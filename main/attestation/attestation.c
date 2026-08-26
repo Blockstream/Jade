@@ -20,6 +20,7 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
 
+#include <sodium/utils.h>
 #include <wally_crypto.h>
 
 #include <string.h>
@@ -41,6 +42,13 @@
 
 #define JADE_ATTEST_CURRENT_VERSION 1
 static const char JADE_ATTEST_PARTITION_NAME[] = "attest";
+
+#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) && !defined(CONFIG_DEBUG_MODE)
+// SHA256 of the Jade master attestation pubkey pem
+static const uint8_t ATTEST_PUBKEY_HASH[SHA256_LEN]
+    = { 0x75, 0xd6, 0x18, 0x75, 0xde, 0x1a, 0x11, 0xa6, 0xab, 0x7c, 0xd0, 0xf9, 0xb8, 0x5c, 0x48, 0x2a, 0x35, 0x46,
+          0xf4, 0xe0, 0xb5, 0xe6, 0x81, 0x62, 0x2a, 0x0c, 0xff, 0x7b, 0x1d, 0xca, 0xe4, 0x0f };
+#endif
 
 // Data saved to (logically write-once) partition
 typedef struct {
@@ -545,6 +553,19 @@ bool attestation_initialise(const char* privkey_pem, const size_t privkey_pem_le
         goto cleanup;
     }
     attestation_data.pubkey_pem_len = strlen(attestation_data.pubkey_pem);
+
+#if defined(CONFIG_BOARD_TYPE_JADE_V2_ANY) && !defined(CONFIG_DEBUG_MODE)
+    {
+        // Verify we are attesting with the authorized external authority public key
+        uint8_t sha256[sizeof(ATTEST_PUBKEY_HASH)];
+        JADE_WALLY_VERIFY(wally_sha256((uint8_t*)ext_pubkey_pem, ext_pubkey_pem_len, sha256, sizeof(sha256)));
+
+        if (sodium_memcmp(ATTEST_PUBKEY_HASH, sha256, sizeof(sha256))) {
+            JADE_LOGE("Failed to validate external signer public key");
+            goto cleanup;
+        }
+    }
+#endif // CONFIG_BOARD_TYPE_JADE_V2_ANY && !CONFIG_DEBUG_MODE
 
     // Import RSA public key for external authority and check signature over signer pubkey
     // If all good, copy that signature into the attestation data
