@@ -46,6 +46,8 @@ class JadeClient:
     def __enter__(self):
         if self.device == 'libjade':
             self.jade = JadeAPI.create_libjade()
+        elif self.device.startswith('ble:'):
+            self.jade = JadeAPI.create_ble(serial_number=self.device[4:])
         else:
             self.jade = JadeAPI.create_serial(device=self.device)
         self.jade.connect()
@@ -94,7 +96,8 @@ class Bip32PathParamType(click.ParamType):
 
 @click.group()
 @click.option('--verbose', '-v', is_flag=True)
-@click.option('--device', default='tcp:localhost:30121', help='Device address to connect to')
+@click.option('--device', default='tcp:localhost:30121',
+              help='Device address to connect to. Use ble:id for BLE')
 @click.pass_context
 def cli(ctx, verbose, device):
     ctx.ensure_object(dict)
