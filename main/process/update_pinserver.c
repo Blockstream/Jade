@@ -122,29 +122,25 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
         }
     }
 
+    uint8_t stored_pubkey[EC_PUBLIC_KEY_LEN];
+    const bool have_stored_pubkey = storage_get_pinserver_pubkey(stored_pubkey, sizeof(stored_pubkey));
+    const uint8_t* const old_pubkey = have_stored_pubkey ? stored_pubkey : server_public_key_start;
+    const uint8_t* const new_pubkey = pubkey ? pubkey : (reset_details ? server_public_key_start : old_pubkey);
+    const bool pubkey_changed = memcmp(old_pubkey, new_pubkey, EC_PUBLIC_KEY_LEN) != 0;
+
 #ifndef CONFIG_DEBUG_MODE
-    if (keychain_has_pin()) {
-        // Check that we are not trying to update the pinserver pubkey on a Jade unit
-        // that already has a wallet set up/persisted in flash.
-        // NOTE: we do allow an update of just the url/certs, as this may be a url change
-        // that still connects to the same backend pinserver instance.
-        uint8_t user_pubkey[EC_PUBLIC_KEY_LEN];
-        const bool have_user_pubkey = storage_get_pinserver_pubkey(user_pubkey, sizeof(user_pubkey));
-
-        // Cannot reset a non-default pubkey to the default value
-        if (reset_details && have_user_pubkey && memcmp(server_public_key_start, user_pubkey, sizeof(user_pubkey))) {
-            *errmsg = "Cannot update initialized unit";
-            goto cleanup;
-        }
-
-        // Cannot set new pubkey unless effectively unchanged
-        const uint8_t* effective_pubkey = have_user_pubkey ? user_pubkey : server_public_key_start;
-        if (pubkey && memcmp(effective_pubkey, pubkey, pubkey_len)) {
-            *errmsg = "Cannot update initialized unit";
-            goto cleanup;
-        }
+    // Check that we are not trying to update the pinserver pubkey on a Jade unit
+    // that already has a wallet set up/persisted in flash.
+    // NOTE: we do allow an update of just the url/certs, as this may be a url change
+    // that still connects to the same backend pinserver instance.
+    if (keychain_has_pin() && pubkey_changed) {
+        *errmsg = "Cannot update initialized unit";
+        goto cleanup;
     }
 #endif // CONFIG_DEBUG_MODE
+
+    const storage_pin_privkey_action_t privkey_action
+        = pubkey_changed ? STORAGE_PIN_ERASE_PRIVKEY : STORAGE_PIN_KEEP_PRIVKEY;
 
     if (urlA_len) {
         char* pubkey_hex = NULL;
@@ -221,7 +217,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
     // Ok, now user confirmed actions, actually set the pinserver details in storage
     if (urlA_len) {
         JADE_LOGI("Setting user pinserver details");
-        if (!storage_set_pinserver_details(urlA, urlB, pubkey, pubkey_len)) {
+        if (!storage_set_pinserver_details(urlA, urlB, pubkey, pubkey_len, privkey_action)) {
             JADE_LOGE("Failed to persist pinserver details");
             *errmsg = "Failed to persist Oracle details";
             retval = CBOR_RPC_INTERNAL_ERROR;
@@ -229,7 +225,7 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
         }
     } else if (reset_details) {
         JADE_LOGI("Erasing user pinserver details - resetting to default");
-        if (!storage_erase_pinserver_details()) {
+        if (!storage_erase_pinserver_details(privkey_action)) {
             JADE_LOGE("Failed to erase pinserver details");
             *errmsg = "Failed to erase Oracle details";
             retval = CBOR_RPC_INTERNAL_ERROR;
@@ -269,7 +265,7 @@ bool reset_pinserver(void)
     JADE_LOGI("Erasing user pinserver details and certificate - resetting to default");
     bool retval = true;
 
-    if (!storage_erase_pinserver_details()) {
+    if (!storage_erase_pinserver_details(STORAGE_PIN_ERASE_PRIVKEY)) {
         JADE_LOGE("Failed to erase pinserver details");
         retval = false;
     }

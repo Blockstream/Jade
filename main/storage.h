@@ -36,6 +36,8 @@
 #define MAX_PINSVR_CERTIFICATE_LENGTH 2048
 #define MAX_PINSVR_URL_LENGTH 120
 
+typedef enum { STORAGE_PIN_KEEP_PRIVKEY, STORAGE_PIN_ERASE_PRIVKEY } storage_pin_privkey_action_t;
+
 bool storage_init(void);
 bool storage_erase(void);
 bool storage_get_stats(size_t* entries_used, size_t* entries_free);
@@ -60,11 +62,12 @@ bool storage_set_wallet_erase_pin(const uint8_t* pin, size_t pin_len);
 bool storage_get_wallet_erase_pin(uint8_t* pin, size_t pin_len);
 bool storage_erase_wallet_erase_pin(void);
 
-bool storage_set_pinserver_details(const char* urlA, const char* urlB, const uint8_t* pubkey, size_t pubkey_len);
+bool storage_set_pinserver_details(const char* urlA, const char* urlB, const uint8_t* pubkey, size_t pubkey_len,
+    storage_pin_privkey_action_t privkey_action);
 bool storage_get_pinserver_urlA(char* url, size_t len, size_t* written);
 bool storage_get_pinserver_urlB(char* url, size_t len, size_t* written);
 bool storage_get_pinserver_pubkey(uint8_t* pubkey, size_t pubkey_len);
-bool storage_erase_pinserver_details(void);
+bool storage_erase_pinserver_details(storage_pin_privkey_action_t privkey_action);
 
 bool storage_set_pinserver_cert(const char* cert);
 bool storage_get_pinserver_cert(char* cert, size_t len, size_t* written);
