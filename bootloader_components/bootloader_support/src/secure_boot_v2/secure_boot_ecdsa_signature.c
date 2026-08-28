@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -19,11 +19,13 @@
 
 static const char *TAG = "secure_boot_v2_ecdsa";
 
-#if CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_384_BITS
+#if CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_192_BITS
+#define ECDSA_INTEGER_LEN 24
+#elif CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_384_BITS
 #define ECDSA_INTEGER_LEN 48
 #else
 #define ECDSA_INTEGER_LEN 32
-#endif /* CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_384_BITS */
+#endif
 
 esp_err_t verify_ecdsa_signature_block(const ets_secure_boot_signature_t *sig_block, const uint8_t *image_digest, const ets_secure_boot_sig_block_t *trusted_block)
 {
@@ -45,14 +47,18 @@ esp_err_t verify_ecdsa_signature_block(const ets_secure_boot_signature_t *sig_bl
     uint8_t key_size = 0;
 
     switch(trusted_block->ecdsa.key.curve_id) {
+#if CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_192_BITS
         case ECDSA_CURVE_P192:
             key_size = 24;
             mbedtls_ecp_group_load(&ecdsa_context.MBEDTLS_PRIVATE(grp), MBEDTLS_ECP_DP_SECP192R1);
             break;
+#endif /* CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_192_BITS */
+#if CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_256_BITS
         case ECDSA_CURVE_P256:
             key_size = 32;
             mbedtls_ecp_group_load(&ecdsa_context.MBEDTLS_PRIVATE(grp), MBEDTLS_ECP_DP_SECP256R1);
             break;
+#endif /* CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_256_BITS */
 #if CONFIG_SECURE_BOOT_ECDSA_KEY_LEN_384_BITS
         case ECDSA_CURVE_P384:
             key_size = 48;
