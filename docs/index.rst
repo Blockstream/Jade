@@ -172,8 +172,6 @@ get_version_info reply
   - 'TEST' - wallet is locked to testnet/regtest/localtest networks, and cannot be used on mainnet or liquid production networks.
   - 'ALL' - wallet is not (yet) locked to a specific network type.
 
-.. _update_pinserver_request:
-
 .. _sign_attestation_request:
 
 sign_attestation request
@@ -217,6 +215,8 @@ sign_attestation reply
 * 'pubkey_pem' is the exported PEM of the pubkey of the hw-embedded RSA key used to sign the challenge.  Base64 bytes with a trailing nul-terminator.
 * 'ext_signature' is an RSA signature of the verifying authority over the pubkey_pem bytes (including nul-terminator).
 * NOTE: the caller should have the RSA pubkey of the verifying authority in order to verify ext_signature and hence the authenticity of the hw unit.
+
+.. _update_pinserver_request:
 
 update_pinserver request
 ------------------------
