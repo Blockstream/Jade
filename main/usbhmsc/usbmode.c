@@ -640,12 +640,17 @@ static void usbmode_ota_worker(void* ctx)
     /* const bool all_data_sent = ctx_data->data_to_send == 0; */
     free(ctx_data);
 
-    if (!failed_wait) {
-        // Either all data was sent or an error occurred. Send "ota_complete"
-        // for both cases.
-        // TODO: add support for "ota_cancel" for the failure case.
-        post_ota_complete_message(SOURCE_INTERNAL);
-        ++msgs_sent;
+    // Send "ota_complete" in all cases: all data sent, an error occurred, or
+    // we timed out waiting for the ota task. The ota task is parked in a
+    // blocking read of its input messages and will not wake up on its own,
+    // so if we exit without sending anything it stays blocked with the
+    // progress screen frozen and no error shown. Sending "ota_complete"
+    // early is rejected by the ota task as bad data, which takes it through
+    // its normal error path and shows the user an error screen.
+    // TODO: add support for "ota_cancel" for the failure case.
+    post_ota_complete_message(SOURCE_INTERNAL);
+    ++msgs_sent;
+    {
         bool ok = false;
         // Wait for any outstanding ota replies
         const bool wait_forever = false;
@@ -656,7 +661,6 @@ static void usbmode_ota_worker(void* ctx)
     // If the ota failed, the user can try again, unless we failed to
     // wait in which case the main task is probably stuck and the device
     // will need to be rebooted.
-    // TODO: Notify the user in the failed_wait == true case.
 
     // After ota try to unmount usbstorage and restart normal serial comms
     JADE_LOGI("OTA complete: stopping usb");
