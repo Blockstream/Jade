@@ -2047,7 +2047,32 @@ static void render_text(gui_view_node_t* node)
         } else { // without noise
             _fg = node->is_selected ? data->selected_color : data->color;
 
-            display_print_in_area(data->text, resolve_halign(0, data->halign), resolve_valign(0, data->valign), cs, 1);
+            // If the padded box only fits a single line of this font, do not wrap
+            // any overflow onto a second (clipped, invisible) line - instead print
+            // only the leading characters that fit.
+            // eg. the device-name title in the 'deep' status bar, where wide glyph
+            // combinations (all letters) would otherwise silently lose the last char.
+            char* const text = data->text;
+            const int box_w = cs->x2 - cs->x1;
+            const int box_h = cs->y2 - cs->y1;
+            size_t len = strlen(text);
+            char saved = '\0';
+            if (box_h < 2 * display_get_font_height()) {
+                while (len && display_get_string_width(text) > box_w) {
+                    if (saved) {
+                        text[len] = saved;
+                    }
+                    --len;
+                    saved = text[len];
+                    text[len] = '\0';
+                }
+            }
+
+            display_print_in_area(text, resolve_halign(0, data->halign), resolve_valign(0, data->valign), cs, 1);
+
+            if (saved) {
+                text[len] = saved; // restore original string
+            }
         }
     }
 }
