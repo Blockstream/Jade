@@ -152,7 +152,11 @@ static void make_status_bar(void)
 #if HOME_SCREEN_DEEP_STATUS_BAR
     // Make an hsplit for the logo on the left, and info on the right
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
+    // 63/37: the name area must be able to fit the widest possible device id.
+    // 'Jade ' plus six wide hex glyphs (eg. 'Jade AAAAAA') is 114px in
+    // UBUNTU16, but 35% of the padded width (316px) is only 110px - the last
+    // character wraps onto a second line that is clipped and never visible.
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 63, 37);
     gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 2);
     gui_set_parent(hsplit, status_bar.root);
 
