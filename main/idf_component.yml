@@ -7,7 +7,7 @@ dependencies:
   espressif/esp32-camera:
       version: "==2.1.7"
   espressif/esp_lcd_touch_cst816s:
-      version: "==1.0.3"
+      version: "==1.1.2"
   espressif/esp_lcd_touch_ft5x06:
       version: "==1.0.7"
   espressif/esp_lcd_touch:
