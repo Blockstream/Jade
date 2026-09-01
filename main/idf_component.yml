@@ -25,7 +25,7 @@ dependencies:
       rules:
       - if: "target in [esp32s3]"
   espressif/esp-dsp:
-      version: "==1.5.2"
+      version: "==1.8.2"
       rules:
       - if: "target in [esp32s3]"
   idf:
