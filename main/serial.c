@@ -34,7 +34,7 @@
 
 #else
 #include <tinyusb.h>
-#include <tusb_cdc_acm.h>
+#include <tinyusb_cdc_acm.h>
 #endif
 #endif // IDF_TARGET_ESP32S3
 
@@ -210,14 +210,12 @@ static bool serial_init_internal(void)
     if (err != ESP_OK) {
         return false;
     }
-    const tinyusb_config_cdcacm_t acm_cfg = { .usb_dev = TINYUSB_USBDEV_0,
-        .cdc_port = TINYUSB_CDC_ACM_0,
-        .rx_unread_buf_sz = 64,
+    const tinyusb_config_cdcacm_t acm_cfg = { .cdc_port = TINYUSB_CDC_ACM_0,
         .callback_rx = tinyusb_cdc_rx_callback,
         .callback_rx_wanted_char = NULL,
         .callback_line_state_changed = NULL,
         .callback_line_coding_changed = NULL };
-    err = tusb_cdc_acm_init(&acm_cfg);
+    err = tinyusb_cdcacm_init(&acm_cfg);
     if (err != ESP_OK) {
         return false;
     }
@@ -320,7 +318,7 @@ void serial_stop(void)
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
 #ifndef CONFIG_JADE_USE_USB_JTAG_SERIAL
-    esp_err_t err = tusb_cdc_acm_deinit(TINYUSB_CDC_ACM_0);
+    esp_err_t err = tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0);
     JADE_ASSERT(err == ESP_OK);
     err = tinyusb_driver_uninstall();
     JADE_ASSERT(err == ESP_OK);
