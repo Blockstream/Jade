@@ -10,6 +10,7 @@
 
 #include <assets_snapshot.h>
 #include <cbor.h>
+#include <cborjson.h>
 #include <wally_elements.h>
 #include <wally_transaction.h>
 
