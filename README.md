@@ -241,8 +241,10 @@ $ virtualenv -p python3 venv3
 $ source venv3/bin/activate
 $ pip install -r requirements.txt
 $ pip install -r pinserver/requirements.txt
+$ pip install pytest
 $ # Run the tests
 $ python test_jade.py --serialport $JADESERIALPORT
+$ pytest -v --device $JADESERIALPORT tests/
 $ # Cleanup
 $ deactivate
 ```
