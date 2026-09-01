@@ -17,7 +17,7 @@ dependencies:
       rules:
       - if: "target in [esp32s3]"
   espressif/tinyusb:
-      version: "==0.18.0~1"
+      version: "==0.21.0~1"
       rules:
       - if: "target in [esp32s3]"
   espressif/usb_host_msc:
