@@ -340,7 +340,7 @@ menu "Blockstream Jade"
 
         config CAMERA_ROTATE_90
             bool "Rotate Camera Image by 90 degrees"
-            default n if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_WS_TOUCH_LCD2
+            default n if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_WS_TOUCH_LCD2 || BOARD_TYPE_JADE_ANY
             default y
 
         config CAMERA_ROTATE_180
@@ -350,7 +350,7 @@ menu "Blockstream Jade"
 
         config CAMERA_ROTATE_270
             bool "Rotate Camera Image by 270 degrees"
-            default y if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default y if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA || BOARD_TYPE_JADE_ANY
             default n
 
         config CAMERA_FRONT_FACING

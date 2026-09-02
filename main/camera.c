@@ -303,20 +303,9 @@ static void jade_camera_init(void)
 
     JADE_LOGI("The camera in use is: %s (%u)", camera_info->name, camera_info->model);
 
-    // GC0308 appears to need image flipping on both axes
-    if (camera_info->model == CAMERA_GC0308) {
-        JADE_ASSERT(camera_sensor->set_hmirror);
-        JADE_ASSERT(camera_sensor->set_vflip);
-        const int hret = camera_sensor->set_hmirror(camera_sensor, 1);
-        const int vret = camera_sensor->set_vflip(camera_sensor, 1);
-        if (hret || vret) {
-            JADE_LOGE("Failed to set camera hmirror/vflip, returned: %d/%d", hret, vret);
-        }
-    }
-
     // OV3660 needs a vertical flip for the ESP32 Wrover Cam
     // OV5640 needs vertical flip for T-Display S3 PRO
-    else if (camera_info->model == CAMERA_OV3660 || camera_info->model == CAMERA_OV5640) {
+    if (camera_info->model == CAMERA_OV3660 || camera_info->model == CAMERA_OV5640) {
         JADE_ASSERT(camera_sensor->set_vflip);
         const int vret = camera_sensor->set_vflip(camera_sensor, 1);
         if (vret) {
