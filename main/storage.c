@@ -327,6 +327,7 @@ static esp_err_t init_nvs_flash(void)
         JADE_LOGI("Calling nvs_flash_secure_init()");
         err = nvs_flash_secure_init(&cfg);
     }
+    wally_bzero(&cfg, sizeof(cfg));
 #else
     JADE_LOGI("Calling nvs_flash_init()");
     err = nvs_flash_init();
