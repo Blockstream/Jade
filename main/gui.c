@@ -152,7 +152,7 @@ static void make_status_bar(void)
 #if HOME_SCREEN_DEEP_STATUS_BAR
     // Make an hsplit for the logo on the left, and info on the right
     gui_view_node_t* hsplit;
-    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 65, 35);
+    gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 2, 60, 40);
     gui_set_padding(hsplit, GUI_MARGIN_ALL_DIFFERENT, 0, 2, 0, 2);
     gui_set_parent(hsplit, status_bar.root);
 
