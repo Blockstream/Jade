@@ -142,9 +142,7 @@ void __wrap_abort(void);
 #include "./ui/descriptor.c"
 #include "./ui/dialogs.c"
 #include "./ui/digit_entry.c"
-#ifndef CONFIG_LIBJADE
 #include "./ui/keyboard.c"
-#endif // CONFIG_LIBJADE
 #include "./ui/mnemonic.c"
 #include "./ui/multisig.c"
 #include "./ui/ota.c"

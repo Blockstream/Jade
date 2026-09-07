@@ -173,11 +173,6 @@ void input_init(void) {}
 // Serial
 bool serial_init(TaskHandle_t* task) { return true; }
 
-// main/ui/keyboard.c
-void make_keyboard_entry_activity(keyboard_entry_t* kb_entry, const char* title) {}
-
-void run_keyboard_entry_loop(keyboard_entry_t* kb_entry) {}
-
 #ifdef __APPLE__
 const uint8_t binary_pinserver_public_key_pub_start[33]
 #else
