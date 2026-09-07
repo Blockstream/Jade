@@ -19,9 +19,12 @@
 #endif // CONFIG_LIBJADE_NO_SPIRAM
 
 // Provide values in order to compile (we don't actually have a screen)
-// FIXME: Allow defaulting to the values for Jade v1 and v2
+#ifndef CONFIG_DISPLAY_WIDTH
 #define CONFIG_DISPLAY_WIDTH 320
-#define CONFIG_DISPLAY_HEIGHT 200
+#endif
+#ifndef CONFIG_DISPLAY_HEIGHT
+#define CONFIG_DISPLAY_HEIGHT 170
+#endif
 #define CONFIG_DISPLAY_OFFSET_X 0
 #define CONFIG_DISPLAY_OFFSET_Y 0
 #define CONFIG_DISPLAY_FULL_FRAME_BUFFER 1

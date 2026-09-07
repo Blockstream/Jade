@@ -2,7 +2,7 @@
 #
 # Build the Jade firmware into a shared library for in-process debugging
 #
-# ./libjade/make_libjade.sh [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize] [--log] [--camera] [--no-ci] [--coverage]
+# ./libjade/make_libjade.sh [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize] [--log] [--camera] [--no-ci] [--coverage] [--display v1|v2]
 #
 set -e
 
@@ -10,42 +10,46 @@ BUILD_TYPE="Debug"
 LOG="0"
 CI="CI"
 CAMERA="0"
+JADE_DISPLAY="v2"
 
 usage() {
-    echo "Usage: $0 [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize] [--log] [--camera] [--no-ci] [--coverage]"
+    echo "Usage: $0 [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize] [--log] [--camera] [--no-ci] [--coverage] [--display v1|v2]"
     exit 1
 }
 
 # iterate through optional arguments and set variables accordingly
-for arg in "$@"; do
-    case $arg in
+while [ $# -gt 0 ]; do
+    case "$1" in
         --help)
             usage
             ;;
         Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize)
-            BUILD_TYPE="$arg"
-            shift
+            BUILD_TYPE="$1"
             ;;
         --coverage)
             COVERAGE="COVERAGE"
-            shift
             ;;
         --log)
             LOG="LOG"
-            shift
             ;;
         --no-ci)
             CI="0"
-            shift
             ;;
         --camera)
             CAMERA="CAMERA"
+            ;;
+        --display)
             shift
+            case "$1" in
+                v1|v2) JADE_DISPLAY="$1" ;;
+                *) echo "Invalid display: $1"; usage ;;
+            esac
             ;;
         *)
             break
             ;;
     esac
+    shift
 done
 
 mkdir -p build_linux
@@ -54,7 +58,7 @@ EXTRA_ARGS=''
 if [ "${BUILD_TYPE}" == "Sanitize" ]; then
     EXTRA_ARGS='-DCMAKE_C_FLAGS"-fsanitize=undefined" -DCMAKE_CXX_FLAGS"-fsanitize=undefined"'
 fi
-cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${EXTRA_ARGS} -DLOG=${LOG} -DCOVERAGE=${COVERAGE} -DCAMERA=${CAMERA} -DCI=${CI} $* ..
+cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${EXTRA_ARGS} -DLOG=${LOG} -DCOVERAGE=${COVERAGE} -DCAMERA=${CAMERA} -DCI=${CI} -DJADE_DISPLAY=${JADE_DISPLAY} $* ..
 make -j8
 cd ..
 

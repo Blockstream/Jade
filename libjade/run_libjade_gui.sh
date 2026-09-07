@@ -3,11 +3,12 @@
 set -e
 
 usage() {
-    echo "Usage: $0 [--inprocess | --daemon] [--nvs-file PATH] [--log-level DEBUG|INFO|WARNING|ERROR|CRITICAL] [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize]"
+    echo "Usage: $0 [--inprocess | --daemon] [--nvs-file PATH] [--log-level DEBUG|INFO|WARNING|ERROR|CRITICAL] [--display v1|v2] [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize]"
     echo "  --inprocess  Load libjade.so directly in the GUI process (default)"
     echo "  --daemon     Run libjade as a separate daemon process"
     echo "  --nvs-file   NVS flash storage file (default: nvs_flash.bin)"
     echo "  --log-level  Set log verbosity (default: CRITICAL)"
+    echo "  --display    Emulated display: v1 (240x135) or v2 (320x170) (default: v2)"
     exit 1
 }
 
@@ -15,6 +16,7 @@ MODE="inprocess"
 BUILD_TYPE="Debug"
 NVS_FILE="nvs_flash.bin"
 LOG_LEVEL="CRITICAL"
+JADE_DISPLAY="v2"
 CBOR_SOCKET="/tmp/jade_cbor.sock"
 
 while [[ $# -gt 0 ]]; do
@@ -31,6 +33,13 @@ while [[ $# -gt 0 ]]; do
             case "$1" in
                 DEBUG|INFO|WARNING|ERROR|CRITICAL) LOG_LEVEL="$1" ;;
                 *) echo "Invalid log level: $1"; usage ;;
+            esac
+            shift ;;
+        --display)
+            shift
+            case "$1" in
+                v1|v2) JADE_DISPLAY="$1" ;;
+                *) echo "Invalid display: $1"; usage ;;
             esac
             shift ;;
         Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize) BUILD_TYPE="$1"; shift ;;
@@ -50,7 +59,7 @@ export PYTHONPATH=$JADE_PATH${PYTHONPATH:+:$PYTHONPATH}
 echo "--------------------------------"
 echo "Building libjade ($MODE mode, $BUILD_TYPE)..."
 echo "--------------------------------"
-$JADE_PATH/libjade/make_libjade.sh $BUILD_TYPE --log --camera --no-ci
+$JADE_PATH/libjade/make_libjade.sh $BUILD_TYPE --log --camera --no-ci --display "$JADE_DISPLAY"
 
 if [ "$BUILD_TYPE" == "Sanitize" ]; then
     export ASAN_OPTIONS=symbolize=1:detect_leaks=0

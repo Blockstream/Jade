@@ -120,8 +120,13 @@ static void repaint_node(gui_view_node_t* node);
 static struct view_node_button_data* node_get_button_data(gui_view_node_t* node);
 
 #ifdef CONFIG_LIBJADE
+#if HOME_SCREEN_DEEP_STATUS_BAR
 #define statusbar_logo_end _binary_statusbar_large_bin_gz_end
 #define statusbar_logo_start _binary_statusbar_large_bin_gz_start
+#else
+#define statusbar_logo_end _binary_statusbar_small_bin_gz_end
+#define statusbar_logo_start _binary_statusbar_small_bin_gz_start
+#endif
 #else
 #if HOME_SCREEN_DEEP_STATUS_BAR
 extern const uint8_t statusbar_logo_start[] asm("_binary_statusbar_large_bin_gz_start");

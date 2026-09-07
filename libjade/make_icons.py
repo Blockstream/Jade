@@ -1,5 +1,5 @@
-# python make_icons.py | clang-format >icons.inc
-for name in ['statusbar_large']:
+# python make_icons.py | clang-format-19 >icons.inc
+for name in ['statusbar_large', 'statusbar_small']:
     contents = open(f'../logo/{name}.bin.gz', 'rb').read()
     var = f'_binary_{name}_bin_gz'
     print(f'const uint8_t {var}_start[{len(contents)}] = {{')
