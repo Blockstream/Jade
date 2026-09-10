@@ -1349,11 +1349,13 @@ static void bytes_to_qr_icon(const uint8_t* bytes, const size_t bytes_len, Icon*
     // Convert url to qr code, then to Icon
     QRCode qrcode;
     uint8_t qrbuffer[256]; // opaque work area
+    SENSITIVE_PUSH(qrbuffer, sizeof(qrbuffer));
     JADE_ASSERT(qrcode_getBufferSize(qr_version) <= sizeof(qrbuffer));
     const int qret = qrcode_initBytes(&qrcode, qrbuffer, qr_version, ECC_LOW, (uint8_t*)bytes, bytes_len);
     JADE_ASSERT(qret == 0);
 
     qrcode_toIcon(&qrcode, qr_icon, scale_factor);
+    SENSITIVE_POP(qrbuffer);
 }
 
 // Display a BC-UR bytes message
