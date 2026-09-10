@@ -780,11 +780,11 @@ void bcur_create_qr_icons(const uint8_t* payload, const size_t len, const char* 
     *num_icons = num_fragments;
 }
 
-#ifdef CONFIG_DEBUG_MODE
+#ifdef CONFIG_LIBJADE
 // NOTE: iterative test for the BCUR_MAX_FRAGMENT_SIZE() macro which yields the input
 // 'max fragment size' (of payload data) to produce output bcur-encoded fragments close to
 // (but not more than!) the desired qr-code capacity.
-// NOTE: takes a while to run - qemu recommended! (~5mins on my laptop, on qemu)
+// NOTE: takes a while to run and thrashes the heap so only run in libjade
 bool bcur_check_fragment_sizes(void)
 {
     // Test various versions, with various message types, and various payload lengths
