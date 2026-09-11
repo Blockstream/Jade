@@ -19,7 +19,6 @@
 
 #include "process_utils.h"
 
-#include <cdecoder.h>
 #include <ctype.h>
 
 #define MAX_NUM_FINAL_WORDS 128

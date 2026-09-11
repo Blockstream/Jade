@@ -64,4 +64,9 @@ WARN_UNUSED_RESULT bool bcur_scan_qr(const char* prompt_text, char** output_type
 void bcur_create_qr_icons(
     const uint8_t* payload, size_t len, const char* bcur_type, uint8_t qr_version, Icon** icons, size_t* num_icons);
 
+// Whether a payload of the given length can be encoded at the given qr version
+// without producing more fragments than a bc-ur decoder will accept.
+// Callers must check this before bcur_create_qr_icons(), which asserts.
+bool bcur_can_create_qr_icons(size_t len, const char* bcur_type, uint8_t qr_version);
+
 #endif /* BCUR_H_ */
