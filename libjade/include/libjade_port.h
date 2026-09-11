@@ -31,6 +31,13 @@ static inline void libjade_thread_setname(const char* name)
     }
 }
 
+// Assert the calling thread's FreeRTOS task-local storage is empty (see libjade/task.c)
+void libjade_tls_init(void);
+
+// Discard the calling thread's FreeRTOS task-local storage (see libjade/task.c),
+// invoking any registered 'delete' callbacks as the RTOS does when a task is deleted
+void libjade_tls_reset(void);
+
 #ifdef __APPLE__
 
 #include <stdlib.h>

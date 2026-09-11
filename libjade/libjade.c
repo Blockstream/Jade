@@ -184,17 +184,6 @@ const uint8_t _binary_pinserver_public_key_pub_start[33]
 // Events
 volatile bool _libjade_stop_requested = false; // Used to stop the firmware
 
-// HW: Task API
-void sensitive_init(void) {}
-
-void sensitive_push(const char* file, int line, void* addr, size_t size) {}
-
-void sensitive_pop(const char* file, int line, void* addr) {}
-
-void sensitive_assert_empty(void) {}
-
-void sensitive_clear_stack(void) {}
-
 // HW: Random
 void get_random(void* bytes_out, size_t len)
 {
@@ -264,6 +253,7 @@ int random_mbedtls_cb(void* ctx, uint8_t* buf, const size_t len)
 static void* jade_fw_thread_fn(void* arg)
 {
     libjade_thread_setname("libjade_fw");
+    sensitive_init();
     start_dashboard();
     return NULL; // Never reached
 }
@@ -276,6 +266,7 @@ static __thread bool _libjade_is_internal_msg = false;
 
 void libjade_start(void)
 {
+    libjade_tls_init();
     ensure_boot_flags();
     random_start_collecting();
     validate_running_image();
@@ -311,6 +302,8 @@ void libjade_stop(void)
     _libjade_is_internal_msg = false;
     // clear keychain
     keychain_clear();
+    // discard this thread's task-local storage
+    libjade_tls_reset();
 }
 
 static uint8_t _libjade_serial_data_in[MAX_INPUT_MSG_SIZE + 1] = { 0 };

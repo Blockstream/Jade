@@ -125,8 +125,8 @@ void __wrap_abort(void);
 #ifndef CONFIG_LIBJADE
 #include "./random.c"
 #include "./selfcheck.c"
-#include "./sensitive.c"
 #endif // CONFIG_LIBJADE
+#include "./sensitive.c"
 #ifdef ESP_PLATFORM
 #include "./serial.c"
 #endif // ESP_PLATFORM

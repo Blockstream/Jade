@@ -1,4 +1,5 @@
 #define _GNU_SOURCE 1 // For extra pthread functions
+#include "freertos/FreeRTOS.h"
 #include "freertos/timecvt.h"
 #include "jade_assert.h"
 #include "libjade_port.h"
@@ -111,19 +112,98 @@ static pthread_once_t _waiter_cleanup_key_once = PTHREAD_ONCE_INIT;
 static void _waiter_cleanup_key_init(void) { pthread_key_create(&_waiter_cleanup_key, _waiter_cleanup); }
 
 // HW: TLS/Sensitive
-static void* _tls_ptrs[3];
+//
+// Emulation of the FreeRTOS per-task thread-local-storage pointers
+#define LIBJADE_TLS_POINTERS CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS
+
+typedef struct {
+    void* ptrs[LIBJADE_TLS_POINTERS];
+    TlsDeleteCallbackFunction_t cbs[LIBJADE_TLS_POINTERS];
+} libjade_tls_t;
+
+static pthread_key_t _libjade_tls_key;
+static pthread_once_t _libjade_tls_key_once = PTHREAD_ONCE_INIT;
+
+// Invoked by pthread as the thread exits, and by libjade_tls_reset()
+static void _tls_cleanup(void* p)
+{
+    libjade_tls_t* tls = (libjade_tls_t*)p;
+    if (!tls) {
+        return;
+    }
+    if (pthread_getspecific(_libjade_tls_key) == tls) {
+        pthread_setspecific(_libjade_tls_key, NULL);
+    }
+    for (size_t i = 0; i < LIBJADE_TLS_POINTERS; ++i) {
+        void* const ptr = tls->ptrs[i];
+        TlsDeleteCallbackFunction_t const cb = tls->cbs[i];
+        tls->ptrs[i] = NULL;
+        tls->cbs[i] = NULL;
+        if (ptr && cb) {
+            cb((int)i, ptr);
+        }
+    }
+    free(tls);
+}
+
+static void _tls_key_init(void) { pthread_key_create(&_libjade_tls_key, _tls_cleanup); }
+
+// NOTE: 'task' must be NULL at this stage (only the current thread's TLS is accessed)
+static libjade_tls_t* _get_tls(const bool create_if_missing)
+{
+    pthread_once(&_libjade_tls_key_once, _tls_key_init);
+    libjade_tls_t* tls = pthread_getspecific(_libjade_tls_key);
+    if (!tls && create_if_missing) {
+        tls = calloc(1, sizeof(libjade_tls_t));
+        JADE_ASSERT(tls);
+        pthread_setspecific(_libjade_tls_key, tls);
+    }
+    return tls;
+}
 
 void* pvTaskGetThreadLocalStoragePointer(void* task, size_t idx)
 {
-    JADE_ASSERT(idx <= sizeof(_tls_ptrs) / sizeof(_tls_ptrs[0]));
-    return _tls_ptrs[idx];
+    JADE_ASSERT(task == NULL); // Only ever called for the current task
+    JADE_ASSERT(idx < LIBJADE_TLS_POINTERS);
+    const bool create_if_missing = false;
+    const libjade_tls_t* tls = _get_tls(create_if_missing);
+    return tls ? tls->ptrs[idx] : NULL;
 }
 
 void vTaskSetThreadLocalStoragePointerAndDelCallback(void* task, size_t idx, void* p, TlsDeleteCallbackFunction_t cb)
 {
-    JADE_ASSERT(idx <= sizeof(_tls_ptrs) / sizeof(_tls_ptrs[0]));
-    _tls_ptrs[idx] = p;
-    // FIXME: call cb atexit()/thread exit?
+    JADE_ASSERT(task == NULL); // Only ever called for the current task
+    JADE_ASSERT(idx < LIBJADE_TLS_POINTERS);
+    const bool create_if_missing = true;
+    libjade_tls_t* tls = _get_tls(create_if_missing);
+    JADE_ASSERT(tls);
+    tls->ptrs[idx] = p;
+    tls->cbs[idx] = cb;
+}
+
+// On a device each boot is a distinct task, whereas libjade reuses the calling
+// thread, so simulate a new boot by enforcing that the task-local storage is empty
+void libjade_tls_init(void)
+{
+    pthread_once(&_libjade_tls_key_once, _tls_key_init);
+    const libjade_tls_t* tls = pthread_getspecific(_libjade_tls_key);
+    for (size_t i = 0; tls && i < LIBJADE_TLS_POINTERS; ++i) {
+        JADE_ASSERT_MSG(!tls->ptrs[i],
+            "libjade_start() called with task-local storage still set (index %u) - was libjade_stop() called?",
+            (unsigned)i);
+    }
+}
+
+// Discard the calling thread's task-local storage, invoking any registered
+// delete callbacks
+void libjade_tls_reset(void)
+{
+    pthread_once(&_libjade_tls_key_once, _tls_key_init);
+    libjade_tls_t* tls = pthread_getspecific(_libjade_tls_key);
+    if (!tls) {
+        return;
+    }
+    _tls_cleanup(tls);
 }
 
 const char* pcTaskGetName(void* task)
