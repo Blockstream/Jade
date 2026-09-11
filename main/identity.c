@@ -107,6 +107,7 @@ static void get_bip32_hardened_child(
 
     // I = HMAC-SHA512(Key = cpar, Data)
     uint8_t sha[HMAC_SHA512_LEN];
+    SENSITIVE_PUSH(sha, sizeof(sha));
     JADE_WALLY_VERIFY(wally_hmac_sha512(parent->chain_code, sizeof(parent->chain_code), child_out->priv_key,
         sizeof(child_out->priv_key) + sizeof(child_out->child_num), sha, sizeof(sha)));
 
@@ -137,6 +138,7 @@ static void get_bip32_hardened_child(
     SENSITIVE_POP(&tmp);
     SENSITIVE_POP(&tweak);
     SENSITIVE_POP(&key);
+    SENSITIVE_POP(sha);
 
     child_out->version = BIP32_VER_MAIN_PRIVATE;
 }
