@@ -30,6 +30,9 @@ build_diy_display_m5stickcplus2:
 build_diy_display_m5cores3:
   extends: .build_diy_template
 
+build_diy_display_m5sticks3:
+  extends: .build_diy_template
+
 build_diy_display_ttgo_twatchs3:
   extends: .build_diy_template
 
