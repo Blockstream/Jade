@@ -54,6 +54,18 @@ There are a number of hardware devices that can run Jade firmware with minimal c
 * Typically supports Secure Boot V2
 * Build configuration: `configs/sdkconfig_display_m5stickcplus2.defaults`
 
+### M5Stack M5StickS3
+* [Product Page](https://docs.m5stack.com/en/core/M5StickS3)
+* ~$16 USD
+* ESP32-S3 (8MB flash, 8MB octal PSRAM) with native USB
+* ST7789P3 135x240 IPS LCD
+* Two button interface (Long press front button to select)
+* Includes 120mAh battery
+* Fully assembled
+* Uses the M5PM1 PMIC: its PYG2 output (active high) gates the L3B rail that powers the LCD
+* USB VendorID:303a ProductID:4001 (Different to retail Jade, will require custom Electrum/HWI builds until they add support to these device IDs)
+* Use the `configs/sdkconfig_display_m5sticks3.defaults` build profile
+
 ### M5Stack Basic Core
 ![M5Stack Basic Core](img/M5Stack-Basic.png)
 * [Vendor Product Page](https://shop.m5stack.com/products/esp32-basic-core-lot-development-kit-v2-7)
