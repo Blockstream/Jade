@@ -245,6 +245,14 @@ menu "Blockstream Jade"
         help
             Some devices come with the IP5306 to manage power to ESP, charge the battery, etc.
 
+    config HAS_M5PM1
+        bool "Use the M5PM1 power controller"
+        depends on BOARD_TYPE_CUSTOM
+        default n
+        help
+            M5Stack StickS3 comes with the M5PM1 to manage power to the ESP,
+            LCD (L3B rail), battery, etc.
+
     menu "Input Options"
         visible if BOARD_TYPE_CUSTOM
         config UI_WRAP_ALL_MENUS
