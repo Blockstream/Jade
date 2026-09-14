@@ -279,6 +279,9 @@ if [ -n "$PSRAM" ]; then
     set_config CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY y
     set_config CONFIG_SPIRAM_BANKSWITCH_ENABLE n
     set_config CONFIG_SPIRAM_MEMTEST n
+    # Use the same PSRAM malloc thresholds as the devices with PSRAM
+    set_config CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL 256
+    set_config CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL 65536
     if [ -n "$WEBDISPLAY" ]; then
         echo "updating config file for webdisplay build ..."
         # remove settings
