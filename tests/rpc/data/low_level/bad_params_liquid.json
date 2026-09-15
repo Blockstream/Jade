@@ -1,0 +1,1794 @@
+{
+  "bad_params": [
+    [
+      [
+        "badblindkey1",
+        "get_blinding_key"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badblindkey2",
+        "get_blinding_key",
+        {
+          "script": null
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badblindkey3",
+        "get_blinding_key",
+        {
+          "script": 123
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badblindkey4",
+        "get_blinding_key",
+        {
+          "script": "notbin"
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badblindkey5",
+        "get_blinding_key",
+        {
+          "script": "0x"
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badnonce1",
+        "get_shared_nonce"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badnonce2",
+        "get_shared_nonce",
+        {
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac"
+        }
+      ],
+      "extract their_pubkey"
+    ],
+    [
+      [
+        "badnonce3",
+        "get_shared_nonce",
+        {
+          "their_pubkey": "0x03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9251f2904c"
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badnonce4",
+        "get_shared_nonce",
+        {
+          "script": 123,
+          "their_pubkey": "0x03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9251f2904c"
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badnonce5",
+        "get_shared_nonce",
+        {
+          "script": "notbin",
+          "their_pubkey": "0x03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9251f2904c"
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badnonce5a",
+        "get_shared_nonce",
+        {
+          "script": "0x",
+          "their_pubkey": "0x03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9251f2904c"
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badnonce6",
+        "get_shared_nonce",
+        {
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "their_pubkey": 123
+        }
+      ],
+      "extract their_pubkey"
+    ],
+    [
+      [
+        "badnonce7",
+        "get_shared_nonce",
+        {
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "their_pubkey": "notbin"
+        }
+      ],
+      "extract their_pubkey"
+    ],
+    [
+      [
+        "badnonce8",
+        "get_shared_nonce",
+        {
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "their_pubkey": "0xab"
+        }
+      ],
+      "extract their_pubkey"
+    ],
+    [
+      [
+        "badnonce8a",
+        "get_shared_nonce",
+        {
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "their_pubkey": "0x"
+        }
+      ],
+      "extract their_pubkey"
+    ],
+    [
+      [
+        "badnonce9",
+        "get_shared_nonce",
+        {
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "their_pubkey": "0x03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9251f2904c",
+          "include_pubkey": "True"
+        }
+      ],
+      "extract valid pubkey flag"
+    ],
+    [
+      [
+        "badblindfac1",
+        "get_blinding_factor"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badblindfac2",
+        "get_blinding_factor",
+        {
+          "output_index": 0,
+          "type": "ASSET"
+        }
+      ],
+      "extract hash_prevouts"
+    ],
+    [
+      [
+        "badblindfac3",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": 123,
+          "output_index": 0,
+          "type": "ASSET"
+        }
+      ],
+      "extract hash_prevouts"
+    ],
+    [
+      [
+        "badblindfac3a",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x",
+          "output_index": 0,
+          "type": "ASSET"
+        }
+      ],
+      "extract hash_prevouts"
+    ],
+    [
+      [
+        "badblindfac4",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "type": "ASSET",
+          "output_index": null
+        }
+      ],
+      "extract output index"
+    ],
+    [
+      [
+        "badblindfac5",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "type": "ASSET",
+          "output_index": "3"
+        }
+      ],
+      "extract output index"
+    ],
+    [
+      [
+        "badblindfac5a",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "type": "ASSET",
+          "output_index": 98765432123456789
+        }
+      ],
+      "extract output index"
+    ],
+    [
+      [
+        "badblindfac6",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "type": "ASSET",
+          "output_index": "notinteger"
+        }
+      ],
+      "extract output index"
+    ],
+    [
+      [
+        "badblindfac7",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0
+        }
+      ],
+      "extract blinding factor type"
+    ],
+    [
+      [
+        "badblindfac8",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "type": 123
+        }
+      ],
+      "extract blinding factor type"
+    ],
+    [
+      [
+        "badblindfac9",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "type": "BAD"
+        }
+      ],
+      "Invalid blinding factor type"
+    ],
+    [
+      [
+        "badblindfac10",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "type": "ASSETXYZ"
+        }
+      ],
+      "Invalid blinding factor type"
+    ],
+    [
+      [
+        "badblindfac11",
+        "get_blinding_factor",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "type": "VALUEISMUCHTOOLONG"
+        }
+      ],
+      "extract blinding factor type"
+    ],
+    [
+      [
+        "badcommit1",
+        "get_commitments"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badcommit2",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "value": 123
+        }
+      ],
+      "extract asset_id"
+    ],
+    [
+      [
+        "badcommit3",
+        "get_commitments",
+        {
+          "asset_id": null,
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "value": 123
+        }
+      ],
+      "extract asset_id"
+    ],
+    [
+      [
+        "badcommit4",
+        "get_commitments",
+        {
+          "asset_id": 123,
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "value": 123
+        }
+      ],
+      "extract asset_id"
+    ],
+    [
+      [
+        "badcommit5",
+        "get_commitments",
+        {
+          "asset_id": "notbin",
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "value": 123
+        }
+      ],
+      "extract asset_id"
+    ],
+    [
+      [
+        "badcommit6",
+        "get_commitments",
+        {
+          "asset_id": "0x123abc",
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "value": 123
+        }
+      ],
+      "extract asset_id"
+    ],
+    [
+      [
+        "badcommit6a",
+        "get_commitments",
+        {
+          "asset_id": "0x",
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "value": 123
+        }
+      ],
+      "extract asset_id"
+    ],
+    [
+      [
+        "badcommit7",
+        "get_commitments",
+        {
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract hash_prevouts"
+    ],
+    [
+      [
+        "badcommit8",
+        "get_commitments",
+        {
+          "hash_prevouts": null,
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract hash_prevouts"
+    ],
+    [
+      [
+        "badcommit9",
+        "get_commitments",
+        {
+          "hash_prevouts": 123,
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract hash_prevouts"
+    ],
+    [
+      [
+        "badcommit10",
+        "get_commitments",
+        {
+          "hash_prevouts": "notbin",
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract hash_prevouts"
+    ],
+    [
+      [
+        "badcommit11",
+        "get_commitments",
+        {
+          "hash_prevouts": "123abc",
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract hash_prevouts"
+    ],
+    [
+      [
+        "badcommit12",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract output index"
+    ],
+    [
+      [
+        "badcommit13",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": null,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract output index"
+    ],
+    [
+      [
+        "badcommit14",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": "0",
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract output index"
+    ],
+    [
+      [
+        "badcommit15",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": "X",
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123
+        }
+      ],
+      "extract output index"
+    ],
+    [
+      [
+        "badcommit16",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225"
+        }
+      ],
+      "extract value"
+    ],
+    [
+      [
+        "badcommit17",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": "123"
+        }
+      ],
+      "extract value"
+    ],
+    [
+      [
+        "badcommit18",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123,
+          "vbf": "0x313233"
+        }
+      ],
+      "extract vbf"
+    ],
+    [
+      [
+        "badcommit19",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123,
+          "vbf": "0x6e6f7462696e"
+        }
+      ],
+      "extract vbf"
+    ],
+    [
+      [
+        "badcommit20",
+        "get_commitments",
+        {
+          "hash_prevouts": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+          "output_index": 0,
+          "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+          "value": 123,
+          "vbf": "0x313233616263"
+        }
+      ],
+      "extract vbf"
+    ],
+    [
+      [
+        "badsignliq1",
+        "sign_liquid_tx"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badsignliq2",
+        "sign_liquid_tx",
+        {
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badsignliq2a",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsignliq2b",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": null,
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsignliq2c",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsignliq3",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "notbin",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsignliq4",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x123abc",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsignliq5",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "valid number of inputs"
+    ],
+    [
+      [
+        "badsignliq6",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 2,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "Unexpected number of inputs"
+    ],
+    [
+      [
+        "badsignliq7",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": "X",
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "valid number of inputs"
+    ],
+    [
+      [
+        "badsignliq8",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": null,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "valid number of inputs"
+    ],
+    [
+      [
+        "badsignliq9",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": "0"
+        }
+      ],
+      "valid number of inputs"
+    ],
+    [
+      [
+        "badsignliq10",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": null
+        }
+      ],
+      "extract trusted commitments"
+    ],
+    [
+      [
+        "badsignliq11",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": "notarray"
+        }
+      ],
+      "extract trusted commitments"
+    ],
+    [
+      [
+        "badsignliq12",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {}
+          ]
+        }
+      ],
+      "Unexpected number of trusted commitments"
+    ],
+    [
+      [
+        "badsignliq13",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {},
+            {}
+          ]
+        }
+      ],
+      "Unexpected number of trusted commitments"
+    ],
+    [
+      [
+        "badsignliq14",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "Missing trusted commitment data for blinded output"
+    ],
+    [
+      [
+        "badsignliq15",
+        "sign_liquid_tx",
+        {
+          "network": "made-up",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ],
+          "change": [
+            {
+              "path": [
+                1,
+                2,
+                3
+              ]
+            }
+          ]
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badsignliq16",
+        "sign_liquid_tx",
+        {
+          "network": "testnet",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ],
+          "change": [
+            {
+              "path": [
+                1,
+                2,
+                3
+              ]
+            },
+            {}
+          ]
+        }
+      ],
+      "only appropriate for liquid"
+    ],
+    [
+      [
+        "badsignliq17",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ],
+          "change": []
+        }
+      ],
+      "Unexpected number of output entries"
+    ],
+    [
+      [
+        "badsignliq18",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {},
+            {}
+          ],
+          "change": [
+            {},
+            {}
+          ]
+        }
+      ],
+      "Failed to extract valid receive path"
+    ],
+    [
+      [
+        "badsignliq19",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {
+              "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+              "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+              "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+              "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+              "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+              "value": 9000000,
+              "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+            },
+            {}
+          ],
+          "change": null,
+          "asset_info": [
+            {
+              "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
+              "issuance_prevout": {
+                "vout": 0
+              }
+            }
+          ]
+        }
+      ],
+      "Invalid asset info passed"
+    ],
+    [
+      [
+        "badsignliq20",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {
+              "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+              "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+              "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+              "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+              "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+              "value": 9000000,
+              "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+            },
+            {}
+          ],
+          "change": null,
+          "asset_info": [
+            {
+              "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
+              "contract": {
+                "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+                "name": "Testnet Asset",
+                "precision": 3,
+                "ticker": "TEST",
+                "version": 0
+              },
+              "issuance_prevout": {
+                "vout": 0
+              }
+            }
+          ]
+        }
+      ],
+      "Invalid asset info passed"
+    ],
+    [
+      [
+        "badsignliq21",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {
+              "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+              "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+              "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+              "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+              "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+              "value": 9000000,
+              "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+            },
+            {}
+          ],
+          "change": null,
+          "asset_info": [
+            {
+              "asset_id": "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5",
+              "contract": {
+                "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+                "name": "Testnet Asset",
+                "precision": 3,
+                "ticker": "TEST",
+                "version": 0
+              },
+              "issuance_prevout": {
+                "vout": 0
+              }
+            }
+          ]
+        }
+      ],
+      "Invalid asset info passed"
+    ],
+    [
+      [
+        "badsignliq22",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {
+              "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+              "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+              "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+              "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+              "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+              "value": 9000000,
+              "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+            },
+            {}
+          ],
+          "change": null,
+          "asset_info": [
+            {
+              "contract": {
+                "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+                "name": "Testnet Asset",
+                "precision": 3,
+                "ticker": "TEST",
+                "version": 0
+              },
+              "issuance_prevout": {
+                "vout": 0
+              }
+            }
+          ]
+        }
+      ],
+      "Invalid asset info passed"
+    ],
+    [
+      [
+        "badsignliq23",
+        "sign_liquid_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+          "num_inputs": 1,
+          "trusted_commitments": [
+            {
+              "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+              "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+              "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+              "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+              "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+              "value": 9000000,
+              "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+            },
+            {}
+          ],
+          "change": null,
+          "asset_info": [
+            {
+              "asset_id": "0x42bc9c7025f3df490a208cb362ff220547910da1d3e81c63a6e7c28c3a33a993",
+              "contract": {
+                "issuer_pubkey": "035d0f7b0207d9cc68870abfef621692bce082084ed3ca0c1ae432dd12d889be01",
+                "name": "Testnet Asset",
+                "precision": 3,
+                "ticker": "TEST",
+                "version": 0
+              },
+              "issuance_prevout": {
+                "vout": 0
+              }
+            }
+          ]
+        }
+      ],
+      "Invalid asset info passed"
+    ]
+  ],
+  "TEST_SCRIPT": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+  "TEST_THEIR_PK": "0x03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9251f2904c",
+  "TEST_HASH_PREVOUTS": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+  "TEST_REGTEST_BITCOIN": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+  "EXPECTED_MASTER_BLINDING_KEY": "0xafacc503637e85da661ca1706c4ea147f1407868c48d8f92dd339ac272293cdc",
+  "EXPECTED_BLINDING_KEY": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+  "EXPECTED_LIQ_COMMITMENT_1": {
+    "abf": "0x42bc9c7025f3df490a208cb362ff220547910da1d3e81c63a6e7c28c3a33a993",
+    "vbf": "0x7a6693fde7b88efb8375db618670fb5ccb9b2f7e8743b7d772924f0426c5efe6",
+    "asset_generator": "0x0a5cf0a43ad404163946c28b8a36d0e5cb4895b0ee386da4cd1008ffc8cb464501",
+    "value_commitment": "0x082d8de9b7f66994abf789b2591738331f88a7ddbef4e553bbf123e47677d60099",
+    "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+    "value": 9000000
+  },
+  "EXPECTED_LIQ_COMMITMENT_2": {
+    "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+    "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+    "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+    "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+    "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+    "value": 9000000
+  },
+  "bad_liq_inputs": [
+    [
+      [
+        "badliqin1",
+        "tx_input"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badliqin2",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ]
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badliqin3",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": null
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badliqin4",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "notbin"
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badliqin5",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcd12"
+        }
+      ],
+      "extract value commitment"
+    ],
+    [
+      [
+        "badliqin6",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcd12",
+          "value commitment": 15200
+        }
+      ],
+      "extract value commitment"
+    ],
+    [
+      [
+        "badliqin7",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcd12",
+          "value commitment": "notbin"
+        }
+      ],
+      "extract value commitment"
+    ],
+    [
+      [
+        "badliqin8",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcd12",
+          "value commitment": {
+            "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+            "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+            "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+            "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+            "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+            "value": 9000000,
+            "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+          },
+          "sighash": "SIGHASH_ALL"
+        }
+      ],
+      "fetch valid sighash"
+    ],
+    [
+      [
+        "badliqin9",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcd12",
+          "value commitment": {
+            "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+            "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+            "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+            "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+            "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+            "value": 9000000,
+            "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+          },
+          "sighash": "0x03"
+        }
+      ],
+      "fetch valid sighash"
+    ],
+    [
+      [
+        "badliqin10",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcd12",
+          "value commitment": {
+            "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+            "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+            "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+            "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+            "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+            "value": 9000000,
+            "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+          },
+          "sighash": 300
+        }
+      ],
+      "fetch valid sighash"
+    ],
+    [
+      [
+        "badliqin11",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcd12",
+          "value commitment": {
+            "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+            "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+            "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+            "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+            "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+            "value": 9000000,
+            "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+          },
+          "sighash": 0
+        }
+      ],
+      "Unsupported sighash value"
+    ],
+    [
+      [
+        "badliqin12",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcd12",
+          "value commitment": {
+            "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+            "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+            "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+            "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+            "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+            "value": 9000000,
+            "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+          },
+          "sighash": 2
+        }
+      ],
+      "Unsupported sighash value"
+    ]
+  ],
+  "bad_commitments": [
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000
+      },
+      "Missing trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "notbin",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x123abc",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": "notint",
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "notbin",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0x123abc",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0x",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "notbin",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x123abc",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "notbin",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "123abc",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "notbin",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "123abc",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "notbin"
+      },
+      "Missing trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "123abc"
+      },
+      "Missing trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x42bc9c7025f3df490a208cb362ff220547910da1d3e81c63a6e7c28c3a33a993",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "verify trusted commitment data"
+    ],
+    [
+      {
+        "abf": "0x42bc9c7025f3df490a208cb362ff220547910da1d3e81c63a6e7c28c3a33a993",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "verify trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x42bc9c7025f3df490a208cb362ff220547910da1d3e81c63a6e7c28c3a33a993",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "verify trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x082d8de9b7f66994abf789b2591738331f88a7ddbef4e553bbf123e47677d60099",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "verify trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x082d8de9b7f66994abf789b2591738331f88a7ddbef4e553bbf123e47677d60099",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+      },
+      "verify trusted commitment"
+    ],
+    [
+      {
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "asset_blind_proof": ""
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "asset_blind_proof": "notbin"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "asset_blind_proof": "123abc"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "asset_blind_proof": "0x"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "value_blind_proof": ""
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "value_blind_proof": "notbin"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "value_blind_proof": "123abc"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "value_blind_proof": "0x"
+      },
+      "trusted commitment"
+    ],
+    [
+      {
+        "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "asset_blind_proof": "0x0100017454d5579ec0def281d4712c832e98af69208af4146ba691841d6605088e16c55cb5bffdbad36202475d94dea902fbcfa8c428ab7b3901e92df8b201ac865da3"
+      },
+      "Failed to verify explicit asset/value commitment proofs"
+    ],
+    [
+      {
+        "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+        "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+        "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+        "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+        "value": 9000000,
+        "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+        "value_blind_proof": "0x200000000000047f47eb9b2f9267f23f7f64c6f93ab7cb7311b305abe97f4ac7877e981ffc7d4f662052de1efc379c28cf17f887e92208e70739e1e7abd095227587a895589e725de8"
+      },
+      "Failed to verify explicit asset/value commitment proofs"
+    ]
+  ],
+  "good_tx": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43033fc2cd1c4ce77e4339984f786dba6591bd862cf397e8cb6a99e457e162cad68617a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+  "good_commitments": [
+    {
+      "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+      "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+      "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+      "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+      "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+      "value": 9000000,
+      "blinding_key": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352"
+    },
+    {}
+  ],
+  "psram_only": [
+    "0x0100017454d5579ec0def281d4712c832e98af69208af4146ba691841d6605088e16c55cb5bffdbad36202475d94dea902fbcfa8c428ab7b3901e92df8b201ac865da3",
+    "0x200000000000047f47eb9b2f9267f23f7f64c6f93ab7cb7311b305abe97f4ac7877e981ffc7d4f662052de1efc379c28cf17f887e92208e70739e1e7abd095227587a895589e725de8"
+  ]
+}

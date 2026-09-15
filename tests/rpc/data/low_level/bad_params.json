@@ -1,0 +1,3674 @@
+{
+  "bad_params": [
+    [
+      [
+        "badauth1",
+        "auth_user"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badauth2",
+        "auth_user",
+        {
+          "network": null
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badauth3",
+        "auth_user",
+        {
+          "network": 1234512345
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badauth4",
+        "auth_user",
+        {
+          "network": ""
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badauth5",
+        "auth_user",
+        {
+          "network": "notanetwork"
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badauth6",
+        "auth_user",
+        {
+          "network": "testnet",
+          "epoch": "notanumber"
+        }
+      ],
+      "valid epoch value"
+    ],
+    [
+      [
+        "badauth7",
+        "auth_user",
+        {
+          "network": "testnet",
+          "epoch": 12345.6789
+        }
+      ],
+      "valid epoch value"
+    ],
+    [
+      [
+        "badpin1",
+        "update_pinserver"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badpin2",
+        "update_pinserver",
+        {
+          "urlA": ""
+        }
+      ],
+      "invalid first URL"
+    ],
+    [
+      [
+        "badpin3",
+        "update_pinserver",
+        {
+          "urlA": "192.168.1.123"
+        }
+      ],
+      "invalid first URL"
+    ],
+    [
+      [
+        "badpin4",
+        "update_pinserver",
+        {
+          "urlA": "ftp://192.168.1.123"
+        }
+      ],
+      "invalid first URL"
+    ],
+    [
+      [
+        "badpin5",
+        "update_pinserver",
+        {
+          "urlA": "http://192.168.1.123",
+          "urlB": "testurl.com:8080"
+        }
+      ],
+      "Invalid second URL"
+    ],
+    [
+      [
+        "badpin6",
+        "update_pinserver",
+        {
+          "urlA": "http://192.168.1.123",
+          "urlB": "madeup://testurl.com:8080"
+        }
+      ],
+      "Invalid second URL"
+    ],
+    [
+      [
+        "badpin7",
+        "update_pinserver",
+        {
+          "urlB": "https://192.168.1.124"
+        }
+      ],
+      "set only second URL"
+    ],
+    [
+      [
+        "badpin8",
+        "update_pinserver",
+        {
+          "urlA": "http://192.168.1.123",
+          "urlB": "https://192.168.1.124",
+          "reset_details": true
+        }
+      ],
+      "set and reset details"
+    ],
+    [
+      [
+        "badpin9",
+        "update_pinserver",
+        {
+          "pubkey": "0xabc123",
+          "reset_details": true
+        }
+      ],
+      "set and reset details"
+    ],
+    [
+      [
+        "badpin10",
+        "update_pinserver",
+        {
+          "pubkey": "0xabcdef"
+        }
+      ],
+      "set pubkey without URL"
+    ],
+    [
+      [
+        "badpin11",
+        "update_pinserver",
+        {
+          "urlA": "http://192.168.1.123",
+          "urlB": "https://192.168.1.124",
+          "pubkey": "0xabcdef1234"
+        }
+      ],
+      "Invalid Oracle pubkey"
+    ],
+    [
+      [
+        "badpin12",
+        "update_pinserver",
+        {
+          "certificate": "testcert",
+          "reset_certificate": true
+        }
+      ],
+      "set and reset certificate"
+    ],
+    [
+      [
+        "badent1",
+        "add_entropy"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badent2",
+        "add_entropy",
+        {
+          "entropy": null
+        }
+      ],
+      "valid entropy bytes"
+    ],
+    [
+      [
+        "badent3",
+        "add_entropy",
+        {
+          "entropy": 1234512345
+        }
+      ],
+      "valid entropy bytes"
+    ],
+    [
+      [
+        "badent4",
+        "add_entropy",
+        {
+          "entropy": "0x"
+        }
+      ],
+      "valid entropy bytes"
+    ],
+    [
+      [
+        "badent5",
+        "add_entropy",
+        {
+          "entropy": "notbinary"
+        }
+      ],
+      "valid entropy bytes"
+    ],
+    [
+      [
+        "badepoch1",
+        "set_epoch"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badepoch2",
+        "set_epoch",
+        {
+          "epoch": null
+        }
+      ],
+      "valid epoch value"
+    ],
+    [
+      [
+        "badepoch3",
+        "set_epoch",
+        {
+          "epoch": ""
+        }
+      ],
+      "valid epoch value"
+    ],
+    [
+      [
+        "badepoch4",
+        "set_epoch",
+        {
+          "epoch": "notinteger"
+        }
+      ],
+      "valid epoch value"
+    ],
+    [
+      [
+        "badepoch5",
+        "set_epoch",
+        {
+          "epoch": 12345.6789
+        }
+      ],
+      "valid epoch value"
+    ],
+    [
+      [
+        "badota1",
+        "ota"
+      ],
+      ""
+    ],
+    [
+      [
+        "badota2",
+        "ota",
+        {
+          "fwsize": 12345
+        }
+      ],
+      "Bad filesize parameters"
+    ],
+    [
+      [
+        "badota3",
+        "ota",
+        {
+          "fwsize": "1234",
+          "cmpsize": "123"
+        }
+      ],
+      "Bad filesize parameters"
+    ],
+    [
+      [
+        "badota4",
+        "ota",
+        {
+          "fwsize": "X",
+          "cmpsize": "Y"
+        }
+      ],
+      "Bad filesize parameters"
+    ],
+    [
+      [
+        "badota5",
+        "ota",
+        {
+          "fwsize": 1234,
+          "cmpsize": 1234
+        }
+      ],
+      "Bad filesize parameters"
+    ],
+    [
+      [
+        "badota6",
+        "ota",
+        {
+          "fwsize": 1234,
+          "cmpsize": 1111,
+          "cmphash": "0x313233"
+        }
+      ],
+      "extract valid fw hash"
+    ],
+    [
+      [
+        "badota_delta1",
+        "ota_delta"
+      ],
+      ""
+    ],
+    [
+      [
+        "badota_delta2",
+        "ota_delta",
+        {
+          "fwsize": 12345
+        }
+      ],
+      "Bad filesize parameters"
+    ],
+    [
+      [
+        "badota_delta3",
+        "ota_delta",
+        {
+          "fwsize": "1234",
+          "cmpsize": "123"
+        }
+      ],
+      "Bad filesize parameters"
+    ],
+    [
+      [
+        "badota_delta4",
+        "ota_delta",
+        {
+          "fwsize": "X",
+          "cmpsize": "Y"
+        }
+      ],
+      "Bad filesize parameters"
+    ],
+    [
+      [
+        "badota_delta5",
+        "ota_delta",
+        {
+          "fwsize": 1234,
+          "cmpsize": 1234
+        }
+      ],
+      "Bad filesize parameters"
+    ],
+    [
+      [
+        "badota_delta6",
+        "ota_delta",
+        {
+          "fwsize": 1234,
+          "cmpsize": 1111,
+          "patchsize": 1200,
+          "cmphash": "0x313233"
+        }
+      ],
+      "extract valid fw hash"
+    ],
+    [
+      [
+        "badxpub1",
+        "get_xpub"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badxpub2",
+        "get_xpub",
+        {
+          "notpath": "X",
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub3",
+        "get_xpub",
+        {
+          "path": "X",
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub4",
+        "get_xpub",
+        {
+          "path": null,
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub5",
+        "get_xpub",
+        {
+          "path": "",
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub6",
+        "get_xpub",
+        {
+          "path": [
+            null
+          ],
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub7",
+        "get_xpub",
+        {
+          "path": [
+            "123",
+            "456"
+          ],
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub8",
+        "get_xpub",
+        {
+          "path": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub9",
+        "get_xpub",
+        {
+          "path": [
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2
+          ],
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub10",
+        "get_xpub",
+        {
+          "path": [
+            4294967296
+          ],
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badxpub11",
+        "get_xpub",
+        {
+          "path": [
+            1,
+            2,
+            3
+          ]
+        }
+      ],
+      "valid network"
+    ],
+    [
+      [
+        "badxpub12",
+        "get_xpub",
+        {
+          "path": [],
+          "network": "invalid"
+        }
+      ],
+      "valid network"
+    ],
+    [
+      [
+        "badxpub13",
+        "get_xpub",
+        {
+          "path": [
+            1,
+            2,
+            3
+          ],
+          "network": "invalid"
+        }
+      ],
+      "valid network"
+    ],
+    [
+      [
+        "badgetmulti1",
+        "get_registered_multisig"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badgetmulti2",
+        "get_registered_multisig",
+        {
+          "multisig_name": "notsobad",
+          "as_file": "not bool"
+        }
+      ],
+      "Failed to extract valid as_file parameter"
+    ],
+    [
+      [
+        "badgetmulti3",
+        "get_registered_multisig",
+        {
+          "multisig_name": null
+        }
+      ],
+      "invalid multisig name"
+    ],
+    [
+      [
+        "badgetmulti4",
+        "get_registered_multisig",
+        {
+          "multisig_name": "space is bad"
+        }
+      ],
+      "invalid multisig name"
+    ],
+    [
+      [
+        "badgetmulti5",
+        "get_registered_multisig",
+        {
+          "multisig_name": "excessivelylong1"
+        }
+      ],
+      "invalid multisig name"
+    ],
+    [
+      [
+        "badgetmulti6",
+        "get_registered_multisig",
+        {
+          "multisig_name": "noexist"
+        }
+      ],
+      "does not exist for this signer"
+    ],
+    [
+      [
+        "badmulti1",
+        "register_multisig"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badmulti2",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": null
+        }
+      ],
+      "invalid multisig name"
+    ],
+    [
+      [
+        "badmulti3",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "space is bad"
+        }
+      ],
+      "invalid multisig name"
+    ],
+    [
+      [
+        "badmulti4",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "excessivelylong1"
+        }
+      ],
+      "invalid multisig name"
+    ],
+    [
+      [
+        "badmulti5",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test"
+        }
+      ],
+      "extract multisig descriptor"
+    ],
+    [
+      [
+        "badmulti6",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "threshold": 2,
+            "signers": []
+          }
+        }
+      ],
+      "Invalid script variant"
+    ],
+    [
+      [
+        "badmulti7",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "pkh(k)",
+            "threshold": 2,
+            "signers": []
+          }
+        }
+      ],
+      "Invalid script variant"
+    ],
+    [
+      [
+        "badmulti8",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "wsh(multi(k))",
+            "sorted": "Yes",
+            "threshold": 2,
+            "signers": []
+          }
+        }
+      ],
+      "Invalid sorted flag value"
+    ],
+    [
+      [
+        "badmulti9",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "wsh(multi(k))",
+            "signers": []
+          }
+        }
+      ],
+      "Invalid multisig threshold"
+    ],
+    [
+      [
+        "badmulti10",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "wsh(multi(k))",
+            "threshold": 0,
+            "signers": []
+          }
+        }
+      ],
+      "Invalid multisig threshold"
+    ],
+    [
+      [
+        "badmulti11",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "wsh(multi(k))",
+            "threshold": 16,
+            "signers": []
+          }
+        }
+      ],
+      "Invalid multisig threshold"
+    ],
+    [
+      [
+        "badmulti12",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "sh(wsh(multi(k)))",
+            "threshold": 5,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xe3ebcc79",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  1
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "Invalid multisig threshold"
+    ],
+    [
+      [
+        "badmulti13",
+        "register_multisig",
+        {
+          "network": "noexist",
+          "multisig_name": "test"
+        }
+      ],
+      "valid network"
+    ],
+    [
+      [
+        "badmulti15",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "sh(wsh(multi(k)))",
+            "threshold": 2,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xabcdef",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  1
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "Failed to extract valid co-signers"
+    ],
+    [
+      [
+        "badmulti16",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "wsh(multi(k))",
+            "threshold": 2,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  1
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "Failed to validate co-signers"
+    ],
+    [
+      [
+        "badmulti17",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "sh(multi(k))",
+            "threshold": 2,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xe3ebcc79",
+                "derivation": [
+                  1,
+                  2,
+                  3,
+                  4
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  1
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "Failed to validate co-signers"
+    ],
+    [
+      [
+        "badmulti18",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "sh(multi(k))",
+            "threshold": 2,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xe3ebcc79",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  2147483648
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "Failed to validate co-signers"
+    ],
+    [
+      [
+        "badmulti19",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "sh(multi(k))",
+            "threshold": 2,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xe3ebcc79",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  1
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "Failed to validate co-signers"
+    ],
+    [
+      [
+        "badmulti20",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "sh(multi(k))",
+            "threshold": 2,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubEDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xe3ebcc79",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  1
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "Failed to validate co-signers"
+    ],
+    [
+      [
+        "badmulti21",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "sh(wsh(multi(k)))",
+            "threshold": 1,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xe3ebcc79",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  1
+                ]
+              }
+            ],
+            "master_blinding_key": 1234
+          }
+        }
+      ],
+      "Invalid blinding key"
+    ],
+    [
+      [
+        "badmulti22",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "wsh(multi(k))",
+            "threshold": 1,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xe3ebcc79",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  1
+                ]
+              }
+            ],
+            "master_blinding_key": "abcdef"
+          }
+        }
+      ],
+      "Invalid blinding key"
+    ],
+    [
+      [
+        "badmulti23",
+        "register_multisig",
+        {
+          "network": "testnet",
+          "multisig_name": "test",
+          "descriptor": {
+            "variant": "sh(wsh(multi(k)))",
+            "threshold": 1,
+            "signers": [
+              {
+                "fingerprint": "0x1273da33",
+                "derivation": [
+                  44,
+                  2147483648,
+                  2147483648
+                ],
+                "xpub": "tpubDDCNstnPhbdd4vwbw5UWK3vRQSF1WXQkvBHpNXpKJAkwFYjwu735EH3GVf53qwbWimzewDUv68MUmRDgYtQ1AU8FRCPkazfuaBp7LaEaohG",
+                "path": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "fingerprint": "0xe3ebcc79",
+                "derivation": [
+                  2147483651,
+                  2147483649,
+                  1
+                ],
+                "xpub": "tpubDDExQpZg2tziZ7ACSBCYsY3rYxAZtTRBgWwioRLYqgNBguH6rMHN1D8epTxUQUB5kM5nxkEtr2SNic6PJLPubcGMR6S2fmDZTzL9dHpU7ka",
+                "path": [
+                  1
+                ]
+              }
+            ],
+            "master_blinding_key": "0xafacc503637e85da661ca1706c4ea147f1407868c48d8f92dd339ac272293c"
+          }
+        }
+      ],
+      "Invalid blinding key"
+    ],
+    [
+      [
+        "badgetdescr1",
+        "get_registered_descriptor"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badgetdescr2",
+        "get_registered_descriptor",
+        {
+          "descriptor_name": null
+        }
+      ],
+      "invalid descriptor name"
+    ],
+    [
+      [
+        "badgetdescr3",
+        "get_registered_descriptor",
+        {
+          "descriptor_name": "space is bad"
+        }
+      ],
+      "invalid descriptor name"
+    ],
+    [
+      [
+        "badgetdescr4",
+        "get_registered_descriptor",
+        {
+          "descriptor_name": "excessivelylong1"
+        }
+      ],
+      "invalid descriptor name"
+    ],
+    [
+      [
+        "badgetmulti5",
+        "get_registered_descriptor",
+        {
+          "descriptor_name": "noexist"
+        }
+      ],
+      "does not exist for this signer"
+    ],
+    [
+      [
+        "baddescr1",
+        "register_descriptor"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "baddescr2",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": null
+        }
+      ],
+      "invalid descriptor name"
+    ],
+    [
+      [
+        "baddescr3",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "space is bad"
+        }
+      ],
+      "invalid descriptor name"
+    ],
+    [
+      [
+        "baddescr4",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "excessivelylong1"
+        }
+      ],
+      "invalid descriptor name"
+    ],
+    [
+      [
+        "baddescr5",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "test"
+        }
+      ],
+      "extract valid output descriptor"
+    ],
+    [
+      [
+        "baddescr5a",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "toolong",
+          "descriptor": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      ],
+      "extract valid output descriptor"
+    ],
+    [
+      [
+        "baddescr5b",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "lengthok",
+          "descriptor": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "datavalues": {
+            "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to parse descriptor"
+    ],
+    [
+      [
+        "baddescr6",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "test",
+          "descriptor": "wsh(pk([e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE))"
+        }
+      ],
+      "Failed to extract valid parameter values"
+    ],
+    [
+      [
+        "baddescr7",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "test",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": "Wrong type"
+        }
+      ],
+      "Failed to extract valid parameter values"
+    ],
+    [
+      [
+        "baddescr8",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "test",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": []
+        }
+      ],
+      "Failed to extract valid parameter values"
+    ],
+    [
+      [
+        "baddescr9",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "test",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": {
+            "@0": 12
+          }
+        }
+      ],
+      "Failed to extract valid parameter values"
+    ],
+    [
+      [
+        "baddescr10",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "test",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": {
+            "@0": "Not a key"
+          }
+        }
+      ],
+      "Failed to parse descriptor"
+    ],
+    [
+      [
+        "baddescr11",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "test",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": {
+            "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to parse descriptor"
+    ],
+    [
+      [
+        "baddescr12",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "test",
+          "descriptor": "wsh(pkh(@A/<0;1>/*))",
+          "datavalues": {
+            "@A": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to parse descriptor"
+    ],
+    [
+      [
+        "baddescr13",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "isgood",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": {
+            "@0": "[abcdef/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to parse descriptor"
+    ],
+    [
+      [
+        "baddescr14",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "isgood",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": {
+            "@0": "[1273da33/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to validate signers"
+    ],
+    [
+      [
+        "baddescr15",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "isgood",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": {
+            "@0": "[e3ebcc79/1/2/3/4]tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to validate signers"
+    ],
+    [
+      [
+        "baddescr16",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "isgood",
+          "descriptor": "wsh(pkh(@0/<0;1>/*))",
+          "datavalues": {
+            "@0": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE",
+            "@1": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to parse descriptor"
+    ],
+    [
+      [
+        "baddescr17",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "too_few",
+          "descriptor": "test",
+          "datavalues": {}
+        }
+      ],
+      "Failed to extract valid parameter values"
+    ],
+    [
+      [
+        "baddescr18",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "too_many",
+          "descriptor": "test",
+          "datavalues": {
+            "              0": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              1": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              2": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              3": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              4": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              5": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              6": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              7": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              8": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "              9": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "             10": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "             11": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "             12": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "             13": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "             14": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "             15": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          }
+        }
+      ],
+      "Failed to extract valid parameter values"
+    ],
+    [
+      [
+        "badrecvaddr1",
+        "get_receive_address"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badrecvaddr2",
+        "get_receive_address",
+        {
+          "subaccount": "X",
+          "branch": 1,
+          "pointer": 1,
+          "network": "testnet"
+        }
+      ],
+      "extract path elements"
+    ],
+    [
+      [
+        "badrecvaddr3",
+        "get_receive_address",
+        {
+          "subaccount": 1,
+          "branch": "X",
+          "pointer": 1,
+          "network": "testnet"
+        }
+      ],
+      "extract path elements"
+    ],
+    [
+      [
+        "badrecvaddr4",
+        "get_receive_address",
+        {
+          "subaccount": 1,
+          "branch": 1,
+          "pointer": "X",
+          "network": "testnet"
+        }
+      ],
+      "extract path elements"
+    ],
+    [
+      [
+        "badrecvaddr5",
+        "get_receive_address",
+        {
+          "subaccount": 1,
+          "branch": 1,
+          "pointer": 1,
+          "network": "testnet",
+          "csv_blocks": 0,
+          "recovery_xpub": "notanxpub"
+        }
+      ],
+      "generate valid green address script"
+    ],
+    [
+      [
+        "badrecvaddr6",
+        "get_receive_address",
+        {
+          "subaccount": 1,
+          "branch": 1,
+          "pointer": 1,
+          "network": "testnet",
+          "csv_blocks": 65536,
+          "recovery_xpub": "tpubD8G8MPGsm1E4RsRMfDrmAU5h68cY93p9o8J7WmueUfCqSKUvLdRRWqRYxaaDkAXJo9WsiFTYtqQ7YeJc3rMsD7sttjdHKocbvwum7MQwxLy"
+        }
+      ],
+      "generate valid green address script"
+    ],
+    [
+      [
+        "badrecvaddr7",
+        "get_receive_address",
+        {
+          "subaccount": 0,
+          "branch": 0,
+          "pointer": 0,
+          "network": "testnet"
+        }
+      ],
+      "generate valid green address script"
+    ],
+    [
+      [
+        "badrecvaddr8",
+        "get_receive_address",
+        {
+          "subaccount": 0,
+          "branch": 2,
+          "pointer": 0,
+          "network": "testnet"
+        }
+      ],
+      "generate valid green address script"
+    ],
+    [
+      [
+        "badrecvaddr9",
+        "get_receive_address",
+        {
+          "subaccount": 0,
+          "branch": 0,
+          "pointer": 1000000,
+          "network": "testnet"
+        }
+      ],
+      "generate valid green address script"
+    ],
+    [
+      [
+        "badrecvaddr10",
+        "get_receive_address",
+        {
+          "subaccount": 1,
+          "branch": 1,
+          "pointer": 1,
+          "network": "invalid"
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badrecvaddr11",
+        "get_receive_address",
+        {
+          "path": [
+            1,
+            2,
+            3
+          ],
+          "network": "testnet"
+        }
+      ],
+      "extract path elements"
+    ],
+    [
+      [
+        "badrecvaddr12",
+        "get_receive_address",
+        {
+          "subaccount": 1,
+          "branch": 1,
+          "pointer": 1,
+          "variant": "pkh(k)",
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badrecvaddr13",
+        "get_receive_address",
+        {
+          "path": [
+            4294967296
+          ],
+          "variant": "pkh(k)",
+          "network": "testnet"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badrecvaddr14",
+        "get_receive_address",
+        {
+          "path": [
+            1,
+            2,
+            3
+          ],
+          "variant": "p2pkh",
+          "network": "testnet"
+        }
+      ],
+      "Invalid script variant parameter"
+    ],
+    [
+      [
+        "badrecvaddr15",
+        "get_receive_address",
+        {
+          "paths": [
+            [
+              1
+            ],
+            [
+              2,
+              3
+            ]
+          ],
+          "multisig_name": "does not exist",
+          "network": "testnet"
+        }
+      ],
+      "Cannot find named multisig wallet"
+    ],
+    [
+      [
+        "badrecvaddr16",
+        "get_receive_address",
+        {
+          "branch": 0,
+          "pointer": 1,
+          "descriptor_name": "does not exist",
+          "network": "testnet"
+        }
+      ],
+      "Cannot find named descriptor wallet"
+    ],
+    [
+      [
+        "badrecvaddr17",
+        "get_receive_address",
+        {
+          "path": [
+            1,
+            2,
+            3
+          ],
+          "variant": "pkh(k)",
+          "confidential": true,
+          "network": "mainnet"
+        }
+      ],
+      "Confidential addresses only apply to liquid"
+    ],
+    [
+      [
+        "badbip85ent1",
+        "get_bip85_bip39_entropy"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badbip85ent2",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": null
+        }
+      ],
+      "valid number of words"
+    ],
+    [
+      [
+        "badbip85ent3",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": "bad"
+        }
+      ],
+      "valid number of words"
+    ],
+    [
+      [
+        "badbip85ent4",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": 18
+        }
+      ],
+      "valid number of words"
+    ],
+    [
+      [
+        "badbip85ent5",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": 12
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85ent6",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": 12,
+          "index": null
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85ent7",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": 12,
+          "index": "bad"
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85ent8",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": 24,
+          "index": 0
+        }
+      ],
+      "fetch valid pubkey"
+    ],
+    [
+      [
+        "badbip85ent9",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": 24,
+          "index": 0,
+          "pubkey": "vbad"
+        }
+      ],
+      "fetch valid pubkey"
+    ],
+    [
+      [
+        "badbip85ent10",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": 24,
+          "index": 0,
+          "pubkey": "0"
+        }
+      ],
+      "fetch valid pubkey"
+    ],
+    [
+      [
+        "badbip85ent11",
+        "get_bip85_bip39_entropy",
+        {
+          "num_words": 24,
+          "index": 0,
+          "pubkey": "0x"
+        }
+      ],
+      "fetch valid pubkey"
+    ],
+    [
+      [
+        "badbip85pk1",
+        "get_bip85_pubkey"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badbip85pk2",
+        "get_bip85_pubkey",
+        {
+          "key_type": null
+        }
+      ],
+      "extract valid key_type"
+    ],
+    [
+      [
+        "badbip85pk3",
+        "get_bip85_pubkey",
+        {
+          "key_type": "bad"
+        }
+      ],
+      "extract valid key_type"
+    ],
+    [
+      [
+        "badbip85pk4",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSAx"
+        }
+      ],
+      "extract valid key_type"
+    ],
+    [
+      [
+        "badbip85pk5",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSA"
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85pk6",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSA",
+          "key_bits": null
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85pk7",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSA",
+          "key_bits": "bad"
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85pk8",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSA",
+          "key_bits": 3096
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85pk9",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSA",
+          "key_bits": 8192
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85pk10",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSA",
+          "key_bits": 2048
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85pk11",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSA",
+          "key_bits": 3072,
+          "index": null
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85pk12",
+        "get_bip85_pubkey",
+        {
+          "key_type": "RSA",
+          "key_bits": 4096,
+          "index": "bad"
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85sign1",
+        "sign_bip85_digests"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badbip85sign2",
+        "sign_bip85_digests",
+        {
+          "key_type": null
+        }
+      ],
+      "extract valid key_type"
+    ],
+    [
+      [
+        "badbip85sign3",
+        "sign_bip85_digests",
+        {
+          "key_type": "bad"
+        }
+      ],
+      "extract valid key_type"
+    ],
+    [
+      [
+        "badbip85sign4",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSAx"
+        }
+      ],
+      "extract valid key_type"
+    ],
+    [
+      [
+        "badbip85sign5",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA"
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85sign6",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": null
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85sign7",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": "bad"
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85sign8",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 3096
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85sign8",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 8192
+        }
+      ],
+      "fetch valid key length"
+    ],
+    [
+      [
+        "badbip85sign10",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 2048
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85sign11",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 3072,
+          "index": null
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85sign12",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 4096,
+          "index": "bad"
+        }
+      ],
+      "fetch valid index"
+    ],
+    [
+      [
+        "badbip85sign13",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 4096,
+          "index": 0
+        }
+      ],
+      "extract digests from parameters"
+    ],
+    [
+      [
+        "badbip85sign14",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 4096,
+          "index": 0,
+          "digests": null
+        }
+      ],
+      "extract digests from parameters"
+    ],
+    [
+      [
+        "badbip85sign15",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 4096,
+          "index": 0,
+          "digests": "not array"
+        }
+      ],
+      "extract digests from parameters"
+    ],
+    [
+      [
+        "badbip85sign16",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 4096,
+          "index": 0,
+          "digests": [
+            "not binary"
+          ]
+        }
+      ],
+      "extract digests from parameters"
+    ],
+    [
+      [
+        "badbip85sign17",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 4096,
+          "index": 0,
+          "digests": [
+            "0xababab"
+          ]
+        }
+      ],
+      "extract digests from parameters"
+    ],
+    [
+      [
+        "badbip85sign18",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 1024,
+          "index": 0,
+          "digests": [
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab"
+          ]
+        }
+      ],
+      "Unsupported number of digests"
+    ],
+    [
+      [
+        "badbip85sign19",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 1024,
+          "index": 0,
+          "digests": [
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab"
+          ]
+        }
+      ],
+      "Unsupported number of digests"
+    ],
+    [
+      [
+        "badbip85sign20",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 3072,
+          "index": 0,
+          "digests": [
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab"
+          ]
+        }
+      ],
+      "Unsupported number of digests"
+    ],
+    [
+      [
+        "badbip85sign21",
+        "sign_bip85_digests",
+        {
+          "key_type": "RSA",
+          "key_bits": 4096,
+          "index": 0,
+          "digests": [
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab",
+            "0xabababababababababababababababababababababababababababababababab"
+          ]
+        }
+      ],
+      "Unsupported number of digests"
+    ],
+    [
+      [
+        "badidpk1",
+        "get_identity_pubkey"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badidpk2",
+        "get_identity_pubkey",
+        {
+          "curve": "nist256p1"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badidpk3",
+        "get_identity_pubkey",
+        {
+          "identity": "xxx",
+          "curve": "nist256p1"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badidpk4",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://",
+          "curve": "nist256p1"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badidpk5",
+        "get_identity_pubkey",
+        {
+          "identity": "ftp://some.xyz.com",
+          "curve": "nist256p1",
+          "index": 7
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badidpk6",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "index": 0
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badidpk7",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": null,
+          "index": 1
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badidpk8",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": 256,
+          "index": 17
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badidpk9",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "ed25519",
+          "index": 0
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badidpk10",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1"
+        }
+      ],
+      "extract valid key type"
+    ],
+    [
+      [
+        "badidpk11",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "type": null
+        }
+      ],
+      "extract valid key type"
+    ],
+    [
+      [
+        "badidpk12",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "type": 13
+        }
+      ],
+      "extract valid key type"
+    ],
+    [
+      [
+        "badidpk13",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "type": "slip-0014"
+        }
+      ],
+      "extract valid key type"
+    ],
+    [
+      [
+        "badidpk14",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "type": "slip-0013",
+          "index": "bad"
+        }
+      ],
+      "extract valid index"
+    ],
+    [
+      [
+        "badidpk15",
+        "get_identity_pubkey",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "type": "slip-0017",
+          "index": 4294967296
+        }
+      ],
+      "extract valid index"
+    ],
+    [
+      [
+        "badidshared1",
+        "get_identity_shared_key"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badidshared2",
+        "get_identity_shared_key",
+        {
+          "curve": "nist256p1",
+          "their_pubkey": "00"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badidshared3",
+        "get_identity_shared_key",
+        {
+          "identity": "xxxxxxx",
+          "curve": "nist256p1",
+          "their_pubkey": "00"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badidshared4",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://",
+          "curve": "nist256p1",
+          "their_pubkey": "00"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badidshared5",
+        "get_identity_shared_key",
+        {
+          "identity": "ftp://some.xyz.com",
+          "curve": "nist256p1",
+          "their_pubkey": "00"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badidshared6",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "their_pubkey": "00"
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badidshared7",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": null,
+          "their_pubkey": "00"
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badidshared8",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": 3,
+          "their_pubkey": "00"
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badidshared9",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "ed25519",
+          "their_pubkey": "00"
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badidshared10",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "their_pubkey": null,
+          "index": 2
+        }
+      ],
+      "extract valid pubkey"
+    ],
+    [
+      [
+        "badidshared11",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "their_pubkey": "not-bytes",
+          "index": 0
+        }
+      ],
+      "extract valid pubkey"
+    ],
+    [
+      [
+        "badidshared12",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "their_pubkey": 12345,
+          "index": 0
+        }
+      ],
+      "extract valid pubkey"
+    ],
+    [
+      [
+        "badidshared13",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "their_pubkey": "0",
+          "index": 0
+        }
+      ],
+      "extract valid pubkey"
+    ],
+    [
+      [
+        "badidshared14",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "their_pubkey": "00",
+          "index": "bad"
+        }
+      ],
+      "extract valid index"
+    ],
+    [
+      [
+        "badidshared15",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "their_pubkey": "00",
+          "index": 4294967296
+        }
+      ],
+      "extract valid index"
+    ],
+    [
+      [
+        "badsignid1",
+        "sign_identity"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badsignid2",
+        "sign_identity",
+        {
+          "curve": "nist256p1",
+          "challenge": "0x616263646566"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badsignid3",
+        "sign_identity",
+        {
+          "identity": "xxxxxxx",
+          "curve": "nist256p1",
+          "challenge": "0x616263646566"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badsignid4",
+        "sign_identity",
+        {
+          "identity": "ssh://",
+          "curve": "nist256p1",
+          "challenge": "0x616263646566"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badsignid5",
+        "sign_identity",
+        {
+          "identity": "ftp://some.xyz.com",
+          "challenge": "0x616263646566"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badsignid6",
+        "sign_identity",
+        {
+          "identity": "ftp://some.xyz.com",
+          "curve": "nist256p1"
+        }
+      ],
+      "extract valid identity"
+    ],
+    [
+      [
+        "badsignid7",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "challenge": "0x616263646566",
+          "index": 12
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badsignid8",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": null,
+          "challenge": "0x616263646566",
+          "index": 12
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badsignid9",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": 12,
+          "challenge": "0x616263646566",
+          "index": 12
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badsignid10",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "ed25519",
+          "challenge": "0x616263646566",
+          "index": 12
+        }
+      ],
+      "extract valid curve name"
+    ],
+    [
+      [
+        "badsignid11",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "challenge": null,
+          "index": 12
+        }
+      ],
+      "extract valid challenge"
+    ],
+    [
+      [
+        "badsignid12",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "challenge": "not-bytes",
+          "index": 0
+        }
+      ],
+      "extract valid challenge"
+    ],
+    [
+      [
+        "badsignid13",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "challenge": 12345,
+          "index": 0
+        }
+      ],
+      "extract valid challenge"
+    ],
+    [
+      [
+        "badsignid14",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "challenge": "0x3132333435",
+          "index": "bad"
+        }
+      ],
+      "extract valid index"
+    ],
+    [
+      [
+        "badsignid15",
+        "sign_identity",
+        {
+          "identity": "ssh://user@some.xyz.com",
+          "curve": "nist256p1",
+          "challenge": "0x3132333435",
+          "index": 4294967296
+        }
+      ],
+      "extract valid index"
+    ],
+    [
+      [
+        "badsignmsg1",
+        "sign_message"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badsignmsg2",
+        "sign_message",
+        {
+          "path": [
+            0
+          ]
+        }
+      ],
+      "extract message"
+    ],
+    [
+      [
+        "badsignmsg3",
+        "sign_message",
+        {
+          "message": "XYZ"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg4",
+        "sign_message",
+        {
+          "message": 12345,
+          "path": [
+            0
+          ]
+        }
+      ],
+      "extract message"
+    ],
+    [
+      [
+        "badsignmsg5",
+        "sign_message",
+        {
+          "message": "",
+          "path": [
+            0
+          ]
+        }
+      ],
+      "extract message"
+    ],
+    [
+      [
+        "badsignmsg6",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": ""
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg7",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": "X"
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg8",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": []
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg9",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": null
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg10",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": [
+            null
+          ]
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg11",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": [
+            "123",
+            "456",
+            "789"
+          ]
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg12",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": [
+            "X",
+            "Y",
+            "Z"
+          ]
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg13",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": [
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2
+          ]
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignmsg14",
+        "sign_message",
+        {
+          "message": "XYZ",
+          "path": [
+            4294967296
+          ]
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badsignpsbt1",
+        "sign_psbt"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badsignpsbt2",
+        "sign_psbt",
+        {
+          "psbt": null
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badsignpsbt3",
+        "sign_psbt",
+        {
+          "network": "testnet",
+          "psbt": null
+        }
+      ],
+      "extract psbt bytes"
+    ],
+    [
+      [
+        "badsignpsbt4",
+        "sign_psbt",
+        {
+          "network": "testnet",
+          "psbt": "bad type"
+        }
+      ],
+      "extract psbt bytes"
+    ],
+    [
+      [
+        "badsignpsbt5",
+        "sign_psbt",
+        {
+          "network": "mainnet",
+          "psbt": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "extract psbt from passed bytes"
+    ],
+    [
+      [
+        "badsigntx1",
+        "sign_tx"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badsigntx2",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000"
+        }
+      ],
+      "valid number of inputs"
+    ],
+    [
+      [
+        "badsigntx3",
+        "sign_tx",
+        {
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badsigntx4",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "num_inputs": 1
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsigntx4a",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": null,
+          "num_inputs": 1
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsigntx5",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x",
+          "num_inputs": 1
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsigntx6",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "notbin",
+          "num_inputs": 1
+        }
+      ],
+      "extract tx"
+    ],
+    [
+      [
+        "badsigntx7",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 2
+        }
+      ],
+      "Unexpected number of inputs"
+    ],
+    [
+      [
+        "badsigntx8",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 0
+        }
+      ],
+      "valid number of inputs"
+    ],
+    [
+      [
+        "badsigntx9",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": "X"
+        }
+      ],
+      "valid number of inputs"
+    ],
+    [
+      [
+        "badsigntx10",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": null
+        }
+      ],
+      "valid number of inputs"
+    ],
+    [
+      [
+        "badsigntx11",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": []
+        }
+      ],
+      "Unexpected number of output entries"
+    ],
+    [
+      [
+        "badsigntx12",
+        "sign_tx",
+        {
+          "network": "made-up",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": [
+            {
+              "path": [
+                1,
+                2,
+                3
+              ]
+            },
+            {}
+          ]
+        }
+      ],
+      "extract valid network"
+    ],
+    [
+      [
+        "badsigntx13",
+        "sign_tx",
+        {
+          "network": "localtest-liquid",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": [
+            {
+              "path": [
+                1,
+                2,
+                3
+              ]
+            },
+            {}
+          ]
+        }
+      ],
+      "not appropriate for liquid"
+    ],
+    [
+      [
+        "badsigntx14",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": [
+            {
+              "multisig_name": "",
+              "paths": [
+                [
+                  1,
+                  2,
+                  3
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "Invalid multisig name"
+    ],
+    [
+      [
+        "badsigntx15",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": [
+            {
+              "multisig_name": "bad",
+              "is_change": true,
+              "paths": [
+                [
+                  1,
+                  2,
+                  3
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "Cannot find named multisig wallet"
+    ],
+    [
+      [
+        "badsigntx16",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": [
+            {
+              "descriptor_name": "",
+              "branch": 1,
+              "pointer": 13
+            }
+          ]
+        }
+      ],
+      "Invalid descriptor name"
+    ],
+    [
+      [
+        "badsigntx17",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": [
+            {
+              "descriptor_name": "bad",
+              "is_change": true,
+              "branch": 1,
+              "pointer": 13
+            }
+          ]
+        }
+      ],
+      "Cannot find named descriptor wallet"
+    ],
+    [
+      [
+        "badsigntx19",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": [
+            {
+              "is_change": false,
+              "not_path": [
+                1,
+                2,
+                3
+              ]
+            }
+          ]
+        }
+      ],
+      "extract valid receive path"
+    ],
+    [
+      [
+        "badsigntx20",
+        "sign_tx",
+        {
+          "network": "testnet",
+          "txn": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000",
+          "num_inputs": 1,
+          "change": [
+            null,
+            null
+          ]
+        }
+      ],
+      "Unexpected number of output entries"
+    ]
+  ],
+  "TEST_SCRIPT": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+  "TEST_THEIR_PK": "0x03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9251f2904c",
+  "TEST_HASH_PREVOUTS": "0x95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6147f5ec88342",
+  "TEST_REGTEST_BITCOIN": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+  "EXPECTED_MASTER_BLINDING_KEY": "0xafacc503637e85da661ca1706c4ea147f1407868c48d8f92dd339ac272293cdc",
+  "EXPECTED_BLINDING_KEY": "0x023454c233497be73ed98c07d5e9069e21519e94d0663375ca57c982037546e352",
+  "EXPECTED_LIQ_COMMITMENT_1": {
+    "abf": "0x42bc9c7025f3df490a208cb362ff220547910da1d3e81c63a6e7c28c3a33a993",
+    "vbf": "0x7a6693fde7b88efb8375db618670fb5ccb9b2f7e8743b7d772924f0426c5efe6",
+    "asset_generator": "0x0a5cf0a43ad404163946c28b8a36d0e5cb4895b0ee386da4cd1008ffc8cb464501",
+    "value_commitment": "0x082d8de9b7f66994abf789b2591738331f88a7ddbef4e553bbf123e47677d60099",
+    "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+    "value": 9000000
+  },
+  "EXPECTED_LIQ_COMMITMENT_2": {
+    "abf": "0xa3510210bbab6ed67429af9beaf42f09382e12146a3db466971b58a45516bba0",
+    "vbf": "0x6ec064a68075a278bfca4a10f777c730116e9ba02fbb343a237c847e4d2fbf53",
+    "asset_generator": "0x0abd23178d9ff73cf848d8d88a7c7e269a464f53017cab0f9f53ed9d64b2849713",
+    "value_commitment": "0x094d9a00f1661a2a805a8afec9c188310d4c43353cc319886ee4d9f439389d8f43",
+    "asset_id": "0x5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225",
+    "value": 9000000
+  },
+  "bad_tx_inputs": [
+    [
+      [
+        "badinput0",
+        "tx_input"
+      ],
+      "Expecting parameters map"
+    ],
+    [
+      [
+        "badinput1",
+        "tx_input",
+        {
+          "is_witness": true,
+          "satoshi": 120,
+          "path": []
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badinput2",
+        "tx_input",
+        {
+          "is_witness": true,
+          "satoshi": 120,
+          "path": [
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2,
+            0,
+            1,
+            2
+          ]
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badinput2a",
+        "tx_input",
+        {
+          "is_witness": true,
+          "satoshi": 120,
+          "path": [
+            4294967296,
+            4294967296,
+            4294967296,
+            4294967296,
+            4294967296,
+            4294967296
+          ]
+        }
+      ],
+      "extract valid path"
+    ],
+    [
+      [
+        "badinput3",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "script": "0xabcdef"
+        }
+      ],
+      "extract satoshi"
+    ],
+    [
+      [
+        "badinput4",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": "120",
+          "script": "0xabcdef"
+        }
+      ],
+      "extract satoshi"
+    ],
+    [
+      [
+        "badinput5",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": 12
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badinput6",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": 12,
+          "script": null
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badinput7",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": 12,
+          "script": "notbin"
+        }
+      ],
+      "extract script"
+    ],
+    [
+      [
+        "badinput8",
+        "tx_input",
+        {
+          "is_witness": false,
+          "path": [
+            0
+          ],
+          "satoshi": 9,
+          "script": "0xab"
+        }
+      ],
+      "extract input_tx"
+    ],
+    [
+      [
+        "badinput9",
+        "tx_input",
+        {
+          "is_witness": false,
+          "input_tx": null
+        }
+      ],
+      "extract input_tx"
+    ],
+    [
+      [
+        "badinput10",
+        "tx_input",
+        {
+          "is_witness": false,
+          "input_tx": "notbin"
+        }
+      ],
+      "extract input_tx"
+    ],
+    [
+      [
+        "badinput11",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": 12345,
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "sighash": "SIGHASH_ALL"
+        }
+      ],
+      "fetch valid sighash"
+    ],
+    [
+      [
+        "badinput12",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": 12345,
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "sighash": "0x02"
+        }
+      ],
+      "fetch valid sighash"
+    ],
+    [
+      [
+        "badinput13",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": 12345,
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "sighash": 300
+        }
+      ],
+      "fetch valid sighash"
+    ],
+    [
+      [
+        "badinput14",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": 12345,
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "sighash": 0
+        }
+      ],
+      "Unsupported sighash value"
+    ],
+    [
+      [
+        "badinput15",
+        "tx_input",
+        {
+          "is_witness": true,
+          "path": [
+            0
+          ],
+          "satoshi": 12345,
+          "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+          "sighash": 2
+        }
+      ],
+      "Unsupported sighash value"
+    ]
+  ],
+  "good_tx": "0x02000000010f757ae0b5714cb36e017dfffafe5f3ba8c89ddb969a0ae60d99ee7b5892a2740000000000ffffffff01203f0f00000000001600145f4fcd4a757c2abf6a0691f59dffae18852bbd7300000000"
+}
