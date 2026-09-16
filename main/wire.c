@@ -159,6 +159,7 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
 
         if (msg_len == parse_len) {
             // We have consumed all the provided data
+            wally_bzero(data_in, parse_len);
             *read_ptr = 0; // Discard entire buffer contents
             *last_processing_time = now; // Update caller's 'last processing time'
             return;
@@ -166,7 +167,9 @@ void handle_data(uint8_t* full_data_in, size_t* read_ptr, const size_t new_data_
 
         // We have unprocessed data left in the buffer:
         // Move it to the start of the buffer and loop to process it
-        memmove(data_in, data_in + msg_len, parse_len - msg_len);
+        const size_t remaining_len = parse_len - msg_len;
+        memmove(data_in, data_in + msg_len, remaining_len);
+        wally_bzero(data_in + remaining_len, msg_len);
         *read_ptr -= msg_len;
         have_stale = false;
     }

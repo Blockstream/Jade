@@ -561,6 +561,9 @@ void ble_stop(void)
     xSemaphoreTake(ble_writer_shutdown_done, portMAX_DELAY);
     vTaskDelete(*p_ble_writer_handle);
     *p_ble_writer_handle = NULL;
+
+    wally_bzero(full_ble_data_in + 1, ble_read);
+    ble_read = 0;
 }
 
 bool ble_enabled(void) { return ble_is_enabled; }
@@ -610,6 +613,7 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
 
     case BLE_GAP_EVENT_DISCONNECT:
         JADE_LOGI("disconnect; reason=%d ", event->disconnect.reason);
+        wally_bzero(full_ble_data_in + 1, ble_read);
         ble_read = 0;
         ble_print_conn_desc(&event->disconnect.conn);
         peer_conn_handle = 0;

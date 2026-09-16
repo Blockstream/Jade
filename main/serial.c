@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <wally_core.h>
 
 #ifdef CONFIG_IDF_TARGET_ESP32S3
 
@@ -129,6 +130,7 @@ static void serial_reader(void* ignore)
         // Pass data through to the common handler
         handle_data(full_serial_data_in, &read, len, &last_processing_time);
     }
+    wally_bzero(serial_data_in, read);
     serial_post_exit_event_and_await_death(&serial_reader_shutdown_done);
 }
 
