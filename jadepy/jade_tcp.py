@@ -31,6 +31,7 @@ class JadeTCPImpl:
         self.device = device
         self.timeout = timeout
         self.tcp_sock = None
+        self.eof = False
 
     def connect(self):
         assert self.isSupportedDevice(self.device)
@@ -59,6 +60,7 @@ class JadeTCPImpl:
 
         assert self.tcp_sock is not None
         self.tcp_sock.__enter__()
+        self.eof = False
         logger.info('Connected')
 
     def disconnect(self):
@@ -74,7 +76,9 @@ class JadeTCPImpl:
 
     def read(self, n):
         assert self.tcp_sock is not None
-        buf = self.tcp_sock.recv(n)
-        while len(buf) < n:
-            buf += self.tcp_sock.recv(n - len(buf))
+        buf = b''
+        while len(buf) < n and not self.eof:
+            chunk = self.tcp_sock.recv(n - len(buf))
+            self.eof = not chunk
+            buf += chunk
         return buf
