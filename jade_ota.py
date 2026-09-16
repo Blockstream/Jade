@@ -100,7 +100,7 @@ def download_file(hw_target, write_compressed, release):
     # Get the filename of the firmware to download
     release_data = json.loads(rslt.text).get(release)
     if not release_data:
-        return None, None, None
+        return None, None, None, None
 
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
@@ -155,7 +155,7 @@ def download_file_gdk(hw_target, write_compressed, release):
     # Get the filename of the firmware to download
     release_data = json.loads(rslt['body']).get(release)
     if not release_data:
-        return None, None, None
+        return None, None, None, None
 
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
@@ -552,7 +552,7 @@ if __name__ == '__main__':
                 logger.warning('Skipping BLE OTA - not enabled on the hardware')
         else:
             # Download without a device
-            info = {'FEATURES': 'SB'}  # Assume production
+            info = {'JADE_FEATURES': 'SB'}  # Assume production
             if args.hwtarget:
                 info['BOARD_TYPE'] = {
                     'jade': 'JADE',
