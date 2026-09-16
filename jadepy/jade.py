@@ -2384,6 +2384,7 @@ class JadeInterface:
         and awaits the next message.  Returns when it receives what appears to be a reply message.
         If `long_timeout` is false, any read-timeout is respected.  If True, the call will block
         indefinitely awaiting a response message.
+        A closed TCP stream raises EOFError regardless of `long_timeout`.
 
         Parameters
         ----------
@@ -2399,7 +2400,9 @@ class JadeInterface:
             try:
                 return self.read_cbor_message()
             except self.EOFError as _:
-                if not long_timeout:
+                # A closed stream cannot produce a later response, even when
+                # waiting indefinitely for user interaction.
+                if not long_timeout or (isinstance(self.impl, JadeTCPImpl) and self.impl.eof):
                     raise
 
     @staticmethod
