@@ -842,8 +842,15 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
 
     if (!for_liquid) {
         // Bitcoin: Sanity check amounts
-        uint64_t output_amount;
-        JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
+        uint64_t output_amount = 0;
+        if (wally_tx_get_total_output_satoshi(tx, &output_amount) != WALLY_OK) {
+            // If using ae-signatures, we need to load the message to send the error back on
+            if (use_ae_signatures) {
+                jade_process_load_in_message(process, true);
+            }
+            jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Total output amounts exceed maximum");
+            goto cleanup;
+        }
         if (output_amount > input_amount) {
             // If using ae-signatures, we need to load the message to send the error back on
             if (use_ae_signatures) {

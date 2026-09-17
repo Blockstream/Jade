@@ -1023,8 +1023,12 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         }
     } else {
         // Bitcoin: Sanity check amounts
-        uint64_t output_amount;
-        JADE_WALLY_VERIFY(wally_tx_get_total_output_satoshi(tx, &output_amount));
+        uint64_t output_amount = 0;
+        if (wally_tx_get_total_output_satoshi(tx, &output_amount) != WALLY_OK) {
+            *errmsg = "Total output amounts exceed maximum";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
         if (output_amount > input_amount) {
             *errmsg = "Total input amounts less than total output amounts";
             retval = CBOR_RPC_BAD_PARAMETERS;
