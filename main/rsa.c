@@ -26,18 +26,23 @@ static bool get_bip85_rsa_ctx(const uint32_t key_bits, const uint32_t index, mbe
     JADE_LOGI("Deriving BIP85 RSA context for index %" PRIu32 ", key length: %" PRIu32, index, key_bits);
 
     uint8_t entropy[HMAC_SHA512_LEN];
+    SENSITIVE_PUSH(entropy, sizeof(entropy));
     size_t entropy_len = 0;
     wallet_get_bip85_rsa_entropy(key_bits, index, entropy, sizeof(entropy), &entropy_len);
     JADE_ASSERT(entropy_len == 64);
 
     struct shake256_ctx sctx = {};
+    SENSITIVE_PUSH(&sctx, sizeof(sctx));
     shake256_init(&sctx, entropy, entropy_len);
-    if (mbedtls_rsa_gen_key(output, shake256_mbedtls_rnd_cb, &sctx, key_bits, 65537) != 0) {
+
+    const bool ret = mbedtls_rsa_gen_key(output, shake256_mbedtls_rnd_cb, &sctx, key_bits, 65537) == 0;
+    if (!ret) {
         JADE_LOGE("Failed to create/setup key from rsa context");
-        return false;
     }
 
-    return true;
+    SENSITIVE_POP(&sctx);
+    SENSITIVE_POP(entropy);
+    return ret;
 }
 
 // Function to get bip85-generated rsa key pem
