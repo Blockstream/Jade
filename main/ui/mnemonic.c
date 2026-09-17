@@ -3,6 +3,7 @@
 
 #include "../button_events.h"
 #include "../jade_assert.h"
+#include "../sensitive.h"
 #include "../ui.h"
 
 #define NUM_KEYBOARD_ROWS 3
@@ -156,6 +157,7 @@ static void make_show_new_mnemonic_page(
     gui_set_parent(vsplit, parent);
 
     char prefixed_word[16];
+    SENSITIVE_PUSH(prefixed_word, sizeof(prefixed_word));
     for (int irow = 0; irow < 4; ++irow) {
         // index-prefixed word, eg. "1:  river"
         const int ret = snprintf(prefixed_word, sizeof(prefixed_word), "%2u:  %s", first_index + irow + 1, words[irow]);
@@ -166,6 +168,7 @@ static void make_show_new_mnemonic_page(
         gui_set_align(word, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
         gui_set_parent(word, vsplit);
     }
+    SENSITIVE_POP(prefixed_word);
 
     // Set the intially selected item to the next/verify (ie. the last) button
     gui_set_activity_initial_selection(hdrbtns[1].btn);

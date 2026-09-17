@@ -408,8 +408,8 @@ static bool mnemonic_new(const size_t nwords, char* mnemonic, const size_t mnemo
     keychain_get_new_mnemonic(&new_mnemonic, nwords);
     JADE_ASSERT(new_mnemonic);
     const size_t new_mnemonic_len = strnlen(new_mnemonic, MNEMONIC_BUFLEN);
-    JADE_ASSERT(new_mnemonic_len < MNEMONIC_BUFLEN); // buffer should be large enough for any mnemonic
     SENSITIVE_PUSH(new_mnemonic, new_mnemonic_len);
+    JADE_ASSERT(new_mnemonic_len < MNEMONIC_BUFLEN); // buffer should be large enough for any mnemonic
 
     // Copy into output buffer
     strcpy(mnemonic, new_mnemonic);
@@ -695,12 +695,13 @@ static wordlist_word_result_t select_wordlist_word(const bool is_mnemonic, const
     char word[MNEMONIC_MAX_WORD_LEN + 1] = { 0 };
     SENSITIVE_PUSH(word, sizeof(word));
     gui_update_text(ui->textbox, word);
+    size_t possible_word_list[NUM_WORDS_SELECT];
+    SENSITIVE_PUSH(possible_word_list, sizeof(possible_word_list));
     wordlist_word_result_t result = WORDLIST_WORD_DONE;
 
     while (true) {
         JADE_ASSERT(char_index < 6); // must have found a word by then!
 
-        size_t possible_word_list[NUM_WORDS_SELECT];
         bool exact_match = false; // not interested in any case
         const size_t possible_words = valid_words(
             word, char_index, p_filter_words, num_filter_words, possible_word_list, NUM_WORDS_SELECT, &exact_match);
@@ -779,6 +780,7 @@ static wordlist_word_result_t select_wordlist_word(const bool is_mnemonic, const
             } else {
                 // Otherwise show last 3 words
                 char buf[32]; // sufficient
+                SENSITIVE_PUSH(buf, sizeof(buf));
                 const char* shown[3] = { "", "", "" };
                 if (word_index == 0) {
                     shown[0] = word;
@@ -803,6 +805,7 @@ static wordlist_word_result_t select_wordlist_word(const bool is_mnemonic, const
                 const int ret = snprintf(buf, sizeof(buf), "%s%s %s %s", prefix, shown[0], shown[1], shown[2]);
                 JADE_ASSERT(ret >= 0 && ret < sizeof(buf));
                 gui_update_text(ui->textbox, buf);
+                SENSITIVE_POP(buf);
             }
             gui_set_current_activity(ui->enter_word_activity);
 
@@ -839,6 +842,7 @@ static wordlist_word_result_t select_wordlist_word(const bool is_mnemonic, const
         }
     }
 
+    SENSITIVE_POP(possible_word_list);
     SENSITIVE_POP(word);
     return result;
 }
@@ -1788,8 +1792,8 @@ void handle_bip85_mnemonic()
     get_bip85_mnemonic(nwords, index, &new_mnemonic);
     JADE_ASSERT(new_mnemonic);
     const size_t mnemonic_len = strnlen(new_mnemonic, MNEMONIC_BUFLEN);
-    JADE_ASSERT(mnemonic_len < MNEMONIC_BUFLEN);
     SENSITIVE_PUSH(new_mnemonic, mnemonic_len);
+    JADE_ASSERT(mnemonic_len < MNEMONIC_BUFLEN);
 
     // Display and confirm mnemonic phrase
     if (display_confirm_mnemonic(nwords, new_mnemonic, mnemonic_len)) {
