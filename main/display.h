@@ -29,6 +29,7 @@ typedef struct {
 typedef struct {
     uint16_t width, height;
     uint32_t* data;
+    uint32_t zeroize_len;
 } Icon;
 
 typedef struct {

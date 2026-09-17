@@ -354,6 +354,7 @@ static int uncompressed_image_stream_writer(void* ctx, uint8_t* uncompressed, si
         if (ictx->icon) {
             JADE_ASSERT(!ictx->icon->data);
             ictx->icon->data = JADE_MALLOC_PREFER_SPIRAM(ictx->allocated_size);
+            ictx->icon->zeroize_len = 0;
             ictx->icon->width = uncompressed[0];
         } else {
             JADE_ASSERT(!ictx->pic->data_8);
@@ -429,6 +430,7 @@ Icon* get_icon(const uint8_t* const start, const uint8_t* const end)
     ictx.icon->data = NULL;
     ictx.icon->width = 0;
     ictx.icon->height = 0;
+    ictx.icon->zeroize_len = 0;
     ictx.written = 0;
 
     // Decompress the image data

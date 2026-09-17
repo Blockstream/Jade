@@ -963,6 +963,7 @@ void qrcode_toIcon(QRCode* qrcode, Icon* icon, const uint8_t scale)
     const size_t num_uints = num_bytes / sizeof(uint32_t);
 
     icon->data = JADE_CALLOC_PREFER_SPIRAM(num_uints, sizeof(uint32_t));
+    icon->zeroize_len = (uint32_t)num_bytes; // Request zeroization of data before releasing
 
     uint64_t val = 0;
     for (uint8_t y = 0; y < qrcode->size; y++) {
@@ -1036,6 +1037,7 @@ bool qrcode_toFragmentsIcons(
         icon->width = icon_size;
         icon->height = icon_size;
         icon->data = JADE_CALLOC_PREFER_SPIRAM(num_uints, sizeof(uint32_t));
+        icon->zeroize_len = (uint32_t)(num_uints * sizeof(uint32_t)); // Request zeroization of data before releasing
 
         const uint8_t fragment_orig_y = (i / num_fragments_per_side) * fragment_size;
         const uint8_t fragment_orig_x = (i % num_fragments_per_side) * fragment_size;

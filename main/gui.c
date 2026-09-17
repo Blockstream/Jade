@@ -1005,7 +1005,11 @@ static void free_view_node_icon_data(struct view_node_icon_data* data)
         // NOTE: we owned the animation frames
         for (int i = 0; i < data->animation->num_icons; ++i) {
             // Free the icon data
-            free(data->animation->icons[i].data);
+            Icon* icon = &data->animation->icons[i];
+            if (icon->zeroize_len) {
+                wally_bzero(icon->data, icon->zeroize_len);
+            }
+            free(icon->data);
         }
         free(data->animation->icons);
         free(data->animation);
