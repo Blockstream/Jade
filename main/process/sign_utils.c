@@ -258,8 +258,11 @@ bool params_additional_info(jade_process_t* process, CborValue* params, const st
     return true;
 }
 
-bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
-    const size_t asset_id_len, const uint64_t value)
+// Update the first summary record found with matching asset_id, adding the passed
+// sats amount to either the verified total or the verified change total.
+// NOTE: All arithmetic is checked as the amounts being totalled here are all host-provided
+static bool asset_summary_update_impl(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
+    const size_t asset_id_len, const uint64_t value, const bool is_change)
 {
     if (!sums) {
         return true; // Nothing to do
@@ -270,11 +273,29 @@ bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const ui
     // Add passed sats amount to the first record found with matching asset_id
     for (size_t i = 0; i < num_sums; ++i) {
         if (!memcmp(asset_id, sums[i].asset_id, sizeof(sums[i].asset_id))) {
-            sums[i].validated_value += value;
+            uint64_t* const total = is_change ? &sums[i].change_value : &sums[i].validated_value;
+            if (!checked_add_uint64(*total, value, total)) {
+                JADE_LOGW("Asset summary overflow");
+                return false;
+            }
             return true;
         }
     }
     return false;
+}
+
+bool asset_summary_update(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
+    const size_t asset_id_len, const uint64_t value)
+{
+    const bool is_change = false;
+    return asset_summary_update_impl(sums, num_sums, asset_id, asset_id_len, value, is_change);
+}
+
+bool asset_summary_update_change(asset_summary_t* sums, const size_t num_sums, const uint8_t* asset_id,
+    const size_t asset_id_len, const uint64_t value)
+{
+    const bool is_change = true;
+    return asset_summary_update_impl(sums, num_sums, asset_id, asset_id_len, value, is_change);
 }
 
 bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
@@ -283,7 +304,13 @@ bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
 
     // Check every asset record (if any) has been fully validated
     for (size_t i = 0; i < num_sums; ++i) {
-        if (sums[i].value != sums[i].validated_value) {
+        // Deduct any change recorded against this summary, then check the remainder
+        // matches the declared total.
+        // Change is accumulated separately so validation does not depend on whether inputs
+        // and outputs were processed in a particular order.
+        uint64_t remainder = 0;
+        if (!checked_sub_uint64(sums[i].validated_value, sums[i].change_value, &remainder)
+            || remainder != sums[i].value) {
             char* asset_id_hex = NULL;
             wally_hex_from_bytes(sums[i].asset_id, sizeof(sums[i].asset_id), &asset_id_hex);
             JADE_LOGW("Failed to validate input/output summary for %s", asset_id_hex);
@@ -654,9 +681,8 @@ bool validate_elements_outputs(const network_t network_id, const struct wally_tx
 
             bool is_valid;
             if (outinfo->flags & OUTPUT_FLAG_CHANGE) {
-                // NOTE: change outputs are subtracted from the relevant 'input summary'.
-                is_valid = asset_summary_update(
-                    in_sums, num_in_sums, outinfo->asset_id, sizeof(outinfo->asset_id), 0 - outinfo->value);
+                is_valid = asset_summary_update_change(
+                    in_sums, num_in_sums, outinfo->asset_id, sizeof(outinfo->asset_id), outinfo->value);
             } else {
                 is_valid = asset_summary_update(
                     out_sums, num_out_sums, outinfo->asset_id, sizeof(outinfo->asset_id), outinfo->value);

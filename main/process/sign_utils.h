@@ -18,6 +18,7 @@ typedef struct _asset_summary {
     uint8_t asset_id[32];
     uint64_t value;
     uint64_t validated_value;
+    uint64_t change_value;
 } asset_summary_t;
 
 // Maximum number of inputs/outputs accepted
@@ -43,7 +44,10 @@ WARN_UNUSED_RESULT bool params_commitment_data(
 WARN_UNUSED_RESULT bool asset_summary_update(
     asset_summary_t* sums, size_t num_sums, const uint8_t* asset_id, size_t asset_id_len, uint64_t value);
 
-bool asset_summary_validate(asset_summary_t* sums, size_t num_sums);
+WARN_UNUSED_RESULT bool asset_summary_update_change(
+    asset_summary_t* sums, size_t num_sums, const uint8_t* asset_id, size_t asset_id_len, uint64_t value);
+
+WARN_UNUSED_RESULT bool asset_summary_validate(asset_summary_t* sums, size_t num_sums);
 
 WARN_UNUSED_RESULT bool update_elements_outputs(
     const struct wally_tx* tx, commitment_t* commitments, output_info_t* outinfo, const char** errmsg);
