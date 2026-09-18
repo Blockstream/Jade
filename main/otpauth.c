@@ -664,13 +664,14 @@ static void pad_secret(uint8_t* secret, size_t* secret_len, const size_t min_siz
  * lengthen short secrets for other hash digest algorithms.
  * This provides compatability with gauth-like services, and should also remain compatible with
  * HOTP/SHA1 which does not extend the secrets.
+ *
+ * IMPORTANT: both *otp_ctx* and *md_ctx* must be initialized before calling this function.
  */
 static bool prepare_md_ctx(const otpauth_ctx_t* otp_ctx, mbedtls_md_context_t* md_ctx)
 {
     JADE_ASSERT(otp_is_valid(otp_ctx));
     JADE_ASSERT(md_ctx);
 
-    mbedtls_md_init(md_ctx);
     mbedtls_md_type_t md_type = get_md_type(otp_ctx);
     OTP_CHECK_BOOL_RETURN(mbedtls_md_setup(md_ctx, mbedtls_md_info_from_type(md_type), 1) == 0);
 
@@ -708,7 +709,12 @@ bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t t
 
     // Calculate otp hmac of counter (be) with the secret as the key
     mbedtls_md_context_t md_ctx;
-    OTP_CHECK_BOOL_RETURN(prepare_md_ctx(otp_ctx, &md_ctx));
+    mbedtls_md_init(&md_ctx);
+    if (!prepare_md_ctx(otp_ctx, &md_ctx)) {
+        JADE_LOGE("OTP initialization failure");
+        mbedtls_md_free(&md_ctx);
+        return false;
+    }
 
     const size_t hmac_last_index = mbedtls_md_get_size(md_ctx.MBEDTLS_PRIVATE(md_info)) - 1;
     JADE_ASSERT(hmac_last_index < MBEDTLS_SHA512_HMAC_LEN);
@@ -721,22 +727,28 @@ bool otp_get_auth_code(const otpauth_ctx_t* otp_ctx, char* token, const size_t t
     uint32_to_be((uint32_t)otp_ctx->counter, rcnt_buf + sizeof(uint32_t));
 
     uint8_t hmac[MBEDTLS_SHA512_HMAC_LEN];
-    OTP_CHECK_BOOL_RETURN(mbedtls_md_hmac_update(&md_ctx, rcnt_buf, sizeof(rcnt_buf)) == 0);
-    OTP_CHECK_BOOL_RETURN(mbedtls_md_hmac_finish(&md_ctx, hmac) == 0);
+    const bool is_valid = mbedtls_md_hmac_update(&md_ctx, rcnt_buf, sizeof(rcnt_buf)) == 0
+        && mbedtls_md_hmac_finish(&md_ctx, hmac) == 0;
     mbedtls_md_free(&md_ctx);
 
-    // Calculate the otp code from the bytes
-    const size_t offset = hmac[hmac_last_index] & 0xf;
-    const int32_t full_code = ((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16)
-        | ((hmac[offset + 2] & 0xff) << 8) | ((hmac[offset + 3] & 0xff));
-    const int32_t mod = otp_ctx->digits == 6 ? 1000000 : 100000000;
-    const int32_t trunc_code = full_code % mod;
+    if (!is_valid) {
+        JADE_LOGE("OTP computation failure");
+    } else {
+        // Calculate the otp code from the bytes
+        const size_t offset = hmac[hmac_last_index] & 0xf;
+        const int32_t full_code = ((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16)
+            | ((hmac[offset + 2] & 0xff) << 8) | ((hmac[offset + 3] & 0xff));
+        const int32_t mod = otp_ctx->digits == 6 ? 1000000 : 100000000;
+        const int32_t trunc_code = full_code % mod;
 
-    // Format as a string with leading 0's
-    const int ret = snprintf(token, token_len, "%0*ld", otp_ctx->digits, trunc_code);
-    JADE_ASSERT(ret > 0 && ret < token_len);
+        // Format as a string with leading 0's
+        const int ret = snprintf(token, token_len, "%0*ld", otp_ctx->digits, trunc_code);
+        JADE_ASSERT(ret > 0 && ret < token_len);
+    }
 
-    return true;
+    wally_bzero(rcnt_buf, sizeof(rcnt_buf));
+    wally_bzero(hmac, sizeof(hmac));
+    return is_valid;
 }
 
 static bool get_otp_encryption_key(uint8_t* aeskey, const size_t aeskey_len)
