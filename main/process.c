@@ -513,6 +513,7 @@ void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, 
             if (reader) {
                 reader(ctx, (uint8_t*)item, item_size);
             }
+            wally_bzero(item, item_size);
             vRingbufferReturnItem(shared_in, item);
             return;
         }
@@ -606,6 +607,7 @@ bool jade_process_get_out_message(outbound_message_writer_fn_t writer, const jad
     if (writer) {
         res = writer((const uint8_t*)item, item_size, ctx);
     }
+    wally_bzero(item, item_size);
     vRingbufferReturnItem(ring, item);
 
     // FIXME: currently false signals that there isn't anything on the buffer
