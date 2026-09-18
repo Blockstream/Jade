@@ -710,7 +710,8 @@ static wordlist_word_result_t select_wordlist_word(const bool is_mnemonic, const
         if (possible_words <= NUM_WORDS_SELECT) {
             // 'Small' number of words - allow user to select from these words
             char choose_word_title[16]; // sufficient
-            const int ret = snprintf(choose_word_title, sizeof(choose_word_title), "Select word %zu", word_index + 1);
+            const int ret = snprintf(
+                choose_word_title, sizeof(choose_word_title), "Select word %u", (unsigned int)(word_index + 1));
             JADE_ASSERT(ret > 0 && ret < sizeof(choose_word_title));
             gui_update_text(ui->label, choose_word_title);
 
@@ -849,7 +850,8 @@ static wordlist_word_result_t select_resolved_word_number(const size_t word_inde
     JADE_ASSERT(word && choose_word_activity && label && text_selection);
 
     char confirm_word_title[16]; // sufficient
-    const int ret = snprintf(confirm_word_title, sizeof(confirm_word_title), "Confirm word %zu", word_index + 1);
+    const int ret = snprintf(
+        confirm_word_title, sizeof(confirm_word_title), "Confirm word %u", (unsigned int)(word_index + 1));
     JADE_ASSERT(ret > 0 && ret < sizeof(confirm_word_title));
     gui_update_text(label, confirm_word_title);
 
@@ -935,7 +937,8 @@ static size_t get_wordlist_words(
         // Reset default title for next word when entering mnemonic phrase
         if (is_mnemonic) {
             char enter_word_title[16];
-            const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %zu", word_index + 1);
+            const int ret = snprintf(
+                enter_word_title, sizeof(enter_word_title), "Insert word %u", (unsigned int)(word_index + 1));
             JADE_ASSERT(ret > 0 && ret < sizeof(enter_word_title));
             gui_update_text(ui.titletext, enter_word_title);
         }
@@ -1035,7 +1038,8 @@ static size_t get_word_number_words(
         JADE_ASSERT(!wordlist_words[word_index]);
 
         char title[24];
-        const int ret = snprintf(title, sizeof(title), "Word %zu/%zu", word_index + 1, nwords);
+        const int ret
+            = snprintf(title, sizeof(title), "Word %u/%u", (unsigned int)(word_index + 1), (unsigned int)nwords);
         JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
         const char* word = NULL;
@@ -1049,7 +1053,8 @@ static size_t get_word_number_words(
                 = calculate_valid_final_words(wordlist_words, word_index, nwords, final_words);
 
             char enter_word_title[16];
-            const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %zu", word_index + 1);
+            const int ret = snprintf(
+                enter_word_title, sizeof(enter_word_title), "Insert word %u", (unsigned int)(word_index + 1));
             JADE_ASSERT(ret > 0 && ret < sizeof(enter_word_title));
             gui_update_text(calc_ui.titletext, enter_word_title);
 
