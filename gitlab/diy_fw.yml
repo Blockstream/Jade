@@ -59,3 +59,6 @@ build_diy_diycam_tcameraplus:
 
 build_diy_display_waveshares3_touch_lcd2:
   extends: .build_diy_template
+
+build_diy_display_waveshares3_touch_lcd35:
+  extends: .build_diy_template

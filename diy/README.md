@@ -208,6 +208,25 @@ There are a number of hardware devices that can run Jade firmware with minimal c
   (Bluetooth is enabled; see the next section to disable it.)
 * [Assembly Guide & Hardware Notes](./waveshare/)  
 
+### Waveshare S3 Touch LCD 3.5
+![Touch LCD 3.5](img/ws-touch-lcd35.png)
+* [Vendor Product Page](https://www.waveshare.com/esp32-s3-touch-lcd-3.5.htm)
+* ~$26 USD ($33 USD for the "-C" version with case and OV5640 camera)
+* 3.5 inch 320x480 IPS display (ST7796), touch screen interface (virtual buttons)
+* Wifi/Bluetooth
+* AXP2101 power management with battery charging and level indicator
+* Easy USB debugging and flashing
+* Typically supports Secure Boot V2
+* Hardware Required (No Soldering Required)
+  * [Waveshare S3 Touch LCD 3.5](https://www.waveshare.com/esp32-s3-touch-lcd-3.5.htm) (SKU 30733, or SKU 30934 for the -C version)
+  * OV5640/OV2640 Camera module (included in the -C version)
+  * 3.7V Lithium battery with MX1.25 connector (optional)
+* NOTE: only the plain `3.5` model is supported - the `3.5B` variant uses a
+  different (QSPI) display controller and does NOT work with this firmware
+* Build configuration: `configs/sdkconfig_display_waveshares3_touch_lcd35.defaults`
+  (Bluetooth is enabled; see the next section to disable it.)
+* [Assembly Guide & Hardware Notes](./waveshare/)  
+
 # Modifying Configuration Files for Use
 Once you are familiar with the process of flashing the firmware using the sdkconfig templates that are included in the /config folder of this repository, there are some additional changes that you should make to these files before using the device with actual funds.
 

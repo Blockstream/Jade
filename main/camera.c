@@ -274,6 +274,12 @@ static void jade_camera_init(void)
         .pin_sccb_sda = -1,
         .pin_sccb_scl = -1,
         .sccb_i2c_port = 0,
+#elif defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD35)
+        // The touch controller, the pmu and the OV5640 SCCB share the same pins,
+        // so reuse the bus the touchscreen already owns
+        .pin_sccb_sda = -1,
+        .pin_sccb_scl = -1,
+        .sccb_i2c_port = CONFIG_DISPLAY_TOUCHSCREEN_I2C,
 #else
         .pin_sccb_sda = CONFIG_CAMERA_SDA,
         .pin_sccb_scl = CONFIG_CAMERA_SCL,
@@ -322,7 +328,7 @@ static void jade_camera_init(void)
         }
     }
 #endif // !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
-#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN) && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD35)
     touchscreen_deinit();
     touchscreen_init();
 #endif
@@ -333,7 +339,7 @@ static void jade_camera_stop(void)
 {
     esp_camera_deinit();
     power_camera_off();
-#if defined(CONFIG_DISPLAY_TOUCHSCREEN)
+#if defined(CONFIG_DISPLAY_TOUCHSCREEN) && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD35)
     touchscreen_deinit();
     touchscreen_init();
 #endif

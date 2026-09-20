@@ -24,6 +24,12 @@ static volatile bool shutdown_finished = false;
 
 esp_err_t _i2c_init_master(i2c_port_t port_num, int sda_io_num, int scl_io_num, i2c_master_bus_handle_t* handle);
 esp_err_t _i2c_deinit(i2c_master_bus_handle_t handle);
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_LCD35
+// The pmu shares these i2c pins and has no bus of its own - lend it ours for
+// as long as it exists (see power/wslcdtouch35.inc)
+void power_i2c_bus_attach(i2c_master_bus_handle_t bus);
+void power_i2c_bus_detach(void);
+#endif
 
 static void touchscreen_task(void* ignored)
 {
@@ -32,8 +38,16 @@ static void touchscreen_task(void* ignored)
     // NOTE: the touch panel extends below the main display over the navigation button
     // area - y_max must cover it, as it is used when mirroring coordinates on flip
     const esp_lcd_touch_config_t tp_cfg = {
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_LCD35
+        // The panel is portrait-native (320x480) while the display is used in
+        // landscape.  NOTE: esp_lcd_touch mirrors *before* swapping the axes,
+        // so these bounds are the panel's own axes, not the display's
+        .x_max = CONFIG_DISPLAY_HEIGHT + TOUCH_BUTTON_AREA,
+        .y_max = CONFIG_DISPLAY_WIDTH,
+#else
         .x_max = CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X,
         .y_max = CONFIG_DISPLAY_HEIGHT + TOUCH_BUTTON_AREA,
+#endif
         .rst_gpio_num = GPIO_NUM_NC,
         .int_gpio_num = GPIO_NUM_NC,
         .levels = {
@@ -41,9 +55,17 @@ static void touchscreen_task(void* ignored)
             .interrupt = 0,
         },
         .flags = {
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_LCD35
+            // Verified on the hardware: display_x = panel_y and
+            // display_y = panel_max_x - panel_x
+            .swap_xy = 1,
+            .mirror_x = 1,
+            .mirror_y = 0,
+#else
             .swap_xy = 0,
             .mirror_x = 0,
             .mirror_y = 0,
+#endif
         },
     };
 
@@ -51,6 +73,9 @@ static void touchscreen_task(void* ignored)
     ESP_ERROR_CHECK(_i2c_init_master(
         CONFIG_DISPLAY_TOUCHSCREEN_I2C, CONFIG_I2C_TOUCH_SDA, CONFIG_I2C_TOUCH_SCL, &touch_i2c_handle));
     JADE_ASSERT(touch_i2c_handle);
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_LCD35
+    power_i2c_bus_attach(touch_i2c_handle);
+#endif
 
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
     esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_CONFIG();
@@ -81,8 +106,15 @@ static void touchscreen_task(void* ignored)
 #if DISPLAY_HAS_TOUCH_NAVBAR
         const bool flipped = gui_get_flipped_orientation();
         if (touch_mirrored != flipped) {
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_LCD35
+            // The axes are swapped here, so the display's y comes from the panel's x:
+            // mirror that one instead, starting from the mirror_x set above
+            ESP_ERROR_CHECK(esp_lcd_touch_set_mirror_x(ret_touch, !flipped));
+            ESP_ERROR_CHECK(esp_lcd_touch_set_mirror_y(ret_touch, false));
+#else
             ESP_ERROR_CHECK(esp_lcd_touch_set_mirror_x(ret_touch, false));
             ESP_ERROR_CHECK(esp_lcd_touch_set_mirror_y(ret_touch, flipped));
+#endif
             touch_mirrored = flipped;
         }
 #endif
@@ -109,6 +141,9 @@ static void touchscreen_task(void* ignored)
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
     // Since IDF 5.5 the i2c bus cannot be deleted while devices are still attached
+#ifdef CONFIG_BOARD_TYPE_WS_TOUCH_LCD35
+    power_i2c_bus_detach();
+#endif
     ESP_ERROR_CHECK(esp_lcd_touch_del(ret_touch));
     ESP_ERROR_CHECK(esp_lcd_panel_io_del(tp_io_handle));
     ESP_ERROR_CHECK(_i2c_deinit(touch_i2c_handle));
