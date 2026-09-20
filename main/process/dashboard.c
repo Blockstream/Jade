@@ -1706,8 +1706,8 @@ static void handle_view_otps(void)
 
 // NOTE: Only boards listed here have brightness controls
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)                                     \
-    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)                            \
-    || defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS_2)
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD35)                           \
+    || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY) || defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS_2)
 static void handle_screen_brightness(void)
 {
     static const char* LABELS[] = { "Min(1)", "Low(2)", "Medium(3)", "High(4)", "Max(5)" };
@@ -2074,6 +2074,12 @@ static void handle_display_battery_volts(void)
         const int ret = snprintf(power_status, sizeof(power_status), "%umv", vbat);
         JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
     }
+#elif defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD35)
+    const uint16_t vbat = power_get_vbat(); // pmu adc value already in mv
+    if (vbat > 0) {
+        const int ret = snprintf(power_status, sizeof(power_status), "%umv", vbat);
+        JADE_ASSERT(ret > 0 && ret < sizeof(power_status));
+    }
 #elif defined(CONFIG_HAS_IP5306)
     const float approx_voltage = power_get_vbat() / 1000.0;
     const int ret = snprintf(power_status, sizeof(power_status), "Approx %.1fv", approx_voltage);
@@ -2304,8 +2310,8 @@ static void handle_settings(const bool startup_menu)
 
 // NOTE: Only boards listed here have brightness controls
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_1) || defined(CONFIG_BOARD_TYPE_JADE_V2_ANY)                                     \
-    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY)                            \
-    || defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS_2)
+    || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD2) || defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD35)                           \
+    || defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAY) || defined(CONFIG_BOARD_TYPE_M5_STICKC_PLUS_2)
         case BTN_SETTINGS_DISPLAY_BRIGHTNESS:
             handle_screen_brightness();
             break;
