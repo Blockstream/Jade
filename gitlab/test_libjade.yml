@@ -15,7 +15,11 @@ test_libjade:
     - ./libjade/make_libjade.sh Debug
     - export LD_LIBRARY_PATH=$PWD/build_linux/libjade
     - python ./test_jade.py --log CRITICAL --libjade
-    - pytest -v -s --libjade tests
+    - pytest -v -s --libjade --junitxml=pytest-libjade.xml tests
+  artifacts:
+    when: always
+    reports:
+      junit: pytest-libjade.xml
 
 test_libjade_selfcheck:
   extends: .libjade_test_template
@@ -43,20 +47,24 @@ test_libjade_sanitize:
     - export SOCKET_LINK=$PWD/tmp_socket
     - echo "----------------------- STANDARD TESTS ------------------------"
     - LD_PRELOAD=$ASAN_SO python ./test_jade.py --log CRITICAL --libjade
-    - LD_PRELOAD=$ASAN_SO pytest -v --libjade tests/
+    - LD_PRELOAD=$ASAN_SO pytest -v --libjade --junitxml=pytest-sanitize-libjade.xml tests/
     - echo "----------------------- NON-LEGACY TESTS ----------------------"
-    - LD_PRELOAD=$ASAN_SO pytest -v --libjade --no-legacy-flow tests/rpc/test_sign_tx.py tests/rpc/test_multisig.py
+    - LD_PRELOAD=$ASAN_SO pytest -v --libjade --no-legacy-flow --junitxml=pytest-sanitize-non-legacy.xml tests/rpc/test_sign_tx.py tests/rpc/test_multisig.py
     - echo "-----------------------   SERIAL TESTS   ----------------------"
     - LD_PRELOAD=$ASAN_SO setsid $PWD/build_linux/libjade/libjade_daemon --serialport $SOCKET_LINK >daemon.log 2>&1 &
     - DAEMON_PID=$!
     - LD_PRELOAD=$ASAN_SO python ./test_jade.py --log CRITICAL --serialport $SOCKET_LINK --serialtimeout 30
-    - LD_PRELOAD=$ASAN_SO pytest -v --device $SOCKET_LINK tests/
+    - LD_PRELOAD=$ASAN_SO pytest -v --device $SOCKET_LINK --junitxml=pytest-sanitize-serial.xml tests/
     - kill -- -$DAEMON_PID
   artifacts:
     expire_in: 2 days
     name: libjade_serial_log
+    when: always
+    reports:
+      junit: pytest-sanitize-*.xml
     paths:
     - daemon.log
+    - pytest-sanitize-*.xml
 
 test_libjade_coverage:
   extends: .libjade_test_template
@@ -67,10 +75,14 @@ test_libjade_coverage:
     - ./libjade/coverage.sh clean
     - export LD_LIBRARY_PATH=$PWD/build_linux/libjade
     - python ./test_jade.py --log CRITICAL --libjade
-    - pytest -v --libjade --no-legacy-flow tests/
+    - pytest -v --libjade --no-legacy-flow --junitxml=pytest-coverage.xml tests/
     - ./libjade/coverage.sh
   artifacts:
     expire_in: 2 days
     name: libjade_coverage
+    when: always
+    reports:
+      junit: pytest-coverage.xml
     paths:
     - build_linux/lcov
+    - pytest-coverage.xml
