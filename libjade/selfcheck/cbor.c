@@ -50,7 +50,7 @@ static bool test_parser_recursion_limit(void)
     enum { MIN_DEPTH = CBOR_PARSER_MAX_RECURSIONS - 1, MAX_DEPTH = CBOR_PARSER_MAX_RECURSIONS + 1 };
     uint8_t cbor[MAX_DEPTH + 1];
 
-    for (size_t depth = MIN_DEPTH; depth <= MAX_DEPTH; ++depth) {
+    for (unsigned int depth = MIN_DEPTH; depth <= MAX_DEPTH; ++depth) {
         // A single-item array at each level, terminated by a null leaf:
         // [[[...[null]...]]]
         memset(cbor, CborArrayType | 1, depth); // one element arrays
@@ -65,9 +65,9 @@ static bool test_parser_recursion_limit(void)
         const CborError expected_err = depth <= CBOR_PARSER_MAX_RECURSIONS ? CborNoError : CborErrorNestingTooDeep;
         const CborError err = cbor_value_validate_basic(&root);
         const char* err_text = err == CborNoError ? "ok" : cbor_error_string(err);
-        JADE_LOGD("Validating CBOR with nesting depth %zu: %s", depth, err_text);
+        JADE_LOGD("Validating CBOR with nesting depth %u: %s", depth, err_text);
         if (err != expected_err) {
-            JADE_LOGE("Failed CBOR validation case with nesting depth %zu", depth);
+            JADE_LOGE("Failed CBOR validation case with nesting depth %u", depth);
             return false;
         }
     }

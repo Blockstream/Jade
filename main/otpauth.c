@@ -411,7 +411,7 @@ static bool decode_otp_parameters_fn(pb_istream_t* stream, const pb_field_t* fie
         }
     }
     if (i == ctx->uris_out_len) {
-        JADE_LOGE("Too many OTP records in migration data, max supported is %zu", ctx->uris_out_len);
+        JADE_LOGE("Too many OTP records in migration data, max supported is %u", (unsigned int)ctx->uris_out_len);
         return false;
     }
 

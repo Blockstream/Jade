@@ -324,7 +324,7 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
             gui_view_node_t* textbox = NULL;
             gui_activity_t* const confirm_act
                 = make_confirm_mnemonic_word_activity(&textbox, i, offset_word_to_confirm, mnemonic, word_offs, nwords);
-            JADE_LOGD("selected = %zu", selected);
+            JADE_LOGD("selected = %u", (unsigned int)selected);
 
             // Pick some other words from the mnemonic as options, but avoid
             // the words currently displayed on screen (neighbouring words).
@@ -435,7 +435,7 @@ static void enable_relevant_chars(const bool is_mnemonic, const char* word, cons
     JADE_ASSERT(act && backspace && enter && btns && btns_len == 26);
     JADE_ASSERT(backspace->activity == act && enter->activity == act);
 
-    JADE_LOGD("word = %s, word_len = %zu", word, word_len);
+    JADE_LOGD("word = %s, word_len = %u", word, (unsigned int)word_len);
 
     // Enable enter if a) not entering a mnemonic, and b) not part-way through entering a word
     // Enable backspace in all cases.
@@ -711,7 +711,8 @@ static wordlist_word_result_t select_wordlist_word(const bool is_mnemonic, const
         if (possible_words <= NUM_WORDS_SELECT) {
             // 'Small' number of words - allow user to select from these words
             char choose_word_title[16]; // sufficient
-            const int ret = snprintf(choose_word_title, sizeof(choose_word_title), "Select word %zu", word_index + 1);
+            const int ret = snprintf(
+                choose_word_title, sizeof(choose_word_title), "Select word %u", (unsigned int)(word_index + 1));
             JADE_ASSERT(ret > 0 && ret < sizeof(choose_word_title));
             gui_update_text(ui->label, choose_word_title);
 
@@ -853,7 +854,8 @@ static wordlist_word_result_t select_resolved_word_number(const size_t word_inde
     JADE_ASSERT(word && choose_word_activity && label && text_selection);
 
     char confirm_word_title[16]; // sufficient
-    const int ret = snprintf(confirm_word_title, sizeof(confirm_word_title), "Confirm word %zu", word_index + 1);
+    const int ret
+        = snprintf(confirm_word_title, sizeof(confirm_word_title), "Confirm word %u", (unsigned int)(word_index + 1));
     JADE_ASSERT(ret > 0 && ret < sizeof(confirm_word_title));
     gui_update_text(label, confirm_word_title);
 
@@ -939,7 +941,8 @@ static size_t get_wordlist_words(
         // Reset default title for next word when entering mnemonic phrase
         if (is_mnemonic) {
             char enter_word_title[16];
-            const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %zu", word_index + 1);
+            const int ret = snprintf(
+                enter_word_title, sizeof(enter_word_title), "Insert word %u", (unsigned int)(word_index + 1));
             JADE_ASSERT(ret > 0 && ret < sizeof(enter_word_title));
             gui_update_text(ui.titletext, enter_word_title);
         }
@@ -1039,7 +1042,8 @@ static size_t get_word_number_words(
         JADE_ASSERT(!wordlist_words[word_index]);
 
         char title[24];
-        const int ret = snprintf(title, sizeof(title), "Word %zu/%zu", word_index + 1, nwords);
+        const int ret
+            = snprintf(title, sizeof(title), "Word %u/%u", (unsigned int)(word_index + 1), (unsigned int)nwords);
         JADE_ASSERT(ret > 0 && ret < sizeof(title));
 
         const char* word = NULL;
@@ -1053,7 +1057,8 @@ static size_t get_word_number_words(
                 = calculate_valid_final_words(wordlist_words, word_index, nwords, final_words);
 
             char enter_word_title[16];
-            const int ret = snprintf(enter_word_title, sizeof(enter_word_title), "Insert word %zu", word_index + 1);
+            const int ret = snprintf(
+                enter_word_title, sizeof(enter_word_title), "Insert word %u", (unsigned int)(word_index + 1));
             JADE_ASSERT(ret > 0 && ret < sizeof(enter_word_title));
             gui_update_text(calc_ui.titletext, enter_word_title);
 
@@ -1391,7 +1396,7 @@ static bool mnemonic_qr(char* mnemonic, const size_t mnemonic_len)
     }
 
     if (qr_data.len >= mnemonic_len) {
-        JADE_LOGW("String data from qr unexpectedly long - ignored: %zu", qr_data.len);
+        JADE_LOGW("String data from qr unexpectedly long - ignored: %u", (unsigned int)qr_data.len);
         goto cleanup;
     }
 
@@ -1458,7 +1463,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len)
         // Passphrase made up only of bip39 wordlist words
         const size_t nwords
             = get_wordlist_words(WORDLIST_PASSPHRASE, WORDLIST_PASSPHRASE_MAX_WORDS, passphrase, passphrase_len);
-        JADE_LOGI("%zu wordlist words used for passphrase", nwords);
+        JADE_LOGI("%u wordlist words used for passphrase", (unsigned int)nwords);
     } else {
         // Free-text passphrase
         get_freetext_passphrase(passphrase, passphrase_len);

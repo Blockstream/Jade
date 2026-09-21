@@ -137,7 +137,8 @@ static bool rpc_get_asset_summary(jade_process_t* process, const char* field, co
     }
 
     if (num_array_items > max_items) {
-        JADE_LOGE("Too many asset summary records in message: %zu (max %zu)", num_array_items, max_items);
+        JADE_LOGE("Too many asset summary records in message: %u (max %u)", (unsigned int)num_array_items,
+            (unsigned int)max_items);
         return false;
     }
 
