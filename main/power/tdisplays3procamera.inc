@@ -168,10 +168,7 @@ uint16_t power_get_vusb(void) { return 0; }
 uint16_t power_get_iusb(void) { return 0; }
 uint16_t power_get_temp(void) { return 0; }
 
-void disable_usb_host(void)
-{
-    (void)sy6970_update_bits(SY6970_REG_POWER_ON_CONFIG, SY6970_OTG_ENABLE, 0);
-}
+void disable_usb_host(void) { (void)sy6970_update_bits(SY6970_REG_POWER_ON_CONFIG, SY6970_OTG_ENABLE, 0); }
 
 void enable_usb_host(void)
 {
