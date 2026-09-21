@@ -35,6 +35,7 @@
 #else
 #include <tinyusb.h>
 #include <tinyusb_cdc_acm.h>
+#include <tinyusb_default_config.h>
 #endif
 #endif // IDF_TARGET_ESP32S3
 
@@ -205,8 +206,8 @@ static bool serial_init_internal(void)
     uint32_t reader_stack_size = 5 * 1024;
 #ifdef CONFIG_IDF_TARGET_ESP32S3
 #ifndef CONFIG_JADE_USE_USB_JTAG_SERIAL
-    tinyusb_config_t partial_init = { 0 };
-    esp_err_t err = tinyusb_driver_install(&partial_init);
+    const tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
+    esp_err_t err = tinyusb_driver_install(&tusb_cfg);
     if (err != ESP_OK) {
         return false;
     }
