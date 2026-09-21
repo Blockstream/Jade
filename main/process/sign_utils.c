@@ -173,6 +173,20 @@ static bool rpc_get_asset_summary(jade_process_t* process, const char* field, co
     return true;
 }
 
+// A duplicate would never be validated but would still appear in the summary shown to the user
+static bool asset_summary_ids_unique(const asset_summary_t* sums, const size_t num_sums)
+{
+    for (size_t i = 0; i < num_sums; ++i) {
+        for (size_t j = i + 1; j < num_sums; ++j) {
+            if (!memcmp(sums[i].asset_id, sums[j].asset_id, sizeof(sums[i].asset_id))) {
+                JADE_LOGW("Duplicate asset-id in asset summary");
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 static bool validate_additional_info(const struct wally_tx* tx, const TxType_t txtype, const bool is_partial,
     const asset_summary_t* in_sums, const size_t num_in_sums, const asset_summary_t* out_sums,
     const size_t num_out_sums, const char** errmsg)
@@ -181,6 +195,12 @@ static bool validate_additional_info(const struct wally_tx* tx, const TxType_t t
     JADE_ASSERT(!in_sums == !num_in_sums);
     JADE_ASSERT(!out_sums == !num_out_sums);
     JADE_INIT_OUT_PPTR(errmsg);
+
+    // Each summary must list each asset-id at most once
+    if (!asset_summary_ids_unique(in_sums, num_in_sums) || !asset_summary_ids_unique(out_sums, num_out_sums)) {
+        *errmsg = "Duplicate asset in asset summary";
+        return false;
+    }
 
     // Validate tx type data
     if (txtype == TXTYPE_SWAP) {
