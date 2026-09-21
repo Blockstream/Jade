@@ -203,14 +203,16 @@ menu "Blockstream Jade"
         config I2C_SDA
             int "I2C SDA Pin"
             default 4 if BOARD_TYPE_JADE_V1_ANY
+            default 5 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
+            default 10 if BOARD_TYPE_TTGO_TWATCHS3
             default 12 if BOARD_TYPE_M5_CORES3
             default 21 if BOARD_TYPE_M5_STICKC_PLUS || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
             default 42 if BOARD_TYPE_JADE_V2_ANY
-            default 10 if BOARD_TYPE_TTGO_TWATCHS3
             default -1
         config I2C_SCL
             int "I2C SCL Pin"
             default 2 if BOARD_TYPE_JADE
+            default 6 if BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA
             default 11 if BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TWATCHS3
             default 14 if BOARD_TYPE_JADE_V1_1
             default 22 if BOARD_TYPE_M5_STICKC_PLUS || BOARD_TYPE_M5_CORE2 || BOARD_TYPE_M5_FIRE || BOARD_TYPE_M5_BLACK_GRAY
