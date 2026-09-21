@@ -263,8 +263,17 @@ static void jade_camera_init(void)
         .pin_pclk = CONFIG_CAMERA_PCLK,
         .pin_vsync = CONFIG_CAMERA_VSYNC,
         .pin_href = CONFIG_CAMERA_HREF,
-        .pin_sscb_sda = CONFIG_CAMERA_SDA,
-        .pin_sscb_scl = CONFIG_CAMERA_SCL,
+#if defined(CONFIG_BOARD_TYPE_TTGO_TDISPLAYS3PROCAMERA)
+        // The SY6970 PMU and OV5640 SCCB share GPIO5/GPIO6 on I2C0.
+        // Setting SCCB pins to -1 makes esp-camera reuse that existing bus
+        // rather than initializing a separate SCCB bus.
+        .pin_sccb_sda = -1,
+        .pin_sccb_scl = -1,
+        .sccb_i2c_port = 0,
+#else
+        .pin_sccb_sda = CONFIG_CAMERA_SDA,
+        .pin_sccb_scl = CONFIG_CAMERA_SCL,
+#endif
         .pin_reset = CONFIG_CAMERA_RESET,
         .pin_pwdn = CONFIG_CAMERA_PWDN,
 
