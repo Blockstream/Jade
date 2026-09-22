@@ -638,6 +638,12 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
                     // Invalid input commitments (rather than simply not present)
                     jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, errmsg);
                     goto cleanup;
+                } else {
+                    // No commitment data. Reject otherwise the user is being asked to approve an incomplete summary
+                    JADE_LOGW("Input %" PRIu32 " has no commitment data for the wallet summary", index);
+                    jade_process_reject_message(
+                        process, CBOR_RPC_BAD_PARAMETERS, "Failed to validate input/output summary information");
+                    goto cleanup;
                 }
             }
             if (for_liquid && input_data->sig_type != WALLY_SIGTYPE_PRE_SW) {
