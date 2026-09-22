@@ -13,6 +13,8 @@ import types
 from jadepy.jade import JadeAPI, JadeError, JadeSoftwareImpl
 from jadepy.jade_sw import _LIBJADE_REQUEST_METHOD
 
+from tcp_bridge import TcpBridge
+
 # Enable jade logging
 jadehandler = logging.StreamHandler()
 logger = logging.getLogger('jadepy.jade')
@@ -806,6 +808,10 @@ if __name__ == '__main__':
                      help='Connect to daemon for CBOR via this device '
                           '(e.g. tcp:/tmp/jade.sock or tcp:localhost:30121). '
                           'Passed directly to JadeAPI.create_serial().')
+    parser.add_argument('--bridge-port', metavar='PORT', type=int,
+                        help='Also listen on this TCP port, bridging CBOR to the same '
+                             'instance so external clients can drive it '
+                             '(eg. device "tcp:localhost:PORT").')
     log_levels = JadeSoftwareImpl.ESP_LOG_LEVELS
     log_names = [logging.getLevelName(k) for k in log_levels.keys()]
     parser.add_argument('--log-level', metavar='LEVEL',
@@ -847,9 +853,20 @@ if __name__ == '__main__':
             # Ignore failure to load, so we can initialize a new file
             pass
 
+    # Optionally bridge the instance to a TCP port, so external clients (test
+    # suites, tools) can drive the same jade the GUI is displaying. Requests are
+    # serialised with the same mutex as the GUI's own calls
+    bridge = None
+    if args.bridge_port:
+        bridge = TcpBridge(jade, args.bridge_port, mutex=_libjade_mutex)
+        bridge.start()
+
     # Start GUI
     tk_basic_gui(jade, args)
     logger.debug('gui closed')
+
+    if bridge:
+        bridge.stop()
 
     _camera.shutdown()
 

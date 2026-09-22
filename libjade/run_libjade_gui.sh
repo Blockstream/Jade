@@ -3,12 +3,14 @@
 set -e
 
 usage() {
-    echo "Usage: $0 [--inprocess | --daemon] [--nvs-file PATH] [--log-level DEBUG|INFO|WARNING|ERROR|CRITICAL] [--display v1|v2] [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize]"
-    echo "  --inprocess  Load libjade.so directly in the GUI process (default)"
-    echo "  --daemon     Run libjade as a separate daemon process"
-    echo "  --nvs-file   NVS flash storage file (default: nvs_flash.bin)"
-    echo "  --log-level  Set log verbosity (default: CRITICAL)"
-    echo "  --display    Emulated display: v1 (240x135) or v2 (320x170) (default: v2)"
+    echo "Usage: $0 [--inprocess | --daemon] [--nvs-file PATH] [--log-level DEBUG|INFO|WARNING|ERROR|CRITICAL] [--display v1|v2] [--bridge-port PORT] [Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize]"
+    echo "  --inprocess    Load libjade.so directly in the GUI process (default)"
+    echo "  --daemon       Run libjade as a separate daemon process"
+    echo "  --nvs-file     NVS flash storage file (default: nvs_flash.bin)"
+    echo "  --log-level    Set log verbosity (default: CRITICAL)"
+    echo "  --display      Emulated display: v1 (240x135) or v2 (320x170) (default: v2)"
+    echo "  --bridge-port  Also listen on this TCP port, bridging CBOR to the same"
+    echo "                 instance so clients can connect (eg. device tcp:localhost:PORT)"
     exit 1
 }
 
@@ -18,6 +20,7 @@ NVS_FILE="nvs_flash.bin"
 LOG_LEVEL="CRITICAL"
 JADE_DISPLAY="v2"
 CBOR_SOCKET="/tmp/jade_cbor.sock"
+BRIDGE_PORT=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -42,10 +45,19 @@ while [[ $# -gt 0 ]]; do
                 *) echo "Invalid display: $1"; usage ;;
             esac
             shift ;;
+        --bridge-port)
+            shift
+            BRIDGE_PORT="$1"
+            shift ;;
         Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize) BUILD_TYPE="$1"; shift ;;
         *) echo "Unknown argument: $1"; usage ;;
     esac
 done
+
+BRIDGE_ARGS=()
+if [ -n "$BRIDGE_PORT" ]; then
+    BRIDGE_ARGS=(--bridge-port "$BRIDGE_PORT")
+fi
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 JADE_PATH=$(realpath $SCRIPT_DIR/..)
@@ -101,7 +113,7 @@ if [ "$MODE" == "daemon" ]; then
     echo "--------------------------------"
     echo "Running Jade GUI (daemon mode)..."
     echo "--------------------------------"
-    python $JADE_PATH/libjade/gui.py --device "tcp:$CBOR_SOCKET" --nvs-file "$NVS_FILE" --log-level "$LOG_LEVEL"
+    python $JADE_PATH/libjade/gui.py --device "tcp:$CBOR_SOCKET" --nvs-file "$NVS_FILE" --log-level "$LOG_LEVEL" "${BRIDGE_ARGS[@]}"
 else
     export LD_LIBRARY_PATH=$JADE_PATH/build_linux/libjade:$LD_LIBRARY_PATH
     if [ "$(uname)" = "Darwin" ]; then
@@ -110,5 +122,5 @@ else
     echo "--------------------------------"
     echo "Running Jade GUI (in-process mode)..."
     echo "--------------------------------"
-    python $JADE_PATH/libjade/gui.py --nvs-file "$NVS_FILE" --log-level "$LOG_LEVEL"
+    python $JADE_PATH/libjade/gui.py --nvs-file "$NVS_FILE" --log-level "$LOG_LEVEL" "${BRIDGE_ARGS[@]}"
 fi
