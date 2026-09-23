@@ -271,12 +271,16 @@ bool gui_get_flipped_orientation(void) { return gui_orientation_flipped; }
 
 bool gui_set_flipped_orientation(const bool flipped_orientation)
 {
+    // Both calls below talk to the panel, so hold the gui semaphore to keep
+    // them from overlapping a frame the gui task is still flushing
+    JADE_SEMAPHORE_TAKE(gui_mutex);
     const bool new_orientation = display_flip_orientation(flipped_orientation);
     if (gui_orientation_flipped != new_orientation) {
         gui_orientation_flipped = new_orientation;
         // Redraw the virtual navbar buttons (if any) at their new position
         display_touch_navbar_redraw();
     }
+    JADE_SEMAPHORE_GIVE(gui_mutex);
     return gui_orientation_flipped;
 }
 
