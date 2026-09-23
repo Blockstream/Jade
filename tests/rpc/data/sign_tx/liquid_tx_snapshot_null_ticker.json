@@ -1,0 +1,24 @@
+{
+  "input": {
+    "network": "localtest-liquid",
+    "txn": "0x0200000000012413047d152348db4342763a0eece0d99e6e2983b3b46eda07ede58d28f201ad0100000000ffffffff020193e3fb28a01fb15d6b93854f13cff416f686b6bc01056184bcff18b89b0bf7000100000000000000010017a9142e0ef2990318d8c9f7cee627650ba2a84fdda449870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000f4240000000000000",
+    "trusted_commitments": [
+      null,
+      null
+    ],
+    "change": null,
+    "inputs": [
+      {
+        "is_witness": false,
+        "script": "0x76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac",
+        "path": [
+          0
+        ]
+      }
+    ]
+  },
+  "expected_output": [
+    "0x304402204522e729c1ec9c59b33c4ffdf7b93a60a54ff7401513c24e33ed1810789f22c9022003812f813fe6e70c5470e8fd4121fc57e39018c5543d6cb1b103d13f1338671c01"
+  ],
+  "description": "Output has a snapshot asset \"Sphinx test badge\" with a NULL ticker"
+}

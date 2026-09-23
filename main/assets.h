@@ -12,6 +12,9 @@
 #define ASSET_TICKER_MIN_LEN 3
 #define ASSET_TICKER_MAX_LEN 24
 
+// String replacing an empty (NULL) ticker for snapshot assets
+#define ASSET_EMPTY_TICKER " "
+
 // NOTE: strings here may not be nul-terminated as may directly reference message fields
 typedef struct _asset_info {
     const char* asset_id;

@@ -255,8 +255,9 @@ bool assets_get_info(const network_t network_id, const asset_info_t* assets, con
         asset_info_out->issuer_domain = snapshot_asset->issuer_domain;
         asset_info_out->issuer_domain_len = strlen(snapshot_asset->issuer_domain);
 
-        asset_info_out->ticker = snapshot_asset->ticker;
-        asset_info_out->ticker_len = strlen(snapshot_asset->ticker);
+        // Assets without a ticker are displayed with a common empty ticker string
+        asset_info_out->ticker = snapshot_asset->ticker ? snapshot_asset->ticker : ASSET_EMPTY_TICKER;
+        asset_info_out->ticker_len = strlen(asset_info_out->ticker);
 
         asset_info_out->precision = snapshot_asset->precision;
         return true;
