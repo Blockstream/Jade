@@ -64,6 +64,45 @@ def test_sign_ss_psbt(jade, mnemonic, test_case):
     _test_sign_psbt(jade, test_case)
 
 
+def _psbt_with_padding(psbt_bin, padding_len):
+    psbt = wally.psbt_from_bytes(psbt_bin, 0)
+    # A proprietary input field is preserved without changing the transaction
+    # or its signatures. The key is type 0xfc, identifier "jade", subtype 0.
+    assert wally.psbt_get_input_unknowns_size(psbt, 0) == 0
+    unknowns = wally.map_init(1, None)
+    wally.map_add(unknowns, b'\xfc\x04jade\x00', bytes(padding_len))
+    wally.psbt_set_input_unknowns(psbt, 0, unknowns)
+    return wally.psbt_to_bytes(psbt, 0)
+
+
+@pytest.mark.mnemonic(mnemonics.singlesig)
+@pytest.mark.parametrize('output_size', [3007, 3008, 3009, 6015, 6016, 6017])
+@with_test_cases('tests/rpc/data/sign_psbt/psbt_ss_p2tr_default_all.json')
+def test_sign_psbt_chunk_boundaries(jade, mnemonic, test_case, output_size):
+    # PSBT_OUT_CHUNK_SIZE is 3072 - 64 = 3008 in standard builds, including
+    # libjade. Exercise either side of one and two chunks, and exact multiples.
+    # Taproot signatures have fixed lengths; the fixture's signed transaction
+    # and signatures remain valid because the padding is an unknown field.
+    signed_psbt = test_case['expected_output']['psbt']
+    padding_len = output_size - len(signed_psbt)
+    # Account for the unknown key and CompactSize-encoded key/value lengths.
+    padding_len -= len(_psbt_with_padding(signed_psbt, padding_len)) - output_size
+    expected_psbt = _psbt_with_padding(signed_psbt, padding_len)
+    assert len(expected_psbt) == output_size
+
+    padded_test_case = {
+        **test_case,
+        'input': {
+            **test_case['input'],
+            'psbt': _psbt_with_padding(test_case['input']['psbt'], padding_len),
+        },
+        'expected_output': {**test_case['expected_output'], 'psbt': expected_psbt},
+    }
+    # Use the complete RPC exchange, then compare signatures and all PSBT data,
+    # parse/finalize the result and check the extracted signed transaction.
+    _test_sign_psbt(jade, padded_test_case)
+
+
 @pytest.mark.mnemonic(mnemonics.singlesig)
 @with_test_cases('tests/rpc/data/sign_psbt/pset_ss_*.json')
 def test_sign_ss_pset(jade, mnemonic, test_case):
