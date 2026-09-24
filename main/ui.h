@@ -118,7 +118,18 @@ typedef struct {
     uint32_t font;
     uint32_t ev_id;
     uint8_t borders;
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+    // Direct touch requires a long press to activate the button
+    bool is_critical;
+#endif
 } btn_data_t;
+
+// Marks a button critical in a btn_data_t initialiser - empty without direct touch
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+#define BTN_IS_CRITICAL .is_critical = true
+#else
+#define BTN_IS_CRITICAL
+#endif
 
 // Helper to update dynamic menu item label (name: value)
 void update_menu_item(gui_view_node_t* node, const char* label, const char* value);
@@ -166,6 +177,9 @@ void await_error_3(const char* msg1, const char* msg2, const char* msg3);
 
 // Activity that displays a message and awaits a 'Yes'/'Continue' or 'No'/'Skip'/'Back' event
 bool await_yesno_activity(
+    const char* title, const char* message[], size_t message_size, bool default_selection, const char* help_url);
+// As above, but the 'Yes' button is marked critical - for destructive/irreversible actions
+bool await_yesno_activity_critical(
     const char* title, const char* message[], size_t message_size, bool default_selection, const char* help_url);
 bool await_skipyes_activity(
     const char* title, const char* message[], size_t message_size, bool default_selection, const char* help_url);

@@ -1147,6 +1147,15 @@ void gui_make_button(
     data->args = args;
 }
 
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+// Mark a button as 'critical' - direct touch will require a long press to activate it
+void gui_set_button_critical(gui_view_node_t* node)
+{
+    JADE_ASSERT(node && node->kind == BUTTON);
+    node_get_button_data(node)->is_critical = true;
+}
+#endif
+
 void gui_make_fill(gui_view_node_t** ptr, color_t color, enum fill_node_kind fill_type, gui_view_node_t* parent)
 {
     JADE_INIT_OUT_PPTR(ptr);
@@ -2630,6 +2639,181 @@ void gui_prev(void)
         select_prev_left();
     }
 }
+
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+// Direct touch: tapping a button selects and activates it, while buttons marked
+// 'critical' must be held pressed instead, so a stray tap cannot confirm them.
+// Screens with nothing to tap are left to the virtual buttons, unless they ask
+// for taps on one of their nodes (see gui_activity_set_touch_nav_area()).
+#define GUI_TOUCH_LONGPRESS_MS 800
+
+// A press that moves more than this from where it started is no longer a tap
+#define GUI_TOUCH_TAP_SLOP 15
+
+// The press being tracked
+typedef struct {
+    gui_activity_t* activity;
+    gui_view_node_t* node; // button pressed, if any
+    TickType_t start;
+    uint16_t x; // where the press started
+    uint16_t y;
+    bool is_pressed;
+    bool is_on_node; // still over 'node'
+    bool has_moved; // too far to count as a tap
+    bool is_done; // nothing more to do until released
+} touch_press_t;
+static touch_press_t touch_press = { 0 };
+
+static bool is_point_in_node(const gui_view_node_t* node, const uint16_t x, const uint16_t y)
+{
+    // A node only gets its position on the screen when it is first rendered
+    if (node->is_first_render) {
+        return false;
+    }
+    const dispWin_t* const win = &node->padded_constraints;
+    return x >= win->x1 && x <= win->x2 && y >= win->y1 && y <= win->y2;
+}
+
+// Find the active button of the activity under the given point, if any
+static gui_view_node_t* find_node_at_point(gui_activity_t* activity, const uint16_t x, const uint16_t y)
+{
+    if (!activity || !activity->selectables) {
+        return NULL;
+    }
+
+    // NOTE: the selectables list is circular, so stop when back at the start
+    selectable_t* const begin = activity->selectables;
+    selectable_t* current = begin;
+    do {
+        if (current->node->is_active && is_point_in_node(current->node, x, y)) {
+            return current->node;
+        }
+        current = current->next;
+    } while (current != begin);
+
+    return NULL;
+}
+
+// A screen with nothing to tap can take taps on one of its nodes as the
+// prev/select/next buttons, by left, centre or right third of the node
+void gui_activity_set_touch_nav_area(gui_activity_t* activity, gui_view_node_t* area)
+{
+    JADE_ASSERT(activity);
+    JADE_ASSERT(area);
+    activity->touch_nav_area = area;
+}
+
+// Instead of the middle third, taps on this node act as 'select', and taps
+// either side of it as prev/next
+void gui_activity_set_touch_nav_select_area(gui_activity_t* activity, gui_view_node_t* select_area)
+{
+    JADE_ASSERT(activity);
+    JADE_ASSERT(select_area);
+    activity->touch_nav_select_area = select_area;
+}
+
+static void touch_nav_tap(const gui_activity_t* activity, const uint16_t x, const uint16_t y)
+{
+    if (!activity || activity->selectables || !activity->touch_nav_area
+        || !is_point_in_node(activity->touch_nav_area, x, y)) {
+        return;
+    }
+
+    const dispWin_t* const area = &activity->touch_nav_area->padded_constraints;
+    uint16_t select_from = area->x1 + (area->x2 - area->x1) / 3;
+    uint16_t select_to = area->x1 + ((area->x2 - area->x1) * 2) / 3;
+
+    const gui_view_node_t* const select_area = activity->touch_nav_select_area;
+    if (select_area && !select_area->is_first_render) {
+        select_from = select_area->padded_constraints.x1;
+        select_to = select_area->padded_constraints.x2;
+    }
+
+    // NOTE: gui_prev()/gui_next() swap when the display is flipped, to follow the
+    // physical sides of the device, while taps are mapped to where the gui is
+    // drawn - so use select_prev_left()/select_next_right() directly
+    if (x < select_from) {
+        select_prev_left();
+    } else if (x > select_to) {
+        select_next_right();
+    } else {
+        gui_front_click();
+    }
+}
+
+// Called on every touchscreen poll with the current touch state - 'is_pressed'
+// is false for presses that started on the virtual button strip, as those are
+// the classic prev/select/next buttons, handled by the input code.
+// The touch x keeps the physical sides of the screen, as the virtual buttons
+// want, so it is mirrored when the display is flipped, to act on what is drawn
+// under the finger.
+void gui_touch_update(const uint16_t x, const uint16_t y, const bool is_pressed)
+{
+    const uint16_t hit_x = gui_orientation_flipped ? CONFIG_DISPLAY_WIDTH - x : x;
+
+    if (is_pressed && !touch_press.is_pressed) {
+        // Press started - on a dimmed screen it only wakes the screen
+        touch_press = (touch_press_t){ .activity = current_activity,
+            .start = xTaskGetTickCount(),
+            .x = hit_x,
+            .y = y,
+            .is_pressed = true,
+            .is_done = idletimer_register_activity(true) };
+        if (!touch_press.is_done) {
+            touch_press.node = find_node_at_point(touch_press.activity, hit_x, y);
+            touch_press.is_on_node = touch_press.node != NULL;
+            if (touch_press.node && !touch_press.node->is_selected) {
+                select_node(touch_press.node);
+            }
+        }
+        return;
+    }
+
+    if (!touch_press.is_pressed) {
+        return;
+    }
+
+    // The activity changed under our finger - drop the press
+    // (NOTE: 'node' may now be dangling and must not be dereferenced)
+    if (current_activity != touch_press.activity) {
+        touch_press.node = NULL;
+        touch_press.is_done = true;
+    }
+
+    // A press that moves too far from where it started is no longer a tap
+    if (is_pressed
+        && (hit_x > touch_press.x + GUI_TOUCH_TAP_SLOP || hit_x + GUI_TOUCH_TAP_SLOP < touch_press.x
+            || y > touch_press.y + GUI_TOUCH_TAP_SLOP || y + GUI_TOUCH_TAP_SLOP < touch_press.y)) {
+        touch_press.has_moved = true;
+    }
+
+    if (is_pressed) {
+        // Press continuing - a critical button activates once held long enough
+        if (!touch_press.is_done && touch_press.node) {
+            touch_press.is_on_node = is_point_in_node(touch_press.node, hit_x, y);
+            if (touch_press.is_on_node && node_get_button_data(touch_press.node)->is_critical
+                && touch_press.node->is_selected
+                && xTaskGetTickCount() - touch_press.start >= pdMS_TO_TICKS(GUI_TOUCH_LONGPRESS_MS)) {
+                gui_front_click();
+                touch_press.is_done = true;
+            }
+        }
+        return;
+    }
+
+    // Press released - a tap on a (non-critical) button activates it, while a
+    // tap on a screen with nothing to tap may act as prev/select/next
+    if (!touch_press.is_done && touch_press.node) {
+        if (touch_press.is_on_node && !node_get_button_data(touch_press.node)->is_critical
+            && touch_press.node->is_selected) {
+            gui_front_click();
+        }
+    } else if (!touch_press.is_done && !touch_press.has_moved) {
+        touch_nav_tap(touch_press.activity, touch_press.x, touch_press.y);
+    }
+    touch_press = (touch_press_t){ 0 };
+}
+#endif // CONFIG_DISPLAY_TOUCH_DIRECT
 
 // Set the item to be initally selected when the activity is activated/switched-to
 // 'node' can be NULL to unset any specific initial selection
