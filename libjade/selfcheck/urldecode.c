@@ -26,8 +26,6 @@ enum {
 
 // No check function provided, alias for NULL
 #define NO_FN NULL
-// Replacement for 'strlen' (flagged as unsafe) to use with string literals
-#define LITLEN(s) (sizeof("" s) - 1)
 
 // Length-specified strings
 const char bounded_str[] = { 'A', '%', '3', '1', 'Z' }; // decodes to "A1Z"
@@ -39,41 +37,41 @@ const char short_percent_padded_nul[] = { '%', '2', '\0' };
 
 // clang-format off
 static const urldecode_test_t urldecode_tests[] = {
-    { "valid: printable characters", "abc-_.~", LITLEN("abc-_.~"), 8, NO_FN, VALID | PASS_DECODE, "abc-_.~" },
-    { "valid: space and mixed-case hex", "a%20b+%7a%5A", LITLEN("a%20b+%7a%5A"), 7, NO_FN, VALID | PASS_DECODE, "a b zZ" },
-    { "valid: printable hex with isprint", "%41%4a%4A", LITLEN("%41%4a%4A"), 4, isprint, VALID | PASS_DECODE, "AJJ" },
+    { "valid: printable characters", "abc-_.~", strlen("abc-_.~"), 8, NO_FN, VALID | PASS_DECODE, "abc-_.~" },
+    { "valid: space and mixed-case hex", "a%20b+%7a%5A", strlen("a%20b+%7a%5A"), 7, NO_FN, VALID | PASS_DECODE, "a b zZ" },
+    { "valid: printable hex with isprint", "%41%4a%4A", strlen("%41%4a%4A"), 4, isprint, VALID | PASS_DECODE, "AJJ" },
     { "valid: length-specified source", bounded_str, sizeof(bounded_str), 4, isprint, VALID | PASS_DECODE, "A1Z" },
     { "valid: all-nul source padding", all_nuls, sizeof(all_nuls), 1, NO_FN, VALID | PASS_DECODE, "" },
     { "valid: nul-padded source", padded_nuls, sizeof(padded_nuls), sizeof(padded_nuls), NO_FN, VALID | PASS_DECODE, "abc" },
-    { "invalid-nul: encoded nul", "%00abc", LITLEN("%00abc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-nul: encoded nul", "ab%00c", LITLEN("ab%00c"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-nul: encoded nul", "ab%00", LITLEN("ab%00"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-nul: encoded nul", "%00abc", strlen("%00abc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-nul: encoded nul", "ab%00c", strlen("ab%00c"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-nul: encoded nul", "ab%00", strlen("ab%00"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
     { "invalid-nul: embedded nul", embedded_nul, sizeof(embedded_nul), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-char: encoded low control", "a\x01" "bc", LITLEN("a\x01" "bc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-char: encoded high control", "abc\x1F" "de", LITLEN("abc\x1F" "de"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-char: encoded del", "abc\x7F", LITLEN("abc\x7F"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-char: encoded utf-8 lead byte", "a\x80" "bc", LITLEN("a\x80" "bc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-char: encoded high byte", "ab\xFF" "cd", LITLEN("ab\xFF" "cd"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-hex: encoded low control", "a%01bc", LITLEN("a%01bc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-hex: encoded high control", "abc%1Fde", LITLEN("abc%1Fde"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-hex: encoded del", "abc%7F", LITLEN("abc%7F"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-hex: encoded utf-8 lead byte", "a%80bc", LITLEN("a%80bc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-hex: encoded high byte", "ab%FFcd", LITLEN("ab%FFcd"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-percent: bare percent", "%", LITLEN("%"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-char: encoded low control", "a\x01" "bc", strlen("a\x01" "bc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-char: encoded high control", "abc\x1F" "de", strlen("abc\x1F" "de"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-char: encoded del", "abc\x7F", strlen("abc\x7F"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-char: encoded utf-8 lead byte", "a\x80" "bc", strlen("a\x80" "bc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-char: encoded high byte", "ab\xFF" "cd", strlen("ab\xFF" "cd"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-hex: encoded low control", "a%01bc", strlen("a%01bc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-hex: encoded high control", "abc%1Fde", strlen("abc%1Fde"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-hex: encoded del", "abc%7F", strlen("abc%7F"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-hex: encoded utf-8 lead byte", "a%80bc", strlen("a%80bc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-hex: encoded high byte", "ab%FFcd", strlen("ab%FFcd"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-percent: bare percent", "%", strlen("%"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
     { "invalid-percent: bare percent before nul padding", percent_padded_nuls, sizeof(percent_padded_nuls), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-percent: short percent encoding", "%2", LITLEN("%2"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-percent: short percent encoding", "%2", strlen("%2"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
     { "invalid-percent: short percent before nul padding", short_percent_padded_nul, sizeof(short_percent_padded_nul), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-percent: bad first hex digit", "%x2", LITLEN("%x2"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-percent: bad second hex digit", "%2x", LITLEN("%2x"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "invalid-percent: bad hex digits", "%xx", LITLEN("%xx"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "user-check: valid string filtered by isupper", "TEST", LITLEN("TEST"), 8, isupper, VALID | PASS_DECODE, "TEST" },
-    { "user-check: letter rejected by isupper", "TEsT", LITLEN("TEsT"), 8, isupper, INVALID | PASS_DECODE, "TEsT" },
-    { "user-check: valid string with percent filtered by isupper", "TE%53T", LITLEN("TE%53T"), 8, isupper, VALID | PASS_DECODE, "TEST" },
-    { "user-check: percent-encoded letter rejected by isupper", "TE%73T", LITLEN("TE%73T"), 8, isupper, INVALID | PASS_DECODE, "TEsT" },
+    { "invalid-percent: bad first hex digit", "%x2", strlen("%x2"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-percent: bad second hex digit", "%2x", strlen("%2x"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "invalid-percent: bad hex digits", "%xx", strlen("%xx"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "user-check: valid string filtered by isupper", "TEST", strlen("TEST"), 8, isupper, VALID | PASS_DECODE, "TEST" },
+    { "user-check: letter rejected by isupper", "TEsT", strlen("TEsT"), 8, isupper, INVALID | PASS_DECODE, "TEsT" },
+    { "user-check: valid string with percent filtered by isupper", "TE%53T", strlen("TE%53T"), 8, isupper, VALID | PASS_DECODE, "TEST" },
+    { "user-check: percent-encoded letter rejected by isupper", "TE%73T", strlen("TE%73T"), 8, isupper, INVALID | PASS_DECODE, "TEsT" },
     { "input-buffer: null source", NULL, 1, 8, NO_FN, INVALID, "" },
     { "input-buffer: zero source length", "", 0, 8, NO_FN, INVALID, "" },
-    { "output-buffer: output buffer too short", "abc", LITLEN("abc"), 3, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "output-buffer: output buffer just right", "abc", LITLEN("abc"), 4, NO_FN, VALID | PASS_DECODE, "abc" }
+    { "output-buffer: output buffer too short", "abc", strlen("abc"), 3, NO_FN, INVALID | FAIL_DECODE, "" },
+    { "output-buffer: output buffer just right", "abc", strlen("abc"), 4, NO_FN, VALID | PASS_DECODE, "abc" }
 };
 // clang-format on
 
