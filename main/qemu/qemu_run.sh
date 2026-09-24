@@ -53,6 +53,7 @@ qemu-system-xtensa $EXTRA_ARGS -nographic \
     -nic user,model=open_eth,id=lo0,hostfwd=tcp:0.0.0.0:30122-:30122,hostfwd=tcp:0.0.0.0:30121-:30121 \
     -drive file=${EFUSE_IMAGE},if=none,format=raw,id=efuse \
     -global driver=nvram.esp32.efuse,property=drive,value=efuse \
+    -global driver=timer.esp32.timg,property=wdt_disable,value=true \
     -serial pty $BG
     #-serial mon:stdio
 
