@@ -100,6 +100,11 @@ gui_activity_t* make_home_screen_activity(const char* device_name, const char* f
     node = make_home_screen_panel_item(gui_get_highlight_color(), selected_entry);
     gui_set_borders(node, TFT_BLACK, 4, GUI_BORDER_RIGHT);
     gui_set_parent(node, hsplit);
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+    // A tap on the selected item opens it, a tap on the next item moves on
+    gui_activity_set_touch_nav_area(act, hsplit);
+    gui_activity_set_touch_nav_select_area(act, node);
+#endif
 
     // Next item
     node = make_home_screen_panel_item(GUI_BLOCKSTREAM_UNHIGHTLIGHTED_DEFAULT, next_entry);
