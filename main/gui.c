@@ -2703,6 +2703,15 @@ void gui_activity_set_touch_nav_area(gui_activity_t* activity, gui_view_node_t* 
     activity->touch_nav_area = area;
 }
 
+// Instead of the middle third, taps on this node act as 'select', and taps
+// either side of it as prev/next
+void gui_activity_set_touch_nav_select_area(gui_activity_t* activity, gui_view_node_t* select_area)
+{
+    JADE_ASSERT(activity);
+    JADE_ASSERT(select_area);
+    activity->touch_nav_select_area = select_area;
+}
+
 static void touch_nav_tap(const gui_activity_t* activity, const uint16_t x, const uint16_t y)
 {
     if (!activity || activity->selectables || !activity->touch_nav_area
@@ -2711,8 +2720,14 @@ static void touch_nav_tap(const gui_activity_t* activity, const uint16_t x, cons
     }
 
     const dispWin_t* const area = &activity->touch_nav_area->padded_constraints;
-    const uint16_t select_from = area->x1 + (area->x2 - area->x1) / 3;
-    const uint16_t select_to = area->x1 + ((area->x2 - area->x1) * 2) / 3;
+    uint16_t select_from = area->x1 + (area->x2 - area->x1) / 3;
+    uint16_t select_to = area->x1 + ((area->x2 - area->x1) * 2) / 3;
+
+    const gui_view_node_t* const select_area = activity->touch_nav_select_area;
+    if (select_area && !select_area->is_first_render) {
+        select_from = select_area->padded_constraints.x1;
+        select_to = select_area->padded_constraints.x2;
+    }
 
     // NOTE: gui_prev()/gui_next() swap when the display is flipped, to follow the
     // physical sides of the device, while taps are mapped to where the gui is

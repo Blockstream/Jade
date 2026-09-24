@@ -344,8 +344,10 @@ struct gui_activity_t {
     bool selectables_wrap;
 
 #ifdef CONFIG_DISPLAY_TOUCH_DIRECT
-    // Direct touch: node whose taps act as prev/select/next, if any
+    // Direct touch: node whose taps act as prev/select/next, if any, and
+    // the node in it that acts as 'select' (default: the middle third)
     gui_view_node_t* touch_nav_area;
+    gui_view_node_t* touch_nav_select_area;
 #endif
 };
 
@@ -490,6 +492,7 @@ void gui_prev(void);
 #ifdef CONFIG_DISPLAY_TOUCH_DIRECT
 void gui_touch_update(uint16_t x, uint16_t y, bool is_pressed);
 void gui_activity_set_touch_nav_area(gui_activity_t* activity, gui_view_node_t* area);
+void gui_activity_set_touch_nav_select_area(gui_activity_t* activity, gui_view_node_t* select_area);
 #endif
 
 #endif /* GUI_H_ */
