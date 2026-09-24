@@ -640,6 +640,10 @@ gui_activity_t* make_carousel_activity(const char* title, gui_view_node_t** labe
 
     // Background fill
     gui_make_fill(&node, gui_get_highlight_color(), FILL_HIGHLIGHT, vsplit);
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+    // Taps on the carousel bar act as prev/select/next
+    gui_activity_set_touch_nav_area(act, node);
+#endif
 
     gui_view_node_t* hsplit;
     gui_make_hsplit(&hsplit, GUI_SPLIT_RELATIVE, 3, 10, 80, 10);

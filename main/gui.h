@@ -342,6 +342,11 @@ struct gui_activity_t {
 
     // should that cursor "wrap around" when you reach one end?
     bool selectables_wrap;
+
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+    // Direct touch: node whose taps act as prev/select/next, if any
+    gui_view_node_t* touch_nav_area;
+#endif
 };
 
 // Generic struct representing a node in the view tree
@@ -484,6 +489,7 @@ void gui_next(void);
 void gui_prev(void);
 #ifdef CONFIG_DISPLAY_TOUCH_DIRECT
 void gui_touch_update(uint16_t x, uint16_t y, bool is_pressed);
+void gui_activity_set_touch_nav_area(gui_activity_t* activity, gui_view_node_t* area);
 #endif
 
 #endif /* GUI_H_ */
