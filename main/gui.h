@@ -244,6 +244,10 @@ struct view_node_button_data {
     uint32_t click_event_id;
     // args passed to the event handler as event_data when the button is clicked
     void* args;
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+    // if set, direct touch requires a long press to activate the button
+    bool is_critical;
+#endif
 };
 
 enum __attribute__((__packed__)) icon_node_kind { ICON_PLAIN, ICON_QR };
@@ -418,6 +422,9 @@ void gui_chain_activities(const link_activity_t* link_act, linked_activities_inf
 void gui_make_hsplit(gui_view_node_t** ptr, enum gui_split_type kind, int parts, ...);
 void gui_make_vsplit(gui_view_node_t** ptr, enum gui_split_type kind, int parts, ...);
 void gui_make_button(gui_view_node_t** ptr, color_t color, color_t selected_color, uint32_t event_id, void* args);
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+void gui_set_button_critical(gui_view_node_t* node);
+#endif
 void gui_make_fill(gui_view_node_t** ptr, color_t color, enum fill_node_kind fill_type, gui_view_node_t* parent);
 void gui_make_text(gui_view_node_t** ptr, const char* text, color_t color);
 void gui_make_text_font(gui_view_node_t** ptr, const char* text, color_t color, uint32_t font);
@@ -475,5 +482,8 @@ void gui_wheel_click(void);
 void gui_front_click(void);
 void gui_next(void);
 void gui_prev(void);
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+void gui_touch_update(uint16_t x, uint16_t y, bool is_pressed);
+#endif
 
 #endif /* GUI_H_ */

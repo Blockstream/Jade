@@ -666,7 +666,7 @@ static void offer_jade_reset(void)
 {
     // Run 'Reset Jade?'  confirmation screen and wait for yes/no response
     const char* question[] = { "Reset Jade and erase all", "PIN and wallet data?", "This cannot be undone!" };
-    if (!await_yesno_activity("Factory Reset", question, 3, false, "blkstrm.com/reset")) {
+    if (!await_yesno_activity_critical("Factory Reset", question, 3, false, "blkstrm.com/reset")) {
         // User decided against it
         return;
     }
@@ -1034,7 +1034,7 @@ static bool offer_delete_registered_wallet(const char* name, const bool is_multi
 {
     JADE_ASSERT(name);
 
-    if (!await_yesno_activity("Delete Wallet", &name, 1, false, "blkstrm.com/wallets")) {
+    if (!await_yesno_activity_critical("Delete Wallet", &name, 1, false, "blkstrm.com/wallets")) {
         return false;
     }
 
@@ -1421,7 +1421,7 @@ static bool delete_otp_record(const char* otpname)
 {
     JADE_ASSERT(otpname);
 
-    if (!await_yesno_activity("Delete OTP Record", &otpname, 1, false, "blkstrm.com/otp")) {
+    if (!await_yesno_activity_critical("Delete OTP Record", &otpname, 1, false, "blkstrm.com/otp")) {
         return false;
     }
 

@@ -101,6 +101,12 @@ static void touchscreen_task(void* ignored)
     bool touch_mirrored = false;
 #endif
 
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+    // Whether the current press started on the virtual button strip
+    bool is_strip_press = false;
+    bool was_pressed = false;
+#endif
+
     // FIXME: don't allow multiple touches within 300 ms?
     while (!shutdown_requested) {
 #if DISPLAY_HAS_TOUCH_NAVBAR
@@ -121,10 +127,24 @@ static void touchscreen_task(void* ignored)
         if (esp_lcd_touch_read_data(ret_touch) == ESP_OK) {
             bool touchpad_pressed
                 = esp_lcd_touch_get_coordinates(ret_touch, touch_x, touch_y, touch_strength, &touch_cnt, 1);
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+            // The virtual buttons only act on presses that started on them - any
+            // other press goes to the gui, even if the finger is later dragged
+            // onto the strip
+            if (touchpad_pressed && !was_pressed) {
+                is_strip_press = touch_y[0] > CONFIG_DISPLAY_HEIGHT;
+            }
+            was_pressed = touchpad_pressed;
+            gui_touch_update(touch_x[0], touch_y[0], touchpad_pressed && !is_strip_press);
+#endif
             if (touchpad_pressed) {
                 const uint16_t first_third_end = CONFIG_DISPLAY_WIDTH / 3;
                 const uint16_t middle_thirds_end = (CONFIG_DISPLAY_WIDTH * 2) / 3;
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+                if (is_strip_press && touch_y[0] > CONFIG_DISPLAY_HEIGHT) {
+#else
                 if (touch_y[0] > CONFIG_DISPLAY_HEIGHT) {
+#endif
                     if (touch_x[0] <= first_third_end) {
                         gui_prev();
                     } else if (touch_x[0] > first_third_end && touch_x[0] < middle_thirds_end) {

@@ -169,6 +169,16 @@ menu "Blockstream Jade"
         default 1 if BOARD_TYPE_TTGO_TWATCHS3
         default 0
 
+    config DISPLAY_TOUCH_DIRECT
+        bool "Tap gui elements directly"
+        depends on DISPLAY_TOUCHSCREEN
+        default y if BOARD_TYPE_WS_TOUCH_LCD2 || BOARD_TYPE_WS_TOUCH_LCD35
+        default n
+        help
+            Tapping a button on the screen selects and activates it, rather than
+            touch input being limited to the virtual prev/select/next buttons
+            (which remain available).  Critical actions require a long press.
+
     config DISPLAY_SPI_CLOCK
         int "SPI Clock"
         default 40000000 if BOARD_TYPE_JADE_V2_ANY || BOARD_TYPE_M5_CORES3 || BOARD_TYPE_TTGO_TWATCHS3 || BOARD_TYPE_WS_TOUCH_LCD35
