@@ -1253,7 +1253,7 @@ void sign_psbt_process(void* process_ptr)
     // Serialise signed psbt
     uint8_t* bytes = NULL;
     size_t bytes_len = 0;
-    if (!serialise_psbt(psbt, &bytes, &bytes_len)) {
+    if (!serialise_psbt(psbt, &bytes, &bytes_len) || !bytes_len) {
         jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to serialise sign psbt");
         goto cleanup;
     }
@@ -1264,7 +1264,7 @@ void sign_psbt_process(void* process_ptr)
     size_t original_id_len = 0;
     rpc_get_id(&process->ctx.value, original_id, sizeof(original_id), &original_id_len);
 
-    const int nmsgs = (bytes_len / PSBT_OUT_CHUNK_SIZE) + 1;
+    const int nmsgs = ((bytes_len - 1) / PSBT_OUT_CHUNK_SIZE) + 1;
     uint8_t* const msgbuf = JADE_MALLOC(MAX_OUTPUT_MSG_SIZE);
     uint8_t* chunk = bytes;
     for (size_t imsg = 0; imsg < nmsgs; ++imsg) {
