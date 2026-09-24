@@ -8,6 +8,10 @@
 // Maximum allowed precision for supported assets
 #define ASSET_PRECISION_MAX 8
 
+// Asset tickers are either empty or 3-24 ASCII characters
+#define ASSET_TICKER_MIN_LEN 3
+#define ASSET_TICKER_MAX_LEN 24
+
 // NOTE: strings here may not be nul-terminated as may directly reference message fields
 typedef struct _asset_info {
     const char* asset_id;

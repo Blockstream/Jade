@@ -135,7 +135,7 @@ static bool get_asset_display_info(const network_t network_id, const asset_info_
         JADE_ASSERT(ret > 0 && ret < amount_len);
 
         // Ticker
-        ret = snprintf(ticker, ticker_len, "%.*s", asset_info.ticker_len, asset_info.ticker);
+        ret = snprintf(ticker, ticker_len, "%.*s", (int)asset_info.ticker_len, asset_info.ticker);
         JADE_ASSERT(ret > 0 && ret < ticker_len);
     } else {
         JADE_LOGW("Asset data for asset-id: '%s' not found!", asset_id_hex);
@@ -541,7 +541,7 @@ bool show_elements_transaction_outputs_activity(const network_t network_id, cons
         char issuer[128];
         char asset_id_hex[2 * ASSET_TAG_LEN + 1];
         char amount[32];
-        char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
+        char ticker[ASSET_TICKER_MAX_LEN + 1];
         const bool have_asset_info = get_asset_display_info(network_id, assets, num_assets, output_info[i].asset_id,
             sizeof(output_info[i].asset_id), output_info[i].value, issuer, sizeof(issuer), asset_id_hex,
             sizeof(asset_id_hex), amount, sizeof(amount), ticker, sizeof(ticker));
@@ -601,7 +601,7 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
         char issuer[128];
         char asset_id_hex[2 * ASSET_TAG_LEN + 1];
         char amount[32];
-        char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
+        char ticker[ASSET_TICKER_MAX_LEN + 1];
         const bool have_asset_info = get_asset_display_info(network_id, assets, num_assets, sums[i].asset_id,
             sizeof(sums[i].asset_id), sums[i].value, issuer, sizeof(issuer), asset_id_hex, sizeof(asset_id_hex), amount,
             sizeof(amount), ticker, sizeof(ticker));
@@ -782,8 +782,8 @@ bool show_elements_final_confirmation_activity(
     JADE_ASSERT(asset_info.ticker_len);
 
     // Ticker
-    char ticker[8]; // Registry tickers are max 5char ... but testnet policy asset ticker is 'L-TEST' ...
-    int ret = snprintf(ticker, sizeof(ticker), "%.*s", asset_info.ticker_len, asset_info.ticker);
+    char ticker[ASSET_TICKER_MAX_LEN + 1];
+    int ret = snprintf(ticker, sizeof(ticker), "%.*s", (int)asset_info.ticker_len, asset_info.ticker);
     JADE_ASSERT(ret > 0 && ret < sizeof(ticker));
 
     // Fee amount scaled and displayed at relevant precision

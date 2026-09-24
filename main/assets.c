@@ -1,4 +1,5 @@
 #ifndef AMALGAMATED_BUILD
+#include <ctype.h>
 #include <inttypes.h>
 
 #include "assets.h"
@@ -18,6 +19,26 @@
 #define MAX_ASSET_INFO_ELEMS 64u
 
 #define ASSET_CONTRACT_BUFFER_LEN 768
+
+static bool is_valid_asset_ticker(const char* ticker, const size_t ticker_len)
+{
+    if (!ticker_len) {
+        return true; // An empty ticker is considered valid
+    }
+
+    if (!ticker || ticker_len < ASSET_TICKER_MIN_LEN || ticker_len > ASSET_TICKER_MAX_LEN) {
+        return false;
+    }
+
+    for (size_t i = 0; i < ticker_len; ++i) {
+        const uint8_t c = (uint8_t)ticker[i];
+        const bool valid = isalnum(c) || c == '.' || c == '-';
+        if (!valid) {
+            return false;
+        }
+    }
+    return true;
+}
 
 // Compute the asset-id given the contract hash and the issuance prevout details
 static void compute_asset_id(const uint8_t* contract_hash, const size_t contract_hash_len, const uint8_t* txhash,
@@ -162,6 +183,12 @@ bool assets_get_allocate(const char* field, const CborValue* value, asset_info_t
             asset->asset_id_len = asset_id_hex_len;
 
             rpc_get_string_ptr("ticker", &contract, &asset->ticker, &asset->ticker_len);
+            if (!is_valid_asset_ticker(asset->ticker, asset->ticker_len)) {
+                JADE_LOGE("Invalid asset ticker (length %lu) for asset %.*s", (unsigned long)asset->ticker_len,
+                    (int)asset->asset_id_len, asset->asset_id);
+                free(assets);
+                return false;
+            }
 
             CborValue entity;
             if (rpc_get_map("entity", &contract, &entity)) {
