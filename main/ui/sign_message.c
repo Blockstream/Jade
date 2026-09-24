@@ -42,7 +42,7 @@ static gui_activity_t* make_sign_message_activities(const char* msgtxt, const ch
     if (msgtxt_len <= SIGN_MESSAGE_MAX_DISPLAY_LEN) {
         // Just the one message screen with a tick/accept button
         btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
-            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNMSG_ACCEPT } };
+            { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNMSG_ACCEPT, BTN_IS_CRITICAL } };
 
         const int ret = snprintf(buf, sizeof(buf), "\n%s", msgtxt);
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
@@ -108,7 +108,7 @@ static gui_activity_t* make_sign_message_activities(const char* msgtxt, const ch
 
     // Create buttons/menu
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNMSG_REJECT },
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNMSG_ACCEPT } };
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNMSG_ACCEPT, BTN_IS_CRITICAL } };
 
     btn_data_t menubtns[] = { { .content = msgsplit, .ev_id = BTN_SIGNMSG_MSG },
         { .content = hashsplit, .ev_id = BTN_SIGNMSG_HASH }, { .content = pathsplit, .ev_id = BTN_SIGNMSG_PATH } };

@@ -696,7 +696,7 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
 
     // Buttons - Cancel and Confirm
     btn_data_t hdrbtns[] = { { .txt = "X", .font = GUI_TITLE_FONT, .ev_id = BTN_SIGNTX_REJECT },
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNTX_ACCEPT } };
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNTX_ACCEPT, BTN_IS_CRITICAL } };
 
     btn_data_t menubtns[] = {
         { .content = splitfee, .ev_id = BTN_SIGNTX_TICKERAMOUNT },

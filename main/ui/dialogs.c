@@ -97,6 +97,13 @@ void add_button(gui_view_node_t* parent, btn_data_t* btn_info)
         gui_set_parent(btn_info->content, btn);
     }
 
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+    // Direct touch requires a long press to activate critical buttons
+    if (btn_info->is_critical && btn_info->ev_id != GUI_BUTTON_EVENT_NONE) {
+        gui_set_button_critical(btn);
+    }
+#endif
+
     // Set the (btn) control back in the info struct
     btn_info->btn = btn;
 }
@@ -522,7 +529,7 @@ void await_error_3(const char* msg1, const char* msg2, const char* msg3)
 // Generic activity that displays a message and Yes/No buttons, and waits
 // for button press.  Function returns true if 'Yes' was pressed.
 static bool await_yesno_activity_impl(const char* title, const char* message[], const size_t message_size,
-    const char* yes, const char* no, const bool default_selection, const char* help_url)
+    const char* yes, const char* no, const bool default_selection, const char* help_url, const bool is_critical)
 {
     // title is optional
     JADE_ASSERT(message);
@@ -536,6 +543,9 @@ static bool await_yesno_activity_impl(const char* title, const char* message[], 
 
     btn_data_t ftrbtns[] = { { .txt = no, .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO, .borders = GUI_BORDER_TOPRIGHT },
         { .txt = yes, .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOPLEFT } };
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+    ftrbtns[1].is_critical = is_critical;
+#endif
 
     gui_activity_t* const act
         = make_show_message_activity(message, message_size, title, hdrbtns, help_url ? 2 : 0, ftrbtns, 2);
@@ -548,14 +558,27 @@ static bool await_yesno_activity_impl(const char* title, const char* message[], 
 bool await_yesno_activity(const char* title, const char* message[], const size_t message_size,
     const bool default_selection, const char* help_url)
 {
-    return await_yesno_activity_impl(title, message, message_size, "Yes", "No", default_selection, help_url);
+    const bool is_critical = false;
+    return await_yesno_activity_impl(
+        title, message, message_size, "Yes", "No", default_selection, help_url, is_critical);
+}
+
+// As above, but the 'Yes' button is marked critical - for destructive/irreversible actions
+bool await_yesno_activity_critical(const char* title, const char* message[], const size_t message_size,
+    const bool default_selection, const char* help_url)
+{
+    const bool is_critical = true;
+    return await_yesno_activity_impl(
+        title, message, message_size, "Yes", "No", default_selection, help_url, is_critical);
 }
 
 // Variant of the Yes/No activity that is instead Skip/Yes
 bool await_skipyes_activity(const char* title, const char* message[], const size_t message_size,
     const bool default_selection, const char* help_url)
 {
-    return await_yesno_activity_impl(title, message, message_size, "Yes", "Skip", default_selection, help_url);
+    const bool is_critical = false;
+    return await_yesno_activity_impl(
+        title, message, message_size, "Yes", "Skip", default_selection, help_url, is_critical);
 }
 
 // Variant of the Yes/No activity that is instead Continue/Back (latter in title bar)

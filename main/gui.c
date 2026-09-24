@@ -1147,6 +1147,15 @@ void gui_make_button(
     data->args = args;
 }
 
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+// Mark a button as 'critical' - direct touch will require a long press to activate it
+void gui_set_button_critical(gui_view_node_t* node)
+{
+    JADE_ASSERT(node && node->kind == BUTTON);
+    node_get_button_data(node)->is_critical = true;
+}
+#endif
+
 void gui_make_fill(gui_view_node_t** ptr, color_t color, enum fill_node_kind fill_type, gui_view_node_t* parent)
 {
     JADE_INIT_OUT_PPTR(ptr);
@@ -2630,6 +2639,115 @@ void gui_prev(void)
         select_prev_left();
     }
 }
+
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+// Direct touch: tapping a button selects and activates it, while buttons marked
+// 'critical' must be held pressed instead, so a stray tap cannot confirm them.
+// Screens with nothing to tap are left to the virtual buttons.
+#define GUI_TOUCH_LONGPRESS_MS 800
+
+// The press being tracked
+typedef struct {
+    gui_activity_t* activity;
+    gui_view_node_t* node; // button pressed, if any
+    TickType_t start;
+    bool is_pressed;
+    bool is_on_node; // still over 'node'
+    bool is_done; // nothing more to do until released
+} touch_press_t;
+static touch_press_t touch_press = { 0 };
+
+static bool is_point_in_node(const gui_view_node_t* node, const uint16_t x, const uint16_t y)
+{
+    // A node only gets its position on the screen when it is first rendered
+    if (node->is_first_render) {
+        return false;
+    }
+    const dispWin_t* const win = &node->padded_constraints;
+    return x >= win->x1 && x <= win->x2 && y >= win->y1 && y <= win->y2;
+}
+
+// Find the active button of the activity under the given point, if any
+static gui_view_node_t* find_node_at_point(gui_activity_t* activity, const uint16_t x, const uint16_t y)
+{
+    if (!activity || !activity->selectables) {
+        return NULL;
+    }
+
+    // NOTE: the selectables list is circular, so stop when back at the start
+    selectable_t* const begin = activity->selectables;
+    selectable_t* current = begin;
+    do {
+        if (current->node->is_active && is_point_in_node(current->node, x, y)) {
+            return current->node;
+        }
+        current = current->next;
+    } while (current != begin);
+
+    return NULL;
+}
+
+// Called on every touchscreen poll with the current touch state - 'is_pressed'
+// is false for presses that started on the virtual button strip, as those are
+// the classic prev/select/next buttons, handled by the input code.
+// The touch x keeps the physical sides of the screen, as the virtual buttons
+// want, so it is mirrored when the display is flipped, to act on what is drawn
+// under the finger.
+void gui_touch_update(const uint16_t x, const uint16_t y, const bool is_pressed)
+{
+    const uint16_t hit_x = gui_orientation_flipped ? CONFIG_DISPLAY_WIDTH - x : x;
+
+    if (is_pressed && !touch_press.is_pressed) {
+        // Press started - on a dimmed screen it only wakes the screen
+        touch_press = (touch_press_t){ .activity = current_activity,
+            .start = xTaskGetTickCount(),
+            .is_pressed = true,
+            .is_done = idletimer_register_activity(true) };
+        if (!touch_press.is_done) {
+            touch_press.node = find_node_at_point(touch_press.activity, hit_x, y);
+            touch_press.is_on_node = touch_press.node != NULL;
+            if (touch_press.node && !touch_press.node->is_selected) {
+                select_node(touch_press.node);
+            }
+        }
+        return;
+    }
+
+    if (!touch_press.is_pressed) {
+        return;
+    }
+
+    // The activity changed under our finger - drop the press
+    // (NOTE: 'node' may now be dangling and must not be dereferenced)
+    if (current_activity != touch_press.activity) {
+        touch_press.node = NULL;
+        touch_press.is_done = true;
+    }
+
+    if (is_pressed) {
+        // Press continuing - a critical button activates once held long enough
+        if (!touch_press.is_done && touch_press.node) {
+            touch_press.is_on_node = is_point_in_node(touch_press.node, hit_x, y);
+            if (touch_press.is_on_node && node_get_button_data(touch_press.node)->is_critical
+                && touch_press.node->is_selected
+                && xTaskGetTickCount() - touch_press.start >= pdMS_TO_TICKS(GUI_TOUCH_LONGPRESS_MS)) {
+                gui_front_click();
+                touch_press.is_done = true;
+            }
+        }
+        return;
+    }
+
+    // Press released - a tap on a (non-critical) button activates it
+    if (!touch_press.is_done && touch_press.node) {
+        if (touch_press.is_on_node && !node_get_button_data(touch_press.node)->is_critical
+            && touch_press.node->is_selected) {
+            gui_front_click();
+        }
+    }
+    touch_press = (touch_press_t){ 0 };
+}
+#endif // CONFIG_DISPLAY_TOUCH_DIRECT
 
 // Set the item to be initally selected when the activity is activated/switched-to
 // 'node' can be NULL to unset any specific initial selection

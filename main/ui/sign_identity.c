@@ -9,7 +9,7 @@ static gui_activity_t* make_sign_identity_activity(const char* identity)
 
     // third row, buttons
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNIDENTITY_REJECT },
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNIDENTITY_ACCEPT } };
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNIDENTITY_ACCEPT, BTN_IS_CRITICAL } };
 
     gui_activity_t* const act = gui_make_activity();
     gui_view_node_t* const parent = add_title_bar(act, "Sign Identity", hdrbtns, 2, NULL);

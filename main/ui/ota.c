@@ -67,7 +67,7 @@ static gui_activity_t* make_ota_versions_activities(const char* current_version,
 
     // Create buttons/menu
     btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_OTA_REJECT },
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTA_ACCEPT } };
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_OTA_ACCEPT, BTN_IS_CRITICAL } };
 
     btn_data_t menubtns[] = { { .content = splitcurrent, .ev_id = BTN_OTA_VIEW_CURRENT_VERSION },
         { .content = splitnew, .ev_id = BTN_OTA_VIEW_NEW_VERSION },
