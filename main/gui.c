@@ -2137,10 +2137,48 @@ static void render_qrguide(gui_view_node_t* node)
     const uint16_t glength = 30;
     const uint16_t gnubbin = 2;
 
-    // maximum square that fits in the constraints
+    // The camera activity puts a vsplit (header/middle/footer bands) directly
+    // under this node, and an hsplit (back/spacer/help button columns) under
+    // its header band - see make_camera_activity().  Read the real proportions
+    // from those sibling nodes rather than hardcoding a copy of them, so this
+    // can't go stale if that layout ever changes.  The bottom band may hold a
+    // progress bar, and the top band holds the exit and help/click buttons, in
+    // the outer columns of its hsplit.  On portrait displays keep the guide
+    // clear of both.  On landscape displays the guide spans the full height,
+    // with the bands drawn over it, as it always has.
     const uint16_t width = cs->x2 - cs->x1;
-    const uint16_t height = cs->y2 - cs->y1;
-    const uint16_t square_size = min_u16(width, height);
+    const uint16_t full_height = cs->y2 - cs->y1;
+
+    uint16_t top_band = 0;
+    uint16_t bottom_band = 0;
+    uint16_t hbtn = 0;
+    if (full_height > width && node->child && node->child->kind == VSPLIT) {
+        const struct view_node_split_data* vdata = node_get_split_data(node->child);
+        if (vdata->parts == 3) {
+            top_band = get_step(vdata->kind, full_height, vdata->values[0]);
+            bottom_band = get_step(vdata->kind, full_height, vdata->values[2]);
+
+            gui_view_node_t* const header = node->child->child;
+            if (header && header->kind == HSPLIT) {
+                const struct view_node_split_data* hdata = node_get_split_data(header);
+                if (hdata->parts == 3) {
+                    hbtn = get_step(hdata->kind, width, hdata->values[0]);
+                }
+            }
+        }
+    }
+
+    // Largest square that fits clear of the bottom band ...
+    uint16_t height = full_height - bottom_band;
+    uint16_t square_size = min_u16(width, height);
+    uint16_t voffset = 0;
+
+    // ... and clear of the header buttons, if it would otherwise reach them
+    if ((width - square_size) / 2 < hbtn) {
+        height = full_height - top_band - bottom_band;
+        square_size = min_u16(width, height);
+        voffset = top_band;
+    }
 #if defined(CONFIG_BOARD_TYPE_JADE_V1_ANY)
     // guides 9% inset
     const uint16_t inset = square_size / 11;
@@ -2151,8 +2189,8 @@ static void render_qrguide(gui_view_node_t* node)
     // guide boundaries
     const uint16_t left = cs->x1 + (width - square_size) / 2 + inset;
     const uint16_t right = cs->x2 - (width - square_size) / 2 - inset;
-    const uint16_t top = cs->y1 + (height - square_size) / 2 + inset;
-    const uint16_t bottom = cs->y2 - (height - square_size) / 2 - inset;
+    const uint16_t top = cs->y1 + voffset + (height - square_size) / 2 + inset;
+    const uint16_t bottom = cs->y2 - bottom_band - (height - square_size) / 2 - inset;
 
     const struct view_node_qrguide_data* data = node_get_qrguide_data(node);
     // top-left
