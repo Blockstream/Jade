@@ -14,11 +14,11 @@
 static const char* NVS_KEYS_PARTITION_LABEL = "nvs_key";
 #endif
 
-static const char* DEFAULT_NAMESPACE = "PIN";
-static const char* MULTISIG_NAMESPACE = "MULTISIGS";
-static const char* DESCRIPTOR_NAMESPACE = "DESCRIPTORS";
-static const char* OTP_NAMESPACE = "OTP";
-static const char* HOTP_COUNTERS_NAMESPACE = "HOTPC";
+static const char* const DEFAULT_NAMESPACE = "PIN";
+static const char* const MULTISIG_NAMESPACE = "MULTISIGS";
+static const char* const DESCRIPTOR_NAMESPACE = "DESCRIPTORS";
+static const char* const OTP_NAMESPACE = "OTP";
+static const char* const HOTP_COUNTERS_NAMESPACE = "HOTPC";
 
 static const char* PIN_PRIVATEKEY_FIELD = "privatekey";
 static const char* PIN_COUNTER_FIELD = "counter";
@@ -41,6 +41,9 @@ static const char* QR_FLAGS_FIELD = "qrflags";
 
 // Deprecated/removed keys
 static const char* CLICK_EVENT_FIELD = "clickevent";
+
+static const char* const nvs_namespaces[]
+    = { DEFAULT_NAMESPACE, MULTISIG_NAMESPACE, DESCRIPTOR_NAMESPACE, OTP_NAMESPACE, HOTP_COUNTERS_NAMESPACE };
 
 // NOTE: esp-idf reserve the final page of nvs entries for internal use (for defrag/consolidation)
 // See: https://github.com/espressif/esp-idf/issues/5247#issuecomment-1048604221
@@ -338,6 +341,10 @@ static esp_err_t init_nvs_flash(void)
 
 bool storage_init(void)
 {
+#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
+    esp_log_level_set("nvs", ESP_LOG_ERROR);
+#endif
+
     esp_err_t err = init_nvs_flash();
 
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -350,14 +357,26 @@ bool storage_init(void)
         }
     }
 
-#ifndef CONFIG_LOG_DEFAULT_LEVEL_NONE
-    esp_log_level_set("nvs", ESP_LOG_ERROR);
-#endif
+    if (err != ESP_OK) {
+        return false;
+    }
 
-    // Erase any now-deprecated keys
-    erase_key(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD);
+    // Open and close each used namespace so idf creates the namespace objects it retains
+    // for the partition's lifetime now, at device boot. This avoids fragmentation if a
+    // namespace is created after a large transient allocation.
+    nvs_handle_t handle;
+    for (size_t i = 0; i < sizeof(nvs_namespaces) / sizeof(nvs_namespaces[0]); ++i) {
+        err = nvs_open(nvs_namespaces[i], NVS_READWRITE, &handle);
+        if (err != ESP_OK) {
+            JADE_LOGE("Failed to open namespace %s: %u", nvs_namespaces[i], err);
+            return false;
+        }
+        nvs_close(handle);
+    }
 
-    return err == ESP_OK;
+    erase_key(DEFAULT_NAMESPACE, CLICK_EVENT_FIELD); // Erase now-deprecated key
+
+    return true;
 }
 
 // Erase flash

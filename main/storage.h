@@ -38,7 +38,7 @@
 
 typedef enum { STORAGE_PIN_KEEP_PRIVKEY, STORAGE_PIN_ERASE_PRIVKEY } storage_pin_privkey_action_t;
 
-bool storage_init(void);
+WARN_UNUSED_RESULT bool storage_init(void);
 bool storage_erase(void);
 bool storage_get_stats(size_t* entries_used, size_t* entries_free);
 bool storage_key_name_valid(const char* name);
