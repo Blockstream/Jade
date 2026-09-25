@@ -15,7 +15,9 @@
 
 static bool button_B_event_outstanding = false;
 
+#if CONFIG_INPUT_BTN_A >= 0
 static void button_A_pressed(void* arg, void* ctx) { gui_prev(); }
+#endif
 
 static void button_B_pressed(void* arg, void* ctx) { button_B_event_outstanding = true; }
 
@@ -37,6 +39,7 @@ static void button_B_released(void* arg, void* ctx)
 
 void navigation_init(void)
 {
+#if CONFIG_INPUT_BTN_A >= 0
     const button_config_t prev_btn_cfg = {
         .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,
         .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS,
@@ -49,6 +52,7 @@ void navigation_init(void)
 
     button_handle_t btn_handle_prev = NULL;
     ESP_ERROR_CHECK(iot_button_new_gpio_device(&prev_btn_cfg, &prev_btn_gpio_cfg, &btn_handle_prev));
+#endif
 
     const button_config_t next_btn_cfg = {
         .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,
@@ -69,8 +73,10 @@ void navigation_init(void)
 
     JADE_ASSERT(btn_handle_next);
 
+#if CONFIG_INPUT_BTN_A >= 0
     ESP_ERROR_CHECK(iot_button_register_cb(btn_handle_prev, BUTTON_PRESS_DOWN, NULL, button_A_pressed, NULL));
     ESP_ERROR_CHECK(iot_button_register_cb(btn_handle_prev, BUTTON_LONG_PRESS_HOLD, NULL, button_A_pressed, NULL));
+#endif
 
     ESP_ERROR_CHECK(iot_button_register_cb(btn_handle_next, BUTTON_PRESS_DOWN, NULL, button_B_pressed, NULL));
     ESP_ERROR_CHECK(iot_button_register_cb(btn_handle_next, BUTTON_LONG_PRESS_START, NULL, button_B_long_press, NULL));
