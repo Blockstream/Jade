@@ -33,16 +33,25 @@ void power_i2c_bus_detach(void);
 
 enum touch_zone { ZONE_NONE, ZONE_PREV, ZONE_CLICK, ZONE_NEXT };
 
-// Which navbar zone (thirds of the display width) the given x coordinate falls in
+// Which navbar zone (thirds of the display width) the given x coordinate falls in.  A small
+// dead zone around the two boundaries counts as no zone, so a touch that lands close to one
+// does nothing rather than snapping to whichever side it happens to fall on.
 static enum touch_zone get_touch_zone(const uint16_t x)
 {
-    if (x <= CONFIG_DISPLAY_WIDTH / 3) {
+    const uint16_t first_third_end = CONFIG_DISPLAY_WIDTH / 3;
+    const uint16_t second_third_end = (CONFIG_DISPLAY_WIDTH * 2) / 3;
+    const uint16_t margin = CONFIG_DISPLAY_WIDTH / 24;
+
+    if (x < first_third_end - margin) {
         return ZONE_PREV;
     }
-    if (x < (CONFIG_DISPLAY_WIDTH * 2) / 3) {
+    if (x > first_third_end + margin && x < second_third_end - margin) {
         return ZONE_CLICK;
     }
-    return ZONE_NEXT;
+    if (x > second_third_end + margin) {
+        return ZONE_NEXT;
+    }
+    return ZONE_NONE;
 }
 
 static void touch_zone_action(const enum touch_zone zone)
@@ -182,7 +191,7 @@ static void touchscreen_task(void* ignored)
 #ifdef CONFIG_DISPLAY_TOUCH_DIRECT
                 is_strip_press = in_navbar;
 #endif
-            } else if (press_zone != ZONE_NONE && (!in_navbar || zone != press_zone)) {
+            } else if (press_zone != ZONE_NONE && (!in_navbar || (zone != ZONE_NONE && zone != press_zone))) {
                 press_zone = ZONE_NONE;
             } else if (touchpad_pressed) {
                 if ((press_zone == ZONE_PREV || press_zone == ZONE_NEXT) && zone == press_zone) {
