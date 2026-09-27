@@ -31,6 +31,37 @@ void power_i2c_bus_attach(i2c_master_bus_handle_t bus);
 void power_i2c_bus_detach(void);
 #endif
 
+enum touch_zone { ZONE_NONE, ZONE_PREV, ZONE_CLICK, ZONE_NEXT };
+
+// Which navbar zone (thirds of the display width) the given x coordinate falls in
+static enum touch_zone get_touch_zone(const uint16_t x)
+{
+    if (x <= CONFIG_DISPLAY_WIDTH / 3) {
+        return ZONE_PREV;
+    }
+    if (x < (CONFIG_DISPLAY_WIDTH * 2) / 3) {
+        return ZONE_CLICK;
+    }
+    return ZONE_NEXT;
+}
+
+static void touch_zone_action(const enum touch_zone zone)
+{
+    switch (zone) {
+    case ZONE_PREV:
+        gui_prev();
+        break;
+    case ZONE_CLICK:
+        gui_front_click();
+        break;
+    case ZONE_NEXT:
+        gui_next();
+        break;
+    case ZONE_NONE:
+        break;
+    }
+}
+
 static void touchscreen_task(void* ignored)
 {
     esp_lcd_touch_handle_t ret_touch = NULL;
@@ -87,8 +118,8 @@ static void touchscreen_task(void* ignored)
     ESP_ERROR_CHECK(ESP_LCD_TOUCH_NEW_I2C(tp_io_handle, &tp_cfg, &ret_touch));
     JADE_ASSERT(ret_touch);
 
-    uint16_t touch_x[1];
-    uint16_t touch_y[1];
+    uint16_t touch_x[1] = { 0 };
+    uint16_t touch_y[1] = { 0 };
     uint16_t touch_strength[1];
     uint8_t touch_cnt = 10;
 
@@ -101,13 +132,22 @@ static void touchscreen_task(void* ignored)
     bool touch_mirrored = false;
 #endif
 
+    // A navbar touch belongs to the zone it started in and acts once, on release, like the
+    // physical buttons (see navbtns.inc).  The finger leaving the navbar or reaching another
+    // zone cancels it, so drifting during a touch can't trigger a neighbouring action.
+    // Holding prev/next auto-repeats, with the physical buttons' long-press timings, and
+    // then nothing more fires on release; select never repeats.
+    bool touch_was_pressed = false;
+    enum touch_zone press_zone = ZONE_NONE;
+    TickType_t press_start = 0;
+    uint32_t next_repeat_ms = 0;
+    bool repeated = false;
 #ifdef CONFIG_DISPLAY_TOUCH_DIRECT
-    // Whether the current press started on the virtual button strip
+    // Whether the current press started on the navbar - kept apart from press_zone, which
+    // is also ZONE_NONE for a navbar press that started in a dead zone or was cancelled
     bool is_strip_press = false;
-    bool was_pressed = false;
 #endif
 
-    // FIXME: don't allow multiple touches within 300 ms?
     while (!shutdown_requested) {
 #if DISPLAY_HAS_TOUCH_NAVBAR
         const bool flipped = gui_get_flipped_orientation();
@@ -124,39 +164,48 @@ static void touchscreen_task(void* ignored)
             touch_mirrored = flipped;
         }
 #endif
+        // A failed read is skipped, rather than taken as the finger being lifted
         if (esp_lcd_touch_read_data(ret_touch) == ESP_OK) {
-            bool touchpad_pressed
+            const bool touchpad_pressed
                 = esp_lcd_touch_get_coordinates(ret_touch, touch_x, touch_y, touch_strength, &touch_cnt, 1);
+
+            // Once the finger is lifted touch_x/touch_y keep its last-read position
+            const bool in_navbar = touch_y[0] > CONFIG_DISPLAY_HEIGHT;
+            const enum touch_zone zone = in_navbar ? get_touch_zone(touch_x[0]) : ZONE_NONE;
+
+            if (touchpad_pressed && !touch_was_pressed) {
+                // A touch that starts off the navbar does nothing here
+                press_zone = zone;
+                press_start = xTaskGetTickCount();
+                next_repeat_ms = CONFIG_BUTTON_LONG_PRESS_TIME_MS;
+                repeated = false;
 #ifdef CONFIG_DISPLAY_TOUCH_DIRECT
-            // The virtual buttons only act on presses that started on them - any
-            // other press goes to the gui, even if the finger is later dragged
-            // onto the strip
-            if (touchpad_pressed && !was_pressed) {
-                is_strip_press = touch_y[0] > CONFIG_DISPLAY_HEIGHT;
+                is_strip_press = in_navbar;
+#endif
+            } else if (press_zone != ZONE_NONE && (!in_navbar || zone != press_zone)) {
+                press_zone = ZONE_NONE;
+            } else if (touchpad_pressed) {
+                if ((press_zone == ZONE_PREV || press_zone == ZONE_NEXT) && zone == press_zone) {
+                    const uint32_t held_ms = pdTICKS_TO_MS(xTaskGetTickCount() - press_start);
+                    if (held_ms >= next_repeat_ms) {
+                        touch_zone_action(press_zone);
+                        repeated = true;
+                        next_repeat_ms = held_ms + CONFIG_BUTTON_LONG_PRESS_HOLD_SERIAL_TIME_MS;
+                    }
+                }
+            } else if (touch_was_pressed) {
+                if (!repeated) {
+                    touch_zone_action(press_zone);
+                }
+                press_zone = ZONE_NONE;
             }
-            was_pressed = touchpad_pressed;
+            touch_was_pressed = touchpad_pressed;
+
+#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
+            // The navbar only acts on presses that started on it - any other press goes to
+            // the gui, even if the finger is later dragged onto the navbar
             gui_touch_update(touch_x[0], touch_y[0], touchpad_pressed && !is_strip_press);
 #endif
-            if (touchpad_pressed) {
-                const uint16_t first_third_end = CONFIG_DISPLAY_WIDTH / 3;
-                const uint16_t middle_thirds_end = (CONFIG_DISPLAY_WIDTH * 2) / 3;
-#ifdef CONFIG_DISPLAY_TOUCH_DIRECT
-                if (is_strip_press && touch_y[0] > CONFIG_DISPLAY_HEIGHT) {
-#else
-                if (touch_y[0] > CONFIG_DISPLAY_HEIGHT) {
-#endif
-                    if (touch_x[0] <= first_third_end) {
-                        gui_prev();
-                    } else if (touch_x[0] > first_third_end && touch_x[0] < middle_thirds_end) {
-                        gui_front_click();
-                    } else if (touch_x[0] >= middle_thirds_end) {
-                        gui_next();
-                    } else {
-                        continue;
-                    }
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
-                }
-            }
         }
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
