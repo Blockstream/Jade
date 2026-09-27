@@ -66,16 +66,26 @@ static volatile bool camera_task_running = false;
 #define UI_CAMERA_IMAGE_HEIGHT CAMERA_IMAGE_HEIGHT
 #endif
 
-// Screen area used to display camera image - full screen
+// Screen area used to display camera image - full screen on portrait displays,
+// where the image is narrower than the screen, otherwise 70% of screen width
+#if CONFIG_DISPLAY_HEIGHT > CONFIG_DISPLAY_WIDTH
+#define UI_DISPLAY_WIDTH CONFIG_DISPLAY_WIDTH
+#else
 #define UI_DISPLAY_WIDTH (CONFIG_DISPLAY_WIDTH * 70 / 100) // 70% of screen width
+#endif
 #define UI_DISPLAY_HEIGHT CONFIG_DISPLAY_HEIGHT
+
+// The scale is chosen as if the image were limited to the central 70% of the
+// screen width, so that widening the displayed area on portrait displays does
+// not also zoom in.
+#define UI_SCALE_REF_WIDTH (CONFIG_DISPLAY_WIDTH * 70 / 100)
 
 // Scale down if image much larger than screen area in both dimensions
 // The numerator is fixed at 2, allowing half-integer scaling
 #define SCALE_NUMERATOR 2
 #define CALC_SCALE_DENOMINATOR(img, ui) CAM_MAX(SCALE_NUMERATOR, (((SCALE_NUMERATOR * img) + (ui / 2)) / ui))
 #define SCALE_DENOMINATOR                                                                                              \
-    CAM_MIN(CALC_SCALE_DENOMINATOR(UI_CAMERA_IMAGE_WIDTH, UI_DISPLAY_WIDTH),                                           \
+    CAM_MIN(CALC_SCALE_DENOMINATOR(UI_CAMERA_IMAGE_WIDTH, UI_SCALE_REF_WIDTH),                                         \
         CALC_SCALE_DENOMINATOR(UI_CAMERA_IMAGE_HEIGHT, UI_DISPLAY_HEIGHT))
 #define CAM2UI(x) ((x * SCALE_NUMERATOR) / SCALE_DENOMINATOR)
 #define UI2CAM(x) ((x * SCALE_DENOMINATOR) / SCALE_NUMERATOR)
