@@ -340,8 +340,7 @@ def test_generic_multisig_matches_ga_signatures_liquid(jade, test_case):
         _check_tx_signatures(jade, ga_msig, rslt)
 
 
-@pytest.mark.mnemonic(mnemonics.reset)
-@pytest.mark.seed(seeds.singlesig)
+@pytest.mark.mnemonic(mnemonics.singlesig_seed)
 @with_test_cases('tests/rpc/data/multisig/multisig_reg_ss_*.json')
 def test_generic_multisig_ss_signer(jade, mnemonic, test_case):
     """

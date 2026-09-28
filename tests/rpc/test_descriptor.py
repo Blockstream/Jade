@@ -57,10 +57,9 @@ def test_miniscript_descriptor_registration(jade, test_case):
     _test_miniscript_descriptor_registration(jade, test_case)
 
 
-@pytest.mark.mnemonic(mnemonics.reset)
-@pytest.mark.seed(seeds.singlesig)
+@pytest.mark.mnemonic(mnemonics.singlesig_seed)
 @with_test_cases('tests/rpc/data/descriptor/descriptor_ss_*.json')
-def test_miniscript_descriptor_registration_ss(jade, test_case):
+def test_miniscript_descriptor_registration_ss(jade, mnemonic, test_case):
     """Test the descriptor wallets again, using a second signer"""
     _test_miniscript_descriptor_registration(jade, test_case)
 
