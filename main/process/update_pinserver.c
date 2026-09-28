@@ -128,16 +128,14 @@ int update_pinserver(const CborValue* const params, const char** errmsg)
     const uint8_t* const new_pubkey = pubkey ? pubkey : (reset_details ? server_public_key_start : old_pubkey);
     const bool pubkey_changed = memcmp(old_pubkey, new_pubkey, EC_PUBLIC_KEY_LEN) != 0;
 
-#ifndef CONFIG_DEBUG_MODE
     // Check that we are not trying to update the pinserver pubkey on a Jade unit
     // that already has a wallet set up/persisted in flash.
     // NOTE: we do allow an update of just the url/certs, as this may be a url change
     // that still connects to the same backend pinserver instance.
-    if (keychain_has_pin() && pubkey_changed) {
+    if (pubkey_changed && keychain_has_pin()) {
         *errmsg = "Cannot update initialized unit";
         goto cleanup;
     }
-#endif // CONFIG_DEBUG_MODE
 
     const storage_pin_privkey_action_t privkey_action
         = pubkey_changed ? STORAGE_PIN_ERASE_PRIVKEY : STORAGE_PIN_KEEP_PRIVKEY;
