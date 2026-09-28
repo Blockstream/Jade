@@ -108,8 +108,8 @@ def _set_wallet(jade, mnemonic=mnemonics.default, passphrase=None):
     return reply['result']
 
 
-@pytest.mark.mnemonic(mnemonics.invalidatecache)
-def test_12word_mnemonic(jade):
+@pytest.mark.mnemonic(mnemonics.reset)
+def test_12word_mnemonic(jade, mnemonic):
     # Short sanity-test of 12-word mnemonic
     rslt = jade.set_mnemonic(TEST_MNEMONIC_12)
     assert rslt is True
@@ -120,8 +120,8 @@ ZoxpDgc3UZwmpCgfdCkNmcSQa2tjnZLPohvRFECZP9P1boFKdJ5Sx'
     assert rslt == '38SBTKLCNKVvQh1jPpbkAbXa3gtRJEh9Ud'
 
 
-@pytest.mark.mnemonic(mnemonics.invalidatecache)
-def test_mnemonic_import(jade):
+@pytest.mark.mnemonic(mnemonics.reset)
+def test_mnemonic_import(jade, mnemonic):
     # Check the mnemonic unique prefixes expands to the same mnemonic/wallet
     # as when giving the full mnemonic words (test for qr-scanning prefixes)
     # as the unambiguous prefixes are expanded to the full words.  orc -> orchard
@@ -158,8 +158,8 @@ def test_mnemonic_import(jade):
     assert xpub_root2 == xpub_root0
 
 
-@pytest.mark.mnemonic(mnemonics.invalidatecache)
-def test_mnemonic_import_bad(jade):
+@pytest.mark.mnemonic(mnemonics.reset)
+def test_mnemonic_import_bad(jade, mnemonic):
     # Check importing invalid mnemonics
     bad_mnemonics = [
         # mnemonic phrase
@@ -189,8 +189,8 @@ def test_mnemonic_import_bad(jade):
         assert any(m in message for m in expected), message
 
 
-@pytest.mark.mnemonic(mnemonics.invalidatecache)
-def test_passphrase(jade):
+@pytest.mark.mnemonic(mnemonics.reset)
+def test_passphrase(jade, mnemonic):
     # Set mnemonic with/without a passphrase, and get root xpub
     xpub0 = _set_wallet(jade.jade, passphrase=None)
     xpub1 = _set_wallet(jade.jade, passphrase='Passphrase1')

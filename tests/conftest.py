@@ -57,16 +57,18 @@ class JadeConfig:
 
     def set_mnemonic(self, mnemonic):
         """Set the current jade mnemonic (with caching)."""
-        if mnemonic != self.current_mnemonic:
-            # reset the jade
+        do_reset = mnemonic == mnemonics.reset
+        if do_reset or mnemonic != self.current_mnemonic:
+            # mnemonic differs from the one currently set: change and remember it
             rslt = self.jade.clean_reset()
             assert rslt is True
-            # mnemonic differs from the one currently set: change and remember it
-            rslt = self.jade.set_mnemonic(mnemonic)
-            assert rslt is True
-            self.current_mnemonic = mnemonic
-            # invalidate seed
-            self.current_seed = None
+            if do_reset:
+                self.current_mnemonic = None  # invalidate mnemonic
+            else:
+                rslt = self.jade.set_mnemonic(mnemonic)
+                assert rslt is True
+                self.current_mnemonic = mnemonic
+            self.current_seed = None  # invalidate seed
         time.sleep(1)
 
     def set_seed(self, seed):
@@ -77,8 +79,7 @@ class JadeConfig:
         # set seed
         rslt = self.jade.set_seed(bytes.fromhex(seed))
         assert rslt is True
-        # invalidate mnemonic
-        self.current_mnemonic = None
+        self.current_mnemonic = None  # invalidate mnemonic
         time.sleep(1)
 
     def disconnect(self):
@@ -210,8 +211,8 @@ def mnemonic(request):
        @pytest.mark.mnemonic(mnemonics.singlesig)
     """
     s = _get_test_seed(request.node)
-    if s == '':  # no seed, set mnemonic
-        m = _get_test_mnemonic(request.node) or mnemonics.default
-        get_jade_config().jade.set_mnemonic(m)
-    else:  # if there is seed ignore mnemonic and set seed
+    if s:
         get_jade_config().set_seed(s)
+    else:
+        m = _get_test_mnemonic(request.node) or mnemonics.default
+        get_jade_config().set_mnemonic(m)

@@ -57,7 +57,7 @@ def test_miniscript_descriptor_registration(jade, test_case):
     _test_miniscript_descriptor_registration(jade, test_case)
 
 
-@pytest.mark.mnemonic(mnemonics.invalidatecache)
+@pytest.mark.mnemonic(mnemonics.reset)
 @pytest.mark.seed(seeds.singlesig)
 @with_test_cases('tests/rpc/data/descriptor/descriptor_ss_*.json')
 def test_miniscript_descriptor_registration_ss(jade, test_case):

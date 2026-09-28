@@ -10,7 +10,7 @@ def test_get_greenaddress_receive_address(jade, test_case):
         assert rslt == expected
 
 
-@pytest.mark.mnemonic(mnemonics.invalidatecache)
+@pytest.mark.mnemonic(mnemonics.reset)
 @pytest.mark.seed(seeds.singlesig)
 @with_test_cases('tests/rpc/data/address/single_sig_addr.json')
 def test_get_singlesig_receive_address(jade, mnemonic, test_case):

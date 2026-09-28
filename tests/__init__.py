@@ -27,10 +27,8 @@ drastic city front predict damp',
     # Mnemonic used in identity tests
     'identity': 'alcohol woman abuse must during monitor noble \
 actual mixed trade anger aisle',
-    # Used to ensure the on-device cached mnemonic is changed to an
-    # otherwise unused mnemonic for tests that set a custom mnemonic/seed
-    'invalidatecache': 'abandon abandon abandon abandon abandon abandon abandon \
-    abandon abandon abandon abandon cactus'
+    # Ensure the on-device cached mnemonic is reset before the test
+    'reset': 'reset'
 })
 
 # Seeds used in tests

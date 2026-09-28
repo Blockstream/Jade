@@ -24,16 +24,12 @@ def test_set_pinserver(jade):
     assert rslt
 
 
-@pytest.mark.mnemonic(mnemonics.invalidatecache)
-def test_handshake(jade):
+@pytest.mark.mnemonic(mnemonics.reset)
+def test_handshake(jade, mnemonic):
     """
     Pinserver handshake test - note this is tightly coupled to the dedicated
     test handler in the hardware code (main/process/debug_handshake.c)
     """
-    # Reset the jade
-    rslt = jade.clean_reset()
-    assert rslt is True
-    get_jade_config().current_mnemonic = None
     # First override the hww pinserver pubkey to match the local test key
     TEST_URL = 'https://this.is.a.test.url.com'
     TEST_ONION = 'http://we.dont.know.our.onion.but.this.string.is.about.the.right.size'
@@ -147,8 +143,8 @@ def test_handshake(jade):
     assert reply2['result'] is True
 
 
-@pytest.mark.mnemonic(mnemonics.invalidatecache)
-def test_handshake_bad_server(jade):
+@pytest.mark.mnemonic(mnemonics.reset)
+def test_handshake_bad_server(jade, mnemonic):
     """
     Pinserver handshake test - set the hww back to the default/production
     authentication data - this should then fail with 'bad-sig' when we sign
