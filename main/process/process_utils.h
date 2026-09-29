@@ -17,6 +17,10 @@
 #define COMMITMENTS_ASSET_BLIND_PROOF 0x8
 #define COMMITMENTS_VALUE_BLIND_PROOF 0x10
 
+#ifdef CONFIG_DEBUG_UNATTENDED_CI
+#define DEBUG_CI_DEFAULT_PIN 12345
+#endif
+
 // Holds asset/value blinding data
 typedef struct {
     uint64_t value;

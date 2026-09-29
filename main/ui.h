@@ -38,6 +38,7 @@ typedef struct {
 
 // digit entry
 #define DIGIT_ENTRY_SIZE 6
+#define DIGIT_ENTRY_UINT_MAX 999999
 #define DIGIT_ENTRY_WORD_NUMBER_SIZE 4
 
 enum __attribute__((__packed__)) digit_entry_type {

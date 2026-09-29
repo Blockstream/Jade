@@ -157,6 +157,9 @@ void debug_scan_qr_process(void* process_ptr);
 void debug_set_mnemonic_process(void* process_ptr);
 void debug_clean_reset_process(void* process_ptr);
 void debug_handshake(void* process_ptr);
+#ifdef CONFIG_DEBUG_UNATTENDED_CI
+void debug_set_pin_process(void* process_ptr);
+#endif
 bool debug_selfcheck(jade_process_t* process);
 #endif
 void ota_process(void* process_ptr);
@@ -537,6 +540,11 @@ static void dispatch_message(jade_process_t* process)
         task_function = debug_set_mnemonic_process;
     } else if (IS_METHOD("debug_handshake")) {
         task_function = debug_handshake;
+
+#ifdef CONFIG_DEBUG_UNATTENDED_CI
+    } else if (IS_METHOD("debug_set_pin")) {
+        task_function = debug_set_pin_process;
+#endif
     } else if (IS_METHOD("debug_scan_qr")) {
         task_function = debug_scan_qr_process;
     } else if (IS_METHOD("get_bip85_bip39_entropy")) {
