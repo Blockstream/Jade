@@ -1318,6 +1318,8 @@ NOTE: currently this call only supports 'ssh://' and 'gpg://' using nist256p1 (s
 get_identity_shared_key reply
 -----------------------------
 
+* NOTE: The reply is not sent until the user has explicitly confirmed sharing the identity key on the hw.
+
 .. code-block:: cbor
 
     {

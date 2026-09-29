@@ -1119,6 +1119,10 @@ HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
                     {'identity': 'ssh://user@some.xyz.com', 'curve': 'nist256p1',
                      'their_pubkey': GOOD_ECDH_PUBKEY,
                      'index': 0xFFFFFFFF + 1}), 'extract valid index'),
+                  (('badidshared16', 'get_identity_shared_key',  # non-printable char
+                    {'identity': 'ssh://user@some.xyz.com\n', 'curve': 'nist256p1',
+                     'their_pubkey': GOOD_ECDH_PUBKEY, 'index': 0}),
+                   'Invalid identity string'),
 
                   (('badsignid1', 'sign_identity'), 'Expecting parameters map'),
                   (('badsignid2', 'sign_identity',

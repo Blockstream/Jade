@@ -3,16 +3,20 @@
 #include "../ui.h"
 #include "jade_assert.h"
 
-static gui_activity_t* make_sign_identity_activity(const char* identity)
+// Shared confirmation activity for a given identity string
+// The identity is displayed to the user, who must explicitly approve or reject
+static gui_activity_t* make_identity_activity(
+    const char* title, const char* identity, const int32_t reject_ev_id, const int32_t accept_ev_id)
 {
+    JADE_ASSERT(title);
     JADE_ASSERT(identity);
 
     // third row, buttons
-    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_SIGNIDENTITY_REJECT },
-        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = BTN_SIGNIDENTITY_ACCEPT /**/ BTN_IS_CRITICAL } };
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = reject_ev_id },
+        { .txt = "S", .font = VARIOUS_SYMBOLS_FONT, .ev_id = accept_ev_id /**/ BTN_IS_CRITICAL } };
 
     gui_activity_t* const act = gui_make_activity();
-    gui_view_node_t* const parent = add_title_bar(act, "Sign Identity", hdrbtns, 2, NULL);
+    gui_view_node_t* const parent = add_title_bar(act, title, hdrbtns, 2, NULL);
     gui_view_node_t* node;
 
     gui_make_text(&node, identity, TFT_WHITE);
@@ -23,8 +27,10 @@ static gui_activity_t* make_sign_identity_activity(const char* identity)
     return act;
 }
 
-bool show_sign_identity_activity(const char* identity, const size_t identity_len)
+static bool show_identity_activity(const char* title, const char* identity, const size_t identity_len,
+    const int32_t reject_ev_id, const int32_t accept_ev_id)
 {
+    JADE_ASSERT(title);
     JADE_ASSERT(identity);
     JADE_ASSERT(identity_len < MAX_DISPLAY_MESSAGE_LEN);
 
@@ -32,18 +38,28 @@ bool show_sign_identity_activity(const char* identity, const size_t identity_len
     int ret = snprintf(display_str, sizeof(display_str), "%.*s", identity_len, identity);
     JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
 
-    gui_activity_t* const act = make_sign_identity_activity(display_str);
+    gui_activity_t* const act = make_identity_activity(title, display_str, reject_ev_id, accept_ev_id);
     gui_set_current_activity(act);
 
     while (true) {
-        const int32_t ev_id = gui_activity_wait_button(act, BTN_SIGNIDENTITY_ACCEPT);
-        switch (ev_id) {
-        case BTN_SIGNIDENTITY_REJECT:
+        const int32_t ev_id = gui_activity_wait_button(act, accept_ev_id);
+        if (ev_id == reject_ev_id) {
             return false;
-
-        case BTN_SIGNIDENTITY_ACCEPT:
+        } else if (ev_id == accept_ev_id) {
             return true;
         }
     }
+}
+
+bool show_sign_identity_activity(const char* identity, const size_t identity_len)
+{
+    return show_identity_activity(
+        "Sign Identity", identity, identity_len, BTN_SIGNIDENTITY_REJECT, BTN_SIGNIDENTITY_ACCEPT);
+}
+
+bool show_get_identity_shared_key_activity(const char* identity, const size_t identity_len)
+{
+    return show_identity_activity(
+        "Share Identity Key", identity, identity_len, BTN_IDENTITY_SHARED_KEY_REJECT, BTN_IDENTITY_SHARED_KEY_ACCEPT);
 }
 #endif // AMALGAMATED_BUILD

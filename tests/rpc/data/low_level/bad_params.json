@@ -2666,6 +2666,19 @@
     ],
     [
       [
+        "badidshared16",
+        "get_identity_shared_key",
+        {
+          "identity": "ssh://user@some.xyz.com\n",
+          "curve": "nist256p1",
+          "their_pubkey": "00",
+          "index": 0
+        }
+      ],
+      "Invalid identity string"
+    ],
+    [
+      [
         "badsignid1",
         "sign_identity"
       ],

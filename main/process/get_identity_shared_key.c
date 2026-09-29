@@ -1,14 +1,19 @@
 #ifndef AMALGAMATED_BUILD
+#include <ctype.h>
+
 #include "../jade_assert.h"
 #include "../keychain.h"
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/util.h"
 
 #include "../button_events.h"
 
 #include "../identity.h"
 #include "process_utils.h"
+
+bool show_get_identity_shared_key_activity(const char* identity, size_t identity_len);
 
 void get_identity_shared_key_process(void* process_ptr)
 {
@@ -31,6 +36,12 @@ void get_identity_shared_key_process(void* process_ptr)
         goto cleanup;
     }
 
+    // Identity must be a string of printable characters (it is shown to the user for confirmation)
+    if (!string_n_all(identity, identity_len, isprint)) {
+        jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid identity string");
+        goto cleanup;
+    }
+
     const uint8_t* their_pubkey = NULL;
     size_t their_pubkey_len = 0;
     rpc_get_bytes_ptr("their_pubkey", &params, &their_pubkey, &their_pubkey_len);
@@ -47,6 +58,16 @@ void get_identity_shared_key_process(void* process_ptr)
         await_error("Feature requires Jade reset");
         goto cleanup;
     }
+
+    // User to confirm computing/revealing the shared secret for this identity
+    if (!show_get_identity_shared_key_activity(identity, identity_len)) {
+        JADE_LOGW("User declined to share identity key");
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to share identity key");
+        goto cleanup;
+    }
+    JADE_LOGD("User pressed accept");
+
+    display_processing_message_activity();
 
     // Get identity pubkey - Note we use uncompressed keys in this api
     uint8_t shared_key[SHA256_LEN];
