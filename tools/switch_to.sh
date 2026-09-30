@@ -282,6 +282,7 @@ if [ -n "$PSRAM" ]; then
     # Use the same PSRAM malloc thresholds as the devices with PSRAM
     set_config CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL 256
     set_config CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL 65536
+    set_config CONFIG_NVS_ALLOCATE_CACHE_IN_SPIRAM y
     if [ -n "$WEBDISPLAY" ]; then
         echo "updating config file for webdisplay build ..."
         # remove settings

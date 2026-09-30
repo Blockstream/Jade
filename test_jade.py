@@ -1838,7 +1838,7 @@ def check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict, ret
     for field, limit in [('JADE_FREE_HEAP', 1536),
                          ('JADE_FREE_DRAM', 8192 if has_ble else 1536),
                          ('JADE_LARGEST_DRAM', dram_frag_limit),
-                         ('JADE_FREE_SPIRAM', 0),
+                         ('JADE_FREE_SPIRAM', 1024),
                          ('JADE_LARGEST_SPIRAM', 0 if check_frag else -1)]:
         initial = int(startinfo[field])
         final = int(endinfo[field])
