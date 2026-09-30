@@ -603,10 +603,9 @@ static int print_proportional_char(int x, int y)
             if ((ch & mask)) {
                 const int cx = (uint16_t)(x + fontChar.xOffset + i);
                 const int cy = (uint16_t)(y + j + fontChar.adjYOffset);
-                if (!is_within_limits(cx, cy)) {
-                    continue;
+                if (is_within_limits(cx, cy)) {
+                    draw_bitmap(cx, cy, 1, 1, &_fg);
                 }
-                draw_bitmap(cx, cy, 1, 1, &_fg);
             }
             mask >>= 1;
         }
@@ -654,10 +653,9 @@ static inline void print_char(uint8_t c, int x, int y)
                 if (ch & mask) {
                     cx = x + i + (k << 3);
                     cy = y + j;
-                    if (!is_within_limits(cx, cy)) {
-                        continue;
+                    if (is_within_limits(cx, cy)) {
+                        draw_bitmap(cx, cy, 1, 1, &_fg);
                     }
-                    draw_bitmap(cx, cy, 1, 1, &_fg);
                 }
                 mask >>= 1;
             }
