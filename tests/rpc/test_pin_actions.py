@@ -139,6 +139,47 @@ def pin_test_setup(pin_lifecycle):
     return jade, storage, pinserver
 
 
+BAD_PIN_PARAMETERS = [
+    ('badauth1', 'auth_user',        None, 'Expecting parameters map'),
+    ('badauth2', 'auth_user',        {'network': None}, 'extract valid network'),
+    ('badauth3', 'auth_user',        {'network': 1234512345}, 'extract valid network'),
+    ('badauth4', 'auth_user',        {'network': ''}, 'extract valid network'),
+    ('badauth5', 'auth_user',        {'network': 'notanetwork'}, 'extract valid network'),
+    ('badauth6', 'auth_user',        {'network': 'testnet', 'epoch': 'notanumber'}, 'valid epoch'),
+    ('badauth7', 'auth_user',        {'network': 'testnet', 'epoch': 12345.6789}, 'valid epoch'),
+    ('badpin1',  'update_pinserver', None, 'Expecting parameters map'),
+    ('badpin2',  'update_pinserver', {'urlA': ''}, 'invalid first URL'),
+    ('badpin3',  'update_pinserver', {'urlA': '192.168.1.123'}, 'invalid first URL'),
+    ('badpin4',  'update_pinserver', {'urlA': 'ftp://192.168.1.123'}, 'invalid first URL'),
+    ('badpin5',  'update_pinserver', {'urlA': 'http://192.168.1.123',
+                                      'urlB': 'testurl.com:8080'}, 'Invalid second URL'),
+    ('badpin6',  'update_pinserver', {'urlA': 'http://192.168.1.123',
+                                      'urlB': 'madeup://testurl.com:8080'}, 'Invalid second URL'),
+    ('badpin7',  'update_pinserver', {'urlB': 'https://192.168.1.124'}, 'set only second URL'),
+    ('badpin8',  'update_pinserver', {'urlA': 'http://192.168.1.123',
+                                      'urlB': 'https://192.168.1.124',
+                                      'reset_details': True}, 'set and reset details'),
+    ('badpin9',  'update_pinserver', {'pubkey': bytes.fromhex('abc123'),
+                                      'reset_details': True}, 'set and reset details'),
+    ('badpin10', 'update_pinserver', {'pubkey': bytes.fromhex('abcdef')}, 'pubkey without URL'),
+    ('badpin11', 'update_pinserver', {'urlA': 'http://192.168.1.123',
+                                      'urlB': 'https://192.168.1.124',
+                                      'pubkey': bytes.fromhex('abcdef')}, 'Invalid Oracle pubkey'),
+    ('badpin12', 'update_pinserver', {'certificate': 'testcert',
+                                      'reset_certificate': True}, 'set and reset certificate'),
+]
+
+
+def test_bad_pin_action_parameters(jade):
+    for request_id, method, params, expected_message in BAD_PIN_PARAMETERS:
+        request = jade.jade.build_request(request_id, method, params)
+        reply = jade.jade.make_rpc_call(request)
+        assert reply['id'] == request_id
+        assert 'result' not in reply
+        assert reply['error']['code'] == JadeError.BAD_PARAMETERS
+        assert expected_message in reply['error']['message']
+
+
 def test_pin_requires_auth_user(jade):
     request = jade.jade.build_request('pin_no_auth', 'pin', {'data': 'unused'})
     reply = jade.jade.make_rpc_call(request)
