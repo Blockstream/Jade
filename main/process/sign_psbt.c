@@ -808,7 +808,11 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         }
         if (!for_liquid) {
             // Bitcoin: Collect input total for fee calculation
-            input_amount += utxo->satoshi;
+            if (!checked_add_uint64(input_amount, utxo->satoshi, &input_amount)) {
+                *errmsg = "Total input amounts exceed maximum";
+                retval = CBOR_RPC_BAD_PARAMETERS;
+                goto cleanup;
+            }
         }
 
         if (!key_iter_input_begin_public(psbt, index, &iter)) {

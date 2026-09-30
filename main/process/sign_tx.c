@@ -11,6 +11,7 @@
 #include "../utils/cbor_rpc.h"
 #include "../utils/event.h"
 #include "../utils/malloc_ext.h"
+#include "../utils/util.h"
 #include "../utils/wally_ext.h"
 #include "../wallet.h"
 
@@ -724,7 +725,11 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             if (res == WALLY_OK) {
                 res = wally_map_add_integer(&signing_data->amounts, index, (uint8_t*)&txout->satoshi, sizeof(uint64_t));
                 // Keep a running total
-                input_amount += txout->satoshi;
+                if (res == WALLY_OK && !checked_add_uint64(input_amount, txout->satoshi, &input_amount)) {
+                    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Total input amounts exceed maximum");
+                    JADE_WALLY_VERIFY(wally_tx_free(input_tx));
+                    goto cleanup;
+                }
             }
             if (res != WALLY_OK) {
                 jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Failed to extract prevout");
@@ -752,7 +757,10 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
             if (rpc_get_uint64("satoshi", &params, &satoshi)) {
                 res = wally_map_add_integer(&signing_data->amounts, index, (uint8_t*)&satoshi, sizeof(uint64_t));
                 // Keep a running total
-                input_amount += satoshi;
+                if (res == WALLY_OK && !checked_add_uint64(input_amount, satoshi, &input_amount)) {
+                    jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Total input amounts exceed maximum");
+                    goto cleanup;
+                }
             }
             if (res != WALLY_OK) {
                 jade_process_reject_message(
