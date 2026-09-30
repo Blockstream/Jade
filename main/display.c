@@ -578,8 +578,8 @@ static inline bool is_within_limits(int cx, int cy)
     // Allow for characters to be printed in the virtual button area
 #ifndef CONFIG_DISPLAY_TOUCHSCREEN
     if ((cx < CONFIG_DISPLAY_OFFSET_X) || (cy < CONFIG_DISPLAY_OFFSET_Y)
-        || (cx > (CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X))
-        || (cy > (CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y))) {
+        || (cx >= (CONFIG_DISPLAY_WIDTH + CONFIG_DISPLAY_OFFSET_X))
+        || (cy >= (CONFIG_DISPLAY_HEIGHT + CONFIG_DISPLAY_OFFSET_Y))) {
         return false;
     }
 #endif
