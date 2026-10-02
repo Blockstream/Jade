@@ -107,6 +107,7 @@ struct {
     uint8_t last_battery_val;
     bool last_usb_val;
     bool last_ble_val;
+    bool last_ble_connected;
     uint8_t battery_update_counter;
 
     TaskHandle_t task_handle;
@@ -205,7 +206,11 @@ static void make_status_bar(void)
     gui_set_align(status_bar.usb_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(status_bar.usb_text, status_parent);
 
-    gui_make_text_font(&status_bar.ble_text, "F", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+#ifdef CONFIG_BT_ENABLED
+    gui_make_text_font(&status_bar.ble_text, "E", TFT_DARKGREY, JADE_SYMBOLS_16x16_FONT);
+#else
+    gui_make_text_font(&status_bar.ble_text, "", TFT_WHITE, JADE_SYMBOLS_16x16_FONT);
+#endif
     gui_set_align(status_bar.ble_text, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(status_bar.ble_text, status_parent);
 
@@ -2367,17 +2372,18 @@ static bool update_status_bar(const bool force_redraw)
     if ((status_bar.battery_update_counter % 10) == 0) {
 #ifdef CONFIG_BT_ENABLED
         const bool new_ble = ble_enabled();
+        const bool new_ble_connected = ble_connected();
 #else
         const bool new_ble = false;
+        const bool new_ble_connected = false;
 #endif
 
-        if (new_ble != status_bar.last_ble_val) {
+        if (new_ble != status_bar.last_ble_val || new_ble_connected != status_bar.last_ble_connected) {
             status_bar.last_ble_val = new_ble;
-            if (new_ble) {
-                update_text_node_text(status_bar.ble_text, (char[]){ 'E', '\0' });
-            } else {
-                update_text_node_text(status_bar.ble_text, (char[]){ 'F', '\0' });
-            }
+            status_bar.last_ble_connected = new_ble_connected;
+
+            update_text_node_text(status_bar.ble_text, new_ble_connected ? "Q" : "E");
+            gui_set_color(status_bar.ble_text, new_ble_connected ? TFT_WHITE : TFT_DARKGREY);
             status_bar.updated = true;
         }
 

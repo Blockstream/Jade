@@ -604,7 +604,9 @@ gui_activity_t* make_ble_activity(gui_view_node_t** ble_status_item)
     btn_data_t menubtns[] = { { .content = *ble_status_item, .ev_id = BTN_BLE_STATUS },
         { .txt = "Reset Pairings", .font = GUI_DEFAULT_FONT, .ev_id = BTN_BLE_RESET_PAIRING } };
 
-    return make_menu_activity("Bluetooth", hdrbtns, 2, menubtns, 2);
+    gui_activity_t* const act = make_menu_activity("Bluetooth", hdrbtns, 2, menubtns, 2);
+    gui_set_activity_initial_selection(menubtns[0].btn);
+    return act;
 }
 
 gui_activity_t* make_view_delete_wallet_activity(const char* wallet_name, const bool allow_export)
