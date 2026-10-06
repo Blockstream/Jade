@@ -24,6 +24,26 @@ extern esp_app_desc_t running_app_info;
 extern esp_chip_info_t chip_info;
 extern uint8_t macid[6];
 
+static const char* get_interface_name(const jade_msg_source_t source)
+{
+    switch (source) {
+    case SOURCE_INTERNAL:
+        return "QR";
+    case SOURCE_SERIAL:
+        return "SERIAL";
+    case SOURCE_QEMU_TCP:
+        return "QEMU_TCP";
+    case SOURCE_BLE:
+        return "BLE";
+#ifdef CONFIG_LIBJADE
+    case SOURCE_LIBJADE:
+        return "LIBJADE";
+#endif
+    default:
+        return "NONE";
+    }
+}
+
 void build_version_info_reply(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
@@ -32,9 +52,9 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     const jade_msg_source_t* const source = (const jade_msg_source_t*)ctx;
 
 #ifdef CONFIG_DEBUG_MODE
-    const uint8_t num_version_fields = 22;
+    const uint8_t num_version_fields = 23;
 #else
-    const uint8_t num_version_fields = 15;
+    const uint8_t num_version_fields = 16;
 #endif
 
     CborEncoder map_encoder;
@@ -109,6 +129,10 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     } else {
         add_string_to_map(&map_encoder, "JADE_STATE", has_pin ? "LOCKED" : "UNINIT");
     }
+
+    // The connection interface which currently holds the (unlocked) wallet, if any.
+    // While a wallet is held by one interface it cannot be used over another
+    add_string_to_map(&map_encoder, "JADE_INTERFACE", get_interface_name((jade_msg_source_t)keychain_get_userdata()));
 
     const network_type_t restriction = keychain_get_network_type_restriction();
     const char* networks = restriction == NETWORK_TYPE_MAIN ? "MAIN"

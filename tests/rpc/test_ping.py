@@ -1,7 +1,7 @@
 from . import *
 
 
-NUM_VALUES_VERINFO = 22
+NUM_VALUES_VERINFO = 23
 
 
 def test_ping_protocol(jade):

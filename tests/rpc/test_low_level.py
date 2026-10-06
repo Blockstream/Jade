@@ -11,7 +11,7 @@ LIQUID_DESCRIPTORS = True
 # This value must be > TIMEOUT_TICKS to reliably trigger the stale path.
 STALE_DATA_TIMEOUT = 4
 
-NUM_VALUES_VERINFO = 22
+NUM_VALUES_VERINFO = 23
 
 LOW_LEVEL_VECTORS = next(_get_test_cases('tests/rpc/data/low_level/bad_params.json'))[0]
 LOW_LEVEL_LIQUID_VECTORS = next(_get_test_cases(

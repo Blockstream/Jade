@@ -190,6 +190,34 @@ def test_pin_requires_auth_user(jade):
 
 
 @pytest.mark.mnemonic(mnemonics.reset)
+def test_version_info_interface(pin_test_setup):
+    """Check 'JADE_INTERFACE' identifies the connection holding the unlocked wallet"""
+    jade, _, _ = pin_test_setup
+
+    config = get_jade_config()
+    if config.transport == 'ble':
+        expected_interface = 'BLE'
+    elif config.transport == 'libjade':
+        expected_interface = 'SERIAL'
+    elif config.device.startswith('tcp:'):
+        expected_interface = 'QEMU_TCP'
+    else:
+        expected_interface = 'SERIAL'
+
+    # The wallet is unlocked/held by this connection (pin_test_setup sets a pin and
+    # then calls auth_user)
+    info = jade.get_version_info()
+    assert info['JADE_STATE'] == 'READY'
+    assert info['JADE_INTERFACE'] == expected_interface
+
+    # Once logged out the wallet is no longer held by any connection
+    assert jade.logout() is True
+    info = jade.get_version_info()
+    assert info['JADE_STATE'] == 'LOCKED'
+    assert info['JADE_INTERFACE'] == 'NONE'
+
+
+@pytest.mark.mnemonic(mnemonics.reset)
 def test_bad_pin(pin_test_setup):
     """Check that Jade rejects bad PINs passed to 'debug_set_pin'"""
     jade, storage, _ = pin_test_setup

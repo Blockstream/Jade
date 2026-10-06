@@ -151,6 +151,7 @@ get_version_info reply
             "EFUSEMAC": "246F288F6364",
             "BATTERY_STATUS": 5,
             "JADE_STATE": "LOCKED",
+            "JADE_INTERFACE": "NONE",
             "JADE_NETWORKS': "MAIN",
             "JADE_HAS_PIN": true
         }
@@ -165,6 +166,14 @@ get_version_info reply
   - 'LOCKED' - wallet set, but currently locked - requires PIN entry to unlock.
   - 'READY' - wallet set and unlocked for this interface, ready to use.
   - 'TEMP' - hw currently set with a temporary ('Emergency Restore') wallet, ready to use.
+
+* 'JADE_INTERFACE' : the connection interface which currently holds the unlocked wallet, if any.
+  While a wallet is held by one interface it cannot be used over another
+
+  - 'NONE' - wallet is not currently held by any connection interface (so can be unlocked)
+  - 'QR' - wallet is held by the on-device QR interface (eg. a temporary 'QR Mode' wallet)
+  - 'SERIAL' - wallet is held by the USB/serial connection
+  - 'BLE' - wallet is held by the Bluetooth connection
 
 * 'JADE_NETWORKS' :
 
