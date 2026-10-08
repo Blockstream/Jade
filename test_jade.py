@@ -17,8 +17,6 @@ import _thread
 import wallycore as wally
 from jadepy.jade import JadeAPI, JadeError
 
-LIQUID_DESCRIPTORS = True
-
 
 # Enable jade logging
 jadehandler = logging.StreamHandler()
@@ -165,15 +163,9 @@ def _get_test_cases(pattern, allow_sampling=True):
 
 
 BLE_TEST_PASSKEYFILE = 'ble_test_passkey.txt'
-BLE_TEST_BADKEYFILE = 'ble_test_badkey.txt'
 
 # The default serial read timeout
 DEFAULT_SERIAL_TIMEOUT = 240
-
-# Time to wait for stale data timeout on device before sending follow-up message.
-# The firmware stale-data timeout (wire.c TIMEOUT_TICKS) is 3s on v1.x and 2s on v2.x.
-# This value must be > TIMEOUT_TICKS to reliably trigger the stale path.
-STALE_DATA_TIMEOUT = 4
 
 # The number of values expected back in version info
 NUM_VALUES_VERINFO = 23
@@ -183,12 +175,6 @@ ESP32S3_CHIP_BOARDS = ['JADE_V2', 'JADE_V2C', 'TTGO_TDISPLAYS3', 'TTGO_TDISPLAYS
 TEST_MNEMONIC = 'fish inner face ginger orchard permit useful method fence \
 kidney chuckle party favorite sunset draw limb science crane oval letter \
 slot invite sadness banana'
-# The seed resulting from TEST_MNEMONIC
-TEST_MNEMONIC_SEED = \
-    'f1d56befd46eddfc31cda129dc76cd4a2b41d2cf86f10a5ccf0787617afa3869' \
-    '967aab0224742ccc002056747ea09b68598ddf79c027c37a7c3ec923004593da'
-
-
 # NOTE: the best way to generate test cases is directly in core.
 # You need to poke the seed below into the wallet as a base58 wif, as below:
 # bitcoin-cli sethdseed true "92zRAmYnWVRrWJ6cQb8yrzEz9r3aXj4oEUiPAZEbiPKHpCnxkKz"
@@ -205,21 +191,10 @@ TEST_MNEMONIC_SEED = \
 #                                   mwJDHFp93fuHZysBwU7RTiFXrJZXXcPuUc (p2pkh legacy) or
 #                                   bcrt1qkrkcltr7kx5s5alsvnpvkcfunlrjtwx942zmn4 (p2wsh native)
 #
-TEST_SEED_SINGLE_SIG = 'b90e532426d0dc20fffe01037048c018e940300038b165c211915c672e07762c'
 
 # The single-sig mnemonic used for test case generation.
 # See the commit description adding this line for details of the
 # resulting descriptors and multisig testing setup.
-TEST_MNEMONIC_SINGLE_SIG = \
-    'paddle puppy easily actor poet apart screen drastic city front predict damp'
-# The seed resulting from TEST_MNEMONIC_SINGLE_SIG
-TEST_MNEMONIC_SS_SEED = \
-    '5eff11cb0a00759be57e20d20d8076b80e8954df54318967116269909b501c10' \
-    '99c27239c6e1cc1e9211a9b8157f150d58fc3f88ba79fd7c1515f3f317732337'
-# The master blinding key resulting from TEST_MNEMONIC_SINGLE_SIG
-TEST_MNEMONIC_SS_MASTER_BLINDING_KEY = \
-    'f5c572fce078ab45598b5c661395ee0bfe680a67704061151ad354d93170d187'
-
 # NOTE: for get-xpub the root (empty path array) can be accessed (to allow
 # external creation of watch-only public key tree)
 # NOTE: networks 'liquid' and 'mainnet' result in 'xpub' prefix, else 'tpub'
@@ -247,55 +222,6 @@ QGEQu1tqez'),
                  ([2147483692, 0, 1, 2], 'testnet-liquid', 'tpubDFHUCdwiKzeyST\
 BkMyPec9y9VSwwVgn1AftmefpKLYTPrChSCTbHAnbXtSQTB8qEvR8H6nt3sBwNAUeYZK5oc75dWDiY\
 WBrYcMRYW2DGU1Z')]
-
-# Hold test data in separate files as can be large
-MULTI_REG_TESTS = 'multisig_reg_*.json'
-MULTI_REG_SS_TESTS = 'multisig_reg_ss_*.json'
-MULTI_REG_FILE_TESTS = 'multisig_file_*.json'
-MULTI_REG_BAD_FILE_TESTS = 'multisig_bad_file_*.json'
-
-TEST_SCRIPT = h2b('76a9145f4fcd4a757c2abf6a0691f59dffae18852bbd7388ac')
-
-EXPECTED_MASTER_BLINDING_KEY = h2b('afacc503637e85da661ca1706c4ea147f1407868c4\
-8d8f92dd339ac272293cdc')
-
-EXPECTED_BLINDING_KEY = h2b('023454c233497be73ed98c07d5e9069e21519e94d0663375c\
-a57c982037546e352')
-
-TEST_THEIR_PK = h2b('03e7cd9230b30bf53753a43add0e88931bac3be21baa4c6465d9f8da9\
-251f2904c')
-
-TEST_HASH_PREVOUTS_HEX = '95f17695f6329dbcce2aa0b7f1eaff823b19d64d8737d642d6e6\
-147f5ec88342'
-
-TEST_HASH_PREVOUTS = h2b(TEST_HASH_PREVOUTS_HEX)
-
-TEST_REGTEST_BITCOIN = h2b('5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419\
-ca290e0751b225')
-
-EXPECTED_LIQ_COMMITMENT_1 = {'abf': h2b('42bc9c7025f3df490a208cb362ff220547910\
-da1d3e81c63a6e7c28c3a33a993'),
-                             'vbf': h2b('7a6693fde7b88efb8375db618670fb5ccb9b2\
-f7e8743b7d772924f0426c5efe6'),
-                             'asset_generator': h2b('0a5cf0a43ad404163946c28b8\
-a36d0e5cb4895b0ee386da4cd1008ffc8cb464501'),
-                             'value_commitment': h2b('082d8de9b7f66994abf789b2\
-591738331f88a7ddbef4e553bbf123e47677d60099'),
-                             'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
-e22473cd3cf33c0419ca290e0751b225'),
-                             'value': 9000000}
-
-EXPECTED_LIQ_COMMITMENT_2 = {'abf': h2b('a3510210bbab6ed67429af9beaf42f09382e1\
-2146a3db466971b58a45516bba0'),
-                             'vbf': h2b('6ec064a68075a278bfca4a10f777c730116e9\
-ba02fbb343a237c847e4d2fbf53'),
-                             'asset_generator': h2b('0abd23178d9ff73cf848d8d88\
-a7c7e269a464f53017cab0f9f53ed9d64b2849713'),
-                             'value_commitment': h2b('094d9a00f1661a2a805a8afe\
-c9c188310d4c43353cc319886ee4d9f439389d8f43'),
-                             'asset_id': h2b('5ac9f65c0efcc4775e0baec4ec03abdd\
-e22473cd3cf33c0419ca290e0751b225'),
-                             'value': 9000000}
 
 
 # The tests
@@ -354,11 +280,13 @@ def check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict, ret
         endinfo = jadeapi.get_version_info()
         assert len(endinfo) == NUM_VALUES_VERINFO, \
             f'Unexpected version info values: {len(endinfo)}'
-        return check_mem_stats(jadeapi, startinfo, endinfotest_bad_params, has_psram, has_ble, strict,
-                               retry_count=retry_count + 1)
+        return check_mem_stats(
+            jadeapi, startinfo, endinfotest_bad_params, has_psram, has_ble, strict,
+            retry_count=retry_count + 1)
 
     assert not breaches, \
         f'Memory limit breaches after {MAX_MEM_STATS_RETRIES} retries: {breaches}'
+
 
 def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
