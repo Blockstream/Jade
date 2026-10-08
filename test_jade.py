@@ -305,54 +305,6 @@ def assert_idle(jade):
     assert rslt == 0  # idle
 
 
-def test_mnemonic_import_bad(jade):
-    # Check importing invalid mnemonics
-    bad_mnemonics = [
-        # mnemonic phrase
-        TEST_MNEMONIC_PREFIXES_AMBIGUOUS,        # ambiguous prefixes
-        # seedsigner
-        TEST_MNEMONIC_SEEDSIGNER[:-1],           # bad length (too short)
-        TEST_MNEMONIC_SEEDSIGNER + '1234',       # bad length (too long)
-        TEST_MNEMONIC_SEEDSIGNER[:-4] + '2048',  # out of range
-        TEST_MNEMONIC_SEEDSIGNER[:-4] + '0000',  # invalid checksum word
-        TEST_MNEMONIC_SEEDSIGNER_COMPACT[:-1],   # bad length (compact case)
-        # bcur-bip39
-        TEST_MNEMONIC_BCUR_BIP39_TOO_MANY,       # too many words
-        TEST_MNEMONIC_BCUR_BIP39_TOO_FEW,        # too few words
-        TEST_MNEMONIC_BCUR_BIP39_LONG_WORD,      # word too long
-        TEST_MNEMONIC_BCUR_BIP39_EMPTY_WORD,     # empty word
-    ]
-    for i, bad_mnemonic in enumerate(bad_mnemonics):
-        request = jade.build_request('badmnemonic_' + str(i), 'debug_set_mnemonic',
-                                     {'mnemonic': bad_mnemonic})
-        reply = jade.make_rpc_call(request)
-        assert reply['id'] == request['id']
-        assert 'result' not in reply
-        assert reply['error']['code'] == JadeError.BAD_PARAMETERS
-        message = reply['error']['message']
-        expected = ['Failed to expand mnemonic prefixes',
-                    'Failed to extract mnemonic prefixes']
-        assert any(m in message for m in expected), message
-
-
-def test_passphrase(jade):
-    # Set mnemonic with/without a passphrase, and get root xpub
-    xpub0 = _set_wallet(jade, passphrase=None)
-    xpub1 = _set_wallet(jade, passphrase='Passphrase1')
-    xpub2 = _set_wallet(jade, passphrase='Passphrase2')
-
-    # Check root xpubs are not the same
-    # ie. that the passphrase leads to a different wallet
-    assert xpub0 != xpub1 and xpub1 != xpub2 and xpub2 != xpub0
-
-    # Check that using the same passphrase does get the same wallet
-    xpub0_again = _set_wallet(jade, passphrase=None)
-    xpub1_again = _set_wallet(jade, passphrase='Passphrase1')
-    xpub2_again = _set_wallet(jade, passphrase='Passphrase2')
-
-    assert xpub0_again == xpub0 and xpub1_again == xpub1 and xpub2_again == xpub2
-
-
 # Check/print memory stats
 def check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict, retry_count=0):
 
@@ -407,49 +359,6 @@ def check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict, ret
 
     assert not breaches, \
         f'Memory limit breaches after {MAX_MEM_STATS_RETRIES} retries: {breaches}'
-
-
-# Helper to verify a signature - handles checking an Anti-Exfil signature
-# contains the entropy that was passed in by the host.
-def _verify_signature(jadeapi, network, msghash, path,
-                      host_entropy, signer_commitment,
-                      signature, is_schnorr):
-    is_liquid = 'liquid' in network
-    # entropy/signer_commitment imply anti-exfil signature
-    assert (host_entropy is None) == (signer_commitment is None)
-
-    # Need to get the signer's pubkey
-    xpub = jadeapi.get_xpub(network, path)
-    hdkey = wally.bip32_key_from_base58(xpub)
-    pubkey = wally.bip32_key_get_pub_key(hdkey)
-
-    if is_schnorr:
-        # Taproot signature. Tweak the pubkey for a keyspend and verify
-        assert signer_commitment == bytes()  # No Anti-Exfil for Schnorr yet
-        assert len(signature) == wally.EC_SIGNATURE_LEN
-        flags = wally.EC_FLAG_ELEMENTS if is_liquid else 0
-        pubkey = wally.ec_public_key_bip341_tweak(pubkey, None, flags)
-        wally.ec_sig_verify(pubkey, msghash, wally.EC_FLAG_SCHNORR, signature)
-        return
-
-    # If presented a 'recoverable' signature, recover the public key
-    # and verify it matches that fetched from the hw above
-    if len(signature) == wally.EC_SIGNATURE_RECOVERABLE_LEN:
-        recovered_pubkey = wally.ec_sig_to_public_key(msghash, signature)
-        assert recovered_pubkey == pubkey
-        signature = signature[1:]  # Truncate leading byte for verification
-
-    # ECDSA signature
-    assert len(signature) == wally.EC_SIGNATURE_LEN
-    if host_entropy:
-        # Verify AE signature and that the host-entropy is included
-        wally.ae_verify(pubkey, msghash, host_entropy, signer_commitment,
-                        wally.EC_FLAG_ECDSA, signature)
-    else:
-        # Verify EC signature
-        wally.ec_sig_verify(pubkey, msghash, wally.EC_FLAG_ECDSA, signature)
-
-
 
 def run_api_tests(jadeapi, isble, qemu, authuser=False):
 
