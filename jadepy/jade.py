@@ -695,7 +695,6 @@ class JadeAPI:
     def get_bip85_bip39_entropy(self, num_words, index, pubkey):
         """
         RPC call to fetch encrypted bip85-bip39 entropy.
-        NOTE: Only available in a DEBUG build of the firmware.
 
         Parameters
         ----------

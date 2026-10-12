@@ -1119,6 +1119,58 @@ get_bip85_pubkey reply
 * 'result' is a public key pem string
 
 
+.. _get_bip85_bip39_entropy_request:
+
+get_bip85_bip39_entropy request
+-------------------------------
+
+Request to fetch bip85-based bip39 entropy, returned encrypted to the host.
+
+.. code-block:: cbor
+
+    {
+        "id": "12",
+        "method": "get_bip85_bip39_entropy",
+        "params": {
+            "num_words": 12,
+            "index": 1,
+            "pubkey": <33 bytes>
+        }
+    }
+
+* 'num_words' is the number of words the entropy is required to produce.
+* 'index' is the index to use in the bip32 path to calculate the entropy.
+* 'pubkey' is the the host ephemeral pubkey used for reply encryption.
+
+
+.. _get_bip85_bip39_entropy_reply:
+
+get_bip85_bip39_entropy reply
+-----------------------------
+
+* NOTE: The reply is not sent until the user has explicitly confirmed exporting on the hw.
+
+.. code-block:: cbor
+
+    {
+        "id": "12",
+        "pubkey": <33 bytes>,
+        "encrypted": <bytes>,
+        "hmac": <32 bytes>,
+    }
+
+* 'pubkey' is Jade's ephemeral pubkey used for ecdh secret generation.
+* 'encrypted' is the requested bip85-based bip39 entropy, AES-CBC-256
+  encrypted with the key described below (including leading IV).
+* 'hmac' is the hmac of the encrypted buffer, using the hmac key described
+  below.
+
+To decrypt the reply, derived a shared secret using `ECDC(privkey,reply pubkey)`,
+where `privkey` is the private key for the request's `pubkey`. Create hash
+`HMAC-SHA512(secret, "bip85_bip39_entropy")`. The encryption key is the
+first 32 bytes of the result; the hmac key is the second 32 bytes.
+
+
 .. _sign_bip85_digests_request:
 
 sign_bip85_digests request
