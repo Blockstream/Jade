@@ -203,6 +203,7 @@ static bool parse_descriptor(const char* name, const descriptor_data_t* descript
         const uint32_t miniscript_flags = (types[i] == DESCRIPTOR_TYPE_MINISCRIPT_ONLY) ? WALLY_MINISCRIPT_ONLY : 0;
         const uint32_t flags = wallet_policy_flags | miniscript_flags | max_depth_flags;
         const int ret = wally_descriptor_parse(descriptor->script, &values, network_id, flags, &d);
+        JADE_ASSERT(ret != WALLY_ERROR);
         JADE_ASSERT((ret != WALLY_OK) == !d);
         if (ret == WALLY_OK) {
             if (type_unknown) {
