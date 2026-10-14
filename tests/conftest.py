@@ -83,13 +83,13 @@ class JadeConfig:
     def ble_start_agent(self):
         command = ['/usr/bin/bt-agent', '-c', 'DisplayYesNo', '-p', self.passkey_file]
         self.btagent = subprocess.Popen(command, shell=False, stdout=subprocess.DEVNULL)
-        logger.info(f'Started bt-agent pid {btagent.pid} passkey {self.passkey_file}')
+        logger.info(f'Started bt-agent pid {self.btagent.pid} passkey {self.passkey_file}')
 
     def ble_stop_agent(self):
         if self.btagent:
             command = f'kill -HUP {self.btagent.pid}'
             subprocess.run(command, shell=True, stdout=subprocess.DEVNULL)
-            logger.info(f'Stopped bt-agent pid {btagent.pid}')
+            logger.info(f'Stopped bt-agent pid {self.btagent.pid}')
             self.btagent = None
 
 
