@@ -127,10 +127,8 @@ static void touchscreen_task(void* ignored)
     ESP_ERROR_CHECK(ESP_LCD_TOUCH_NEW_I2C(tp_io_handle, &tp_cfg, &ret_touch));
     JADE_ASSERT(ret_touch);
 
-    uint16_t touch_x[1] = { 0 };
-    uint16_t touch_y[1] = { 0 };
-    uint16_t touch_strength[1];
-    uint8_t touch_cnt = 10;
+    esp_lcd_touch_point_data_t touch_point = { 0 };
+    uint8_t touch_cnt = 0;
 
 #if DISPLAY_HAS_TOUCH_NAVBAR
     // Track the display orientation and mirror the touch Y coordinate to match, so the
@@ -174,13 +172,13 @@ static void touchscreen_task(void* ignored)
         }
 #endif
         // A failed read is skipped, rather than taken as the finger being lifted
-        if (esp_lcd_touch_read_data(ret_touch) == ESP_OK) {
-            const bool touchpad_pressed
-                = esp_lcd_touch_get_coordinates(ret_touch, touch_x, touch_y, touch_strength, &touch_cnt, 1);
+        if (esp_lcd_touch_read_data(ret_touch) == ESP_OK
+            && esp_lcd_touch_get_data(ret_touch, &touch_point, &touch_cnt, 1) == ESP_OK) {
+            const bool touchpad_pressed = touch_cnt > 0;
 
-            // Once the finger is lifted touch_x/touch_y keep its last-read position
-            const bool in_navbar = touch_y[0] > CONFIG_DISPLAY_HEIGHT;
-            const enum touch_zone zone = in_navbar ? get_touch_zone(touch_x[0]) : ZONE_NONE;
+            // Once the finger is lifted touch_point keeps its last-read position
+            const bool in_navbar = touch_point.y > CONFIG_DISPLAY_HEIGHT;
+            const enum touch_zone zone = in_navbar ? get_touch_zone(touch_point.x) : ZONE_NONE;
 
             if (touchpad_pressed && !touch_was_pressed) {
                 // A touch that starts off the navbar does nothing here
@@ -213,7 +211,7 @@ static void touchscreen_task(void* ignored)
 #ifdef CONFIG_DISPLAY_TOUCH_DIRECT
             // The navbar only acts on presses that started on it - any other press goes to
             // the gui, even if the finger is later dragged onto the navbar
-            gui_touch_update(touch_x[0], touch_y[0], touchpad_pressed && !is_strip_press);
+            gui_touch_update(touch_point.x, touch_point.y, touchpad_pressed && !is_strip_press);
 #endif
         }
         vTaskDelay(20 / portTICK_PERIOD_MS);
