@@ -30,8 +30,10 @@ extern jlocale_t GUI_LOCALE;
 extern uint8_t GUI_TARGET_FRAMERATE;
 // How many frames should a scroll wait when an end is reached
 extern uint8_t GUI_SCROLL_WAIT_END;
-// How many frames should we wait between each 1-char scroll
-extern uint8_t GUI_SCROLL_WAIT_FRAME;
+// Number of horizontal pixels moved per GUI frame while scrolling
+#ifndef GUI_SCROLL_PIXELS_PER_FRAME
+#define GUI_SCROLL_PIXELS_PER_FRAME 2
+#endif
 // Height for the system status bar
 extern uint8_t GUI_STATUS_BAR_HEIGHT;
 // The default title/status-bar font
@@ -201,9 +203,9 @@ struct view_node_text_scroll_data {
     // is the text moving right?
     bool going_back;
 
-    // chars to skip
+    // horizontal pixel offset
     size_t offset;
-    // chars we skipped the last time we rendered it
+    // horizontal pixel offset used for the previous rendering
     size_t prev_offset;
     // iterations left to wait here (without moving the text)
     // used when we reach one end of the string and we want to wait a while there

@@ -1554,9 +1554,22 @@ static inline bool can_text_fit(const char* text, uint32_t font, dispWin_t cs)
     return display_get_string_width(text) <= cs.x2 - cs.x1;
 }
 
+static size_t get_text_scroll_limit(const gui_view_node_t* node)
+{
+    JADE_ASSERT(node && node->kind == TEXT);
+
+    const struct view_node_text_data* data = node_get_text_data((gui_view_node_t*)node);
+    display_set_font(data->font);
+    const int text_width = display_get_string_width(data->text);
+    const int area_width = node->padded_constraints.x2 - node->padded_constraints.x1;
+    return text_width > area_width ? text_width - area_width : 0;
+}
+
 // move to the next frame of a scrolling text node
 static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
 {
+    JADE_STATIC_ASSERT(GUI_SCROLL_PIXELS_PER_FRAME >= 1 && GUI_SCROLL_PIXELS_PER_FRAME <= 10);
+
     // no node, invalid node, not yet rendered...
     if (!node || node->kind != TEXT || node->is_first_render) {
         return false;
@@ -1603,27 +1616,25 @@ static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
         return old_offset != 0;
     }
 
-    // update the offset based on the direction
-    const size_t text_length = strlen(data->text);
-    data->scroll->prev_offset = data->scroll->offset;
-    if (data->scroll->going_back) {
-        JADE_ASSERT(data->scroll->offset > 0); // we should "catch" this before and set going_back to false
-        data->scroll->offset--;
-    } else if (data->scroll->offset <= text_length - 1) {
-        // never go out of bounds with the offset
-        data->scroll->offset++;
-    }
+    const size_t scroll_limit = get_text_scroll_limit(node);
 
-    // since we scrolled this frame, wait some frames before doing the next one
-    data->scroll->wait = GUI_SCROLL_WAIT_FRAME;
+    data->scroll->prev_offset = data->scroll->offset;
+    if (data->scroll->offset > scroll_limit) {
+        // text can be updated while it is scrolling so keep the offset within the new text's bounds
+        data->scroll->offset = scroll_limit;
+    } else if (data->scroll->going_back) {
+        data->scroll->offset = data->scroll->offset > GUI_SCROLL_PIXELS_PER_FRAME
+            ? data->scroll->offset - GUI_SCROLL_PIXELS_PER_FRAME
+            : 0;
+    } else {
+        const size_t remaining = scroll_limit - data->scroll->offset;
+        data->scroll->offset += remaining > GUI_SCROLL_PIXELS_PER_FRAME ? GUI_SCROLL_PIXELS_PER_FRAME : remaining;
+    }
 
     // check if we are done going forward
     if (!data->scroll->going_back) {
-        bool can_fit = can_text_fit(data->text + data->scroll->offset, data->font, node->padded_constraints);
-        bool end_of_string = data->scroll->offset == text_length - 1;
-
-        // done, let's go back. we can fit OR we reached the end of the string
-        if (can_fit || end_of_string) {
+        // once the end of the text is visible, pause before scrolling back to the start
+        if (data->scroll->offset == scroll_limit) {
             data->scroll->going_back = true;
             data->scroll->wait = GUI_SCROLL_WAIT_END;
         }
@@ -1635,8 +1646,8 @@ static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args)
         data->scroll->wait = GUI_SCROLL_WAIT_END;
     }
 
-    // repaint on screen
-    return true;
+    // request repaint only if scroll position changed
+    return data->scroll->prev_offset != data->scroll->offset;
 }
 
 void gui_set_text_scroll(gui_view_node_t* node, color_t background_color)
@@ -2017,17 +2028,17 @@ static void render_text(gui_view_node_t* node)
 
     if (data->scroll) {
         // this text has the scroll enable, so disable wrap
+        const bool can_fit = can_text_fit(data->text, data->font, node->padded_constraints);
+        const int prev_x = can_fit ? resolve_halign(0, data->halign) : -(int)data->scroll->prev_offset;
+        const int x = can_fit ? resolve_halign(0, data->halign) : -(int)data->scroll->offset;
 
         // set the foreground color to the "background color" to remove the previous string
         _fg = node->is_selected ? data->scroll->selected_background_color : data->scroll->background_color;
-        display_print_in_area(data->text + data->scroll->prev_offset, resolve_halign(0, data->halign),
-            resolve_valign(0, data->valign), cs, 0);
+        display_print_in_area(data->text, prev_x, resolve_valign(0, data->valign), cs, false);
 
         // and now we write the new one using the correct color
         _fg = node->is_selected ? data->selected_color : data->color;
-        display_print_in_area(
-            data->text + data->scroll->offset, resolve_halign(0, data->halign), resolve_valign(0, data->valign), cs, 0);
-
+        display_print_in_area(data->text, x, resolve_valign(0, data->valign), cs, false);
     } else {
         // normal print with wrap
         if (data->noise) { // with noise
