@@ -113,6 +113,9 @@ CONFIG_PIN_NUM_DATA0=-1
 CONFIG_INPUT_BTN_A=11
 CONFIG_INPUT_BTN_B=12
 CONFIG_INPUT_FRONT_SW=-1
+# No rotary wheel on the StickS3 (explicitly disabled, as for the other custom boards)
+CONFIG_INPUT_WHEEL_A=-1
+CONFIG_INPUT_WHEEL_B=-1
 # CONFIG_BUTTON_B_ACTIVE_HIGH is not set
 
 # M5PM1 PMU: enables the L3B rail that powers the LCD/backlight
