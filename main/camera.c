@@ -337,6 +337,17 @@ static void jade_camera_init(void)
             JADE_LOGE("Failed to set camera vflip, returned: %d", vret);
         }
     }
+
+    // The driver clocks the OV5640 at 16MHz for QVGA, which gives 8 fps. Use its
+    // own preset for smaller frames instead: 40MHz system clock and 10MHz pixel
+    // clock from the same 20MHz XCLK, still under OmniVision's reference timing.
+    if (camera_info->model == CAMERA_OV5640) {
+        JADE_ASSERT(camera_sensor->set_pll);
+        const int pret = camera_sensor->set_pll(camera_sensor, 0, 20, 1, 0, 1, 1, 1, 8);
+        if (pret) {
+            JADE_LOGE("Failed to set camera pll, returned: %d", pret);
+        }
+    }
 #endif // !defined(CONFIG_ETH_USE_OPENETH) && defined(ESP_PLATFORM)
 #if defined(CONFIG_DISPLAY_TOUCHSCREEN) && !defined(CONFIG_BOARD_TYPE_WS_TOUCH_LCD35)
     touchscreen_deinit();

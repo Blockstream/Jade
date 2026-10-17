@@ -11,8 +11,8 @@
 #include "utils/util.h"
 
 #include <cbor.h>
-#include <cdecoder.h>
-#include <cencoder.h>
+#include <ur_decoder.h>
+#include <ur_encoder.h>
 
 // PSBT serialisation functions
 bool deserialise_psbt(const uint8_t* bytes, size_t bytes_len, struct wally_psbt** psbt_out);
@@ -180,25 +180,27 @@ bool bcur_parse_bip39_wrapper(
 
     // Decode bcur string
     bool ret = false;
-    uint8_t decoder[URDECODER_SIZE];
-    urcreate_placement_decoder(decoder, sizeof(decoder));
-    if (!urreceive_part_decoder(decoder, bcur) || !uris_success_decoder(decoder)) {
+    ur_decoder_t* const decoder = ur_decoder_new();
+    JADE_ASSERT(decoder);
+    if (ur_decoder_receive_part(decoder, bcur) != UR_DECODER_OK) {
         JADE_LOGW("Unable to decode bcur bip39 string from single part");
         goto cleanup;
     }
 
-    // Read the result
-    char const* type = NULL;
-    uint8_t* result = NULL;
-    size_t result_len = 0;
-    urresult_ur_decoder(decoder, &result, &result_len, &type);
-    if (!type || !result || !result_len || strcasecmp(BCUR_TYPE_CRYPTO_BIP39, type)) {
+    // Read the result - borrowed from the decoder, freed with it
+    // NOTE: guaranteed non-NULL and populated when the decoder state is UR_DECODER_OK
+    const ur_result_t* const result = ur_decoder_get_result(decoder);
+    JADE_ASSERT(result);
+    JADE_ASSERT(result->cbor_data);
+    JADE_ASSERT(result->cbor_len);
+    JADE_ASSERT(result->type);
+    if (strcasecmp(BCUR_TYPE_CRYPTO_BIP39, result->type)) {
         JADE_LOGW("Unable to decode bcur bip39 string to expected type %s", BCUR_TYPE_CRYPTO_BIP39);
         goto cleanup;
     }
 
     // Decode the cbor
-    if (!bcur_parse_bip39(result, result_len, mnemonic, mnemonic_len, written)) {
+    if (!bcur_parse_bip39(result->cbor_data, result->cbor_len, mnemonic, mnemonic_len, written)) {
         JADE_LOGW("Failed to parse bcur bip39 cbor message");
         goto cleanup;
     }
@@ -207,7 +209,7 @@ bool bcur_parse_bip39_wrapper(
     ret = true;
 
 cleanup:
-    urfree_placement_decoder(decoder);
+    ur_decoder_free(decoder);
     return ret;
 }
 
@@ -602,6 +604,16 @@ void bcur_build_cbor_crypto_account(const script_variant_t script_variant, const
 }
 
 // Support scanning a bc-ur qr-code - single-frame or animated/multi-frame.
+// Context passed to collect_any_bcur() via qr_data->ctx.
+// NOTE: the decoder is replaced on a recoverable failure, so this struct - not
+// the decoder pointer - is what the caller holds on to.
+typedef struct {
+    ur_decoder_t* decoder;
+    // Set when scanning stopped because the message can never be assembled.
+    // The caller reports it once the camera activity has been torn down.
+    const char* fatal_error;
+} bcur_scan_ctx_t;
+
 // Adds a scanned bc-ur qr the bcur decoder - only returns true when the decoder is complete.
 // ie. collates multiple frames until the entire bc-ur data is complete.
 // If the qr-code scanned is not a bc-ur part, return success immediately.
@@ -614,6 +626,9 @@ static bool collect_any_bcur(qr_data_t* qr_data)
     JADE_ASSERT(qr_data->progress_bar);
     JADE_ASSERT(qr_data->data[qr_data->len] == '\0');
 
+    bcur_scan_ctx_t* const ctx = (bcur_scan_ctx_t*)qr_data->ctx;
+    JADE_ASSERT(ctx->decoder);
+
     if (qr_data->len < sizeof(BCUR_PREFIX)
         || strncasecmp((const char*)qr_data->data, BCUR_PREFIX, sizeof(BCUR_PREFIX) - 1)) {
         // Not bc-ur - return immediately
@@ -623,32 +638,44 @@ static bool collect_any_bcur(qr_data_t* qr_data)
 
     // The scanned data looks like a bcur code or fragment, add it to the bcur decoder
     // and return true only when the bcur decoder says the message is complete.
-    const bool processed_part = urreceive_part_decoder(qr_data->ctx, (const char*)qr_data->data);
+    const ur_decoder_state_t state = ur_decoder_receive_part(ctx->decoder, (const char*)qr_data->data);
 
-    // On hard failure, reset the decoder
-    if (uris_failure_decoder(qr_data->ctx)) {
+    // Permanent policy failure: the message declares a sequence length or size
+    // this build can never assemble, so no amount of further scanning will
+    // complete it. Stop the camera loop and let the caller report it, rather
+    // than spinning indefinitely with no feedback.
+    // NOTE: the UI call belongs in the caller - this runs on the camera task
+    // with the camera activity current.
+    if (state == UR_DECODER_ERROR_UNSUPPORTED_SIZE) {
+        JADE_LOGE("bcur message exceeds the decoder's size limits - abandoning scan");
+        ctx->fatal_error = "QR data too large";
+        return true;
+    }
+
+    // On hard failure (terminal but unsuccessful - eg. checksum mismatch), reset the decoder
+    // NOTE: transient errors (eg. a misread frame) are not terminal - keep feeding parts
+    if (ur_decoder_state_is_terminal(state) && state != UR_DECODER_OK) {
         JADE_LOGE("Failure to scan bcur data - resetting the decoder");
-        urfree_placement_decoder(qr_data->ctx);
-        urcreate_placement_decoder(qr_data->ctx, URDECODER_SIZE);
+        ur_decoder_free(ctx->decoder);
+        ctx->decoder = ur_decoder_new();
+        JADE_ASSERT(ctx->decoder);
+        // Reset the bar so the restart is visible rather than silent.
+        update_progress_bar(qr_data->progress_bar, 100, 0);
         return false;
     }
 
-    // Update associated progress bar - be a bit defensive here
-    const bool decoded = uris_success_decoder(qr_data->ctx);
-    const size_t nreceived = urreceived_parts_count_decoder(qr_data->ctx);
-    if (processed_part && nreceived) {
-        // NOTE: can only call 'expected' once we have received at least one part
-        const size_t nexpected = urexpected_part_count_decoder(qr_data->ctx);
-
-        // If fully decoded show full bar - but if not fully decoded
-        // don't show a full bar - pause at 'almost done' if required.
+    // Update associated progress bar using the weighted estimate, which also
+    // credits mixed fountain parts that have not yet resolved a pure fragment.
+    // If not fully decoded don't show a full bar - cap at 'almost done'.
+    const bool decoded = state == UR_DECODER_OK;
+    if (!ur_decoder_state_is_error(state)) {
         if (decoded) {
-            update_progress_bar(qr_data->progress_bar, nexpected, nexpected);
-        } else if (nreceived < nexpected) {
-            update_progress_bar(qr_data->progress_bar, nexpected, nreceived);
+            update_progress_bar(qr_data->progress_bar, 100, 100);
+        } else {
+            const float estimate = ur_decoder_estimated_percent_complete_weighted(ctx->decoder);
+            const size_t pcnt = estimate * 100.0f;
+            update_progress_bar(qr_data->progress_bar, 100, pcnt < 99 ? pcnt : 99);
         }
-        // else, appear to have all pieces but not fully decoded ...
-        // just leave progress bar showing whatever 'almost done' level.
     }
 
     // Return true if complete
@@ -663,34 +690,46 @@ bool bcur_scan_qr(const char* prompt_text, char** output_type, uint8_t** output,
     JADE_INIT_OUT_PPTR(output);
     JADE_INIT_OUT_SIZE(output_len);
 
-    uint8_t urdecoder[URDECODER_SIZE];
-    urcreate_placement_decoder(urdecoder, sizeof(urdecoder));
+    bcur_scan_ctx_t scan_ctx = { .decoder = ur_decoder_new(), .fatal_error = NULL };
+    JADE_ASSERT(scan_ctx.decoder);
     progress_bar_t progress_bar = {};
-    qr_data_t qr_data = { .len = 0, .is_valid = collect_any_bcur, .ctx = urdecoder, .progress_bar = &progress_bar };
+    qr_data_t qr_data = { .len = 0, .is_valid = collect_any_bcur, .ctx = &scan_ctx, .progress_bar = &progress_bar };
 
     // Scan qr code using the bcur decoder to collate multiple frames if required
-    if (!jade_camera_scan_qr(&qr_data, prompt_text, QR_GUIDE_SHOW, help_url)) {
+    // NOTE: collect_any_bcur() may replace the decoder (on hard failure), so always
+    // reach it through scan_ctx rather than caching the pointer.
+    const bool scanned = jade_camera_scan_qr(&qr_data, prompt_text, QR_GUIDE_SHOW, help_url);
+    ur_decoder_t* const urdecoder = scan_ctx.decoder;
+
+    if (scan_ctx.fatal_error) {
+        // Scanning was abandoned because the message can never be assembled -
+        // report it here, now the camera activity has gone.
+        await_error(scan_ctx.fatal_error);
+        ur_decoder_free(urdecoder);
+        return false;
+    }
+
+    if (!scanned) {
         // User exited without completing scanning
-        urfree_placement_decoder(urdecoder);
+        ur_decoder_free(urdecoder);
         return false;
     }
 
     // Copy output into output params - caller takes ownership
-    if (uris_success_decoder(urdecoder)) {
+    if (ur_decoder_get_state(urdecoder) == UR_DECODER_OK) {
         // bcur message scanned - extract from decoder and return the payload
-        uint8_t* result = NULL;
-        size_t result_len = 0;
-        const char* result_type = NULL;
-        urresult_ur_decoder(urdecoder, &result, &result_len, &result_type);
+        // NOTE: the result is borrowed from the decoder, and freed with it
+        const ur_result_t* const result = ur_decoder_get_result(urdecoder);
         JADE_ASSERT(result);
-        JADE_ASSERT(result_len);
-        JADE_ASSERT(result_type);
+        JADE_ASSERT(result->cbor_data);
+        JADE_ASSERT(result->cbor_len);
+        JADE_ASSERT(result->type);
 
         // Copy payload and bc-ur type
-        *output = JADE_MALLOC_PREFER_SPIRAM(result_len + offset);
-        memcpy(*output + offset, result, result_len);
-        *output_len = result_len + offset;
-        *output_type = strdup(result_type);
+        *output = JADE_MALLOC_PREFER_SPIRAM(result->cbor_len + offset);
+        memcpy(*output + offset, result->cbor_data, result->cbor_len);
+        *output_len = result->cbor_len + offset;
+        *output_type = strdup(result->type);
     } else {
         // Not a bc-ur code - copy straight payload and append a nul-terminator.
         // Leave bc-ur type as NULL to indicate data was not a bc-ur payload.
@@ -702,7 +741,7 @@ bool bcur_scan_qr(const char* prompt_text, char** output_type, uint8_t** output,
     }
 
     // Free the decoder and return true (as we scanned data successfully)
-    urfree_placement_decoder(urdecoder);
+    ur_decoder_free(urdecoder);
     return true;
 }
 
@@ -712,6 +751,33 @@ bool bcur_scan_qr(const char* prompt_text, char** output_type, uint8_t** output,
 // Caller takes ownership of the icons returned.
 // NOTE Only supports qr-versions from 4 to 12  (4, 6 and 12 fit nicely on a v1 Jade screen, and
 // 4, 6 and 9 on the larger v2 screen (with greater scaling)).
+// Number of 'pure' data fragments a payload of 'len' will split into at this
+// qr version, without building an encoder.
+static size_t bcur_num_pure_fragments(const size_t len, const char* bcur_type, const uint8_t qr_version)
+{
+    JADE_ASSERT(bcur_type);
+    JADE_ASSERT(qr_version >= 4);
+    JADE_ASSERT(qr_version <= 12);
+
+    const uint16_t capacity = QR_ALPHANUMERIC_CAPACITY[qr_version];
+    const uint16_t max_fragment_size = BCUR_MAX_FRAGMENT_SIZE(capacity, bcur_type);
+    JADE_ASSERT(max_fragment_size > 0);
+    return (len + max_fragment_size - 1) / max_fragment_size;
+}
+
+bool bcur_can_create_qr_icons(const size_t len, const char* bcur_type, const uint8_t qr_version)
+{
+    JADE_ASSERT(bcur_type);
+    JADE_ASSERT(len);
+
+    // A stream with more fragments than the decoder's cap can never be read
+    // back - by this device or any other cUR-based one - and there is no
+    // feedback while scanning beyond the scan simply never completing. Refuse
+    // to generate it. UR_MAX_SEQ_LEN comes from the decoder's own header so
+    // the two cannot drift apart.
+    return bcur_num_pure_fragments(len, bcur_type, qr_version) <= UR_MAX_SEQ_LEN && len <= UR_MAX_MESSAGE_LEN;
+}
+
 void bcur_create_qr_icons(const uint8_t* payload, const size_t len, const char* bcur_type, const uint8_t qr_version,
     Icon** icons, size_t* num_icons)
 {
@@ -738,11 +804,14 @@ void bcur_create_qr_icons(const uint8_t* payload, const size_t len, const char* 
     JADE_LOGI("BC-UR encoding payload length %u as type %s", len, bcur_type);
     JADE_LOGI("Targetting qr-code version %u, capacity %u (alphanumeric mode), using max fragment size %u", qr_version,
         qrcode_alphanumeric_capacity, bcur_max_fragment_size);
-    uint8_t encoder[URENCODER_SIZE];
-    urcreate_placement_encoder(encoder, sizeof(encoder), bcur_type, payload, len, bcur_max_fragment_size, 0, 8);
-    const size_t min_num_fragments = urseqlen_encoder(encoder); // the number of 'pure' data fragments
+    ur_encoder_t* const encoder = ur_encoder_new(bcur_type, payload, len, bcur_max_fragment_size, 0, 8);
+    JADE_ASSERT(encoder);
+    const size_t min_num_fragments = ur_encoder_seq_len(encoder); // the number of 'pure' data fragments
     const size_t num_fragments = BCUR_NUM_FRAGMENTS(min_num_fragments); // add some fountain-code fragments
     JADE_ASSERT(num_fragments >= min_num_fragments);
+    // Callers must have checked bcur_can_create_qr_icons() - producing a stream
+    // beyond the decoder's cap would yield QRs that cannot be scanned back.
+    JADE_ASSERT(min_num_fragments <= UR_MAX_SEQ_LEN);
     JADE_LOGI("Encoded payload length %u as %u pure fragments and %u fountain-code fragments", len, min_num_fragments,
         num_fragments - min_num_fragments);
 
@@ -750,11 +819,12 @@ void bcur_create_qr_icons(const uint8_t* payload, const size_t len, const char* 
     uint8_t* qrbuffer = JADE_MALLOC(qrcode_getBufferSize(qr_version));
 
     // Convert to 'num_fragments' qr-code icons
-    const bool force_uppercase = true; // fetch bcur fragment as uppercase to conform to 'alphanumeric' qr mode
+    // NOTE: fragments are uppercase, to conform to 'alphanumeric' qr mode
     Icon* const qr_icons = JADE_MALLOC(num_fragments * sizeof(Icon));
     for (int ifrag = 0; ifrag < num_fragments; ++ifrag) {
         char* fragment = NULL;
-        urnext_part_encoder(encoder, force_uppercase, &fragment);
+        const bool have_part = ur_encoder_next_part(encoder, &fragment);
+        JADE_ASSERT(have_part);
         const size_t fragment_len = strlen(fragment);
         JADE_LOGI("Fragment %u, making qr-code icon with data (length: %u): %s", ifrag, fragment_len, fragment);
 
@@ -765,15 +835,15 @@ void bcur_create_qr_icons(const uint8_t* payload, const size_t len, const char* 
         QRCode qrcode;
         const int qret = qrcode_initText(&qrcode, qrbuffer, qr_version, BCUR_QR_ECC, fragment);
         JADE_ASSERT(qret == 0);
-        urfree_encoded_encoder(fragment);
+        free(fragment);
 
         // Convert fragment to Icon
         qrcode_toIcon(&qrcode, qr_icons + ifrag, QR_SCALE_FACTOR[qr_version]);
     }
-    JADE_ASSERT(uris_complete_encoder(encoder));
+    JADE_ASSERT(ur_encoder_is_complete(encoder));
 
     free(qrbuffer);
-    urfree_placement_encoder(encoder);
+    ur_encoder_free(encoder);
 
     // Return the created icons
     *icons = qr_icons;
@@ -807,12 +877,12 @@ bool bcur_check_fragment_sizes(void)
             size_t max = 0;
 
             for (size_t len = maxlen - 8; len < sizeof(payload); ++len) {
-                uint8_t encoder[URENCODER_SIZE];
-                urcreate_placement_encoder(encoder, sizeof(encoder), type, payload, len, maxlen, 0, 8);
+                ur_encoder_t* const encoder = ur_encoder_new(type, payload, len, maxlen, 0, 8);
+                JADE_ASSERT(encoder);
 
                 char* fragment = NULL;
-                urnext_part_encoder(encoder, true, &fragment);
-                JADE_ASSERT(fragment);
+                const bool have_part = ur_encoder_next_part(encoder, &fragment);
+                JADE_ASSERT(have_part);
                 const size_t fraglen = strlen(fragment);
                 if (fraglen + 4 > capacity) {
                     // In truth fraglen == capacity is valid, but later parts (and of larger payloads)
@@ -824,8 +894,8 @@ bool bcur_check_fragment_sizes(void)
                 if (fraglen > max) {
                     max = fraglen;
                 }
-                urfree_encoded_encoder(fragment);
-                urfree_placement_encoder(encoder);
+                free(fragment);
+                ur_encoder_free(encoder);
             }
             JADE_LOGI("max: %u (of target/limit %u)", max, capacity);
         }

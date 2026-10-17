@@ -918,7 +918,29 @@ static gui_activity_t* create_display_bcur_qr_activity(const char* message[], co
     // Map BCUR cbor into a series of QR-code icons
     Icon* icons = NULL;
     size_t num_icons = 0;
-    const uint8_t qrcode_version = qr_version_from_flags(qr_flags);
+    uint8_t qrcode_version = qr_version_from_flags(qr_flags);
+
+    // A payload needing more fragments than a bc-ur decoder accepts could never
+    // be scanned back - the scan would simply never complete. Step up to a
+    // denser QR (fewer, larger fragments) rather than emit an unusable stream.
+    // Denser codes are harder to scan, so this is only a fallback.
+    if (!bcur_can_create_qr_icons(cbor_len, bcur_type, qrcode_version)) {
+        static const uint8_t denser[] = { QR_VER_MID, QR_VER_HIGH };
+        bool fits = false;
+        for (size_t i = 0; i < sizeof(denser) / sizeof(denser[0]); ++i) {
+            if (denser[i] > qrcode_version && bcur_can_create_qr_icons(cbor_len, bcur_type, denser[i])) {
+                JADE_LOGW("Payload too large for qr version %u - using %u instead", qrcode_version, denser[i]);
+                qrcode_version = denser[i];
+                fits = true;
+                break;
+            }
+        }
+        if (!fits) {
+            JADE_LOGE("Payload of %u bytes is too large to display as a bc-ur qr", cbor_len);
+            return NULL;
+        }
+    }
+
     bcur_create_qr_icons(cbor, cbor_len, bcur_type, qrcode_version, &icons, &num_icons);
 
     // Create qr activity for those icons
@@ -945,6 +967,12 @@ static void display_bcur_qr(const char* message[], const size_t message_size, co
 
     // Create show psbt activity for those icons
     gui_activity_t* act = create_display_bcur_qr_activity(message, message_size, bcur_type, cbor, cbor_len, qr_flags);
+    if (!act) {
+        // Too large to encode as a scannable bc-ur animation at any density
+        idletimer_set_min_timeout_secs(0);
+        await_error("Data too large for QR");
+        return;
+    }
 
     while (true) {
         // Show, and await button click
@@ -955,7 +983,15 @@ static void display_bcur_qr(const char* message[], const size_t message_size, co
             if (handle_qr_options(&qr_flags, help_url)) {
                 // Options were updated - re-create bcur qr screen
                 display_processing_message_activity();
-                act = create_display_bcur_qr_activity(message, message_size, bcur_type, cbor, cbor_len, qr_flags);
+                gui_activity_t* const newact
+                    = create_display_bcur_qr_activity(message, message_size, bcur_type, cbor, cbor_len, qr_flags);
+                if (newact) {
+                    act = newact;
+                } else {
+                    // New density cannot encode this payload - keep the
+                    // existing screen rather than dropping the user out.
+                    await_error("Data too large for QR");
+                }
             }
         } else if (ev_id == BTN_QR_BRIGHTNESS) {
             gui_next_qrcode_color();
