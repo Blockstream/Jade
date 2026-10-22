@@ -148,7 +148,7 @@ static bool get_pin_get_aeskey(jade_process_t* process, const char* title, uint8
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
     if (!run_digit_entry_loop(&digit_entry)) {
         // User abandoned entering pin
-        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandonded pin entry");
+        jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User abandoned pin entry");
         SENSITIVE_POP(&digit_entry);
         return false;
     }

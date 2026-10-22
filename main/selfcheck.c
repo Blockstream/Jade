@@ -27,7 +27,7 @@ int register_multisig_file(const char* multisig_file, size_t multisig_file_len, 
 static const char SERVICE_PATH_HEX[] = "00c9678fbd9d9f6a96bd43221d56733b5aba8f528487602b894e72d0f56e380f7d145b65639db7e"
                                        "e4f528a3fcfb8277b0cbbea00ef64767a531e9a447cacbfbc";
 
-// See macros in keychain.c for calculating encrpyted blob lengths below
+// See macros in keychain.c for calculating encrypted blob lengths below
 // (Payload data is padded to next multiple of 16, and is concatenated between iv and hmac)
 // 16 (iv) + 208 (length of data stored (78 (key) + 64 (ga path) + 64 (blinding key)) padded to next 16x) + 32 (hmac)
 static const size_t FULL_KEY_BLOBLEN = 256;

@@ -468,7 +468,7 @@ static bool keychain_encrypt_and_save_blob(
         return false;
     }
     if (!cleartext_blob || blob_len > SERIALIZED_KEY_LEN) {
-        // Invlaid cleartext blob
+        // Invalid cleartext blob
         return false;
     }
 

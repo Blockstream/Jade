@@ -26,7 +26,7 @@ extern const uint8_t server_public_key_start[] asm("_binary_pinserver_public_key
 static const char PINSERVER_DOC_GET_PIN[] = "get_pin";
 static const char PINSERVER_DOC_SET_PIN[] = "set_pin";
 
-// Fixed hmac keys used to derive ephemeral encrpytion keys
+// Fixed hmac keys used to derive ephemeral encryption keys
 static const unsigned char LABEL_ORACLE_REQUEST[]
     = { 'b', 'l', 'i', 'n', 'd', '_', 'o', 'r', 'a', 'c', 'l', 'e', '_', 'r', 'e', 'q', 'u', 'e', 's', 't' };
 static const unsigned char LABEL_ORACLE_RESPONSE[]
@@ -146,7 +146,7 @@ static bool pin_get_unit_privatekey(uint8_t* privatekey, const size_t key_len)
     return res;
 }
 
-// Hepler to tweak the server static key into a session key
+// Helper to tweak the server static key into a session key
 static bool generate_ske(pin_keys_t* pinkeys)
 {
     JADE_ASSERT(pinkeys);
@@ -423,7 +423,7 @@ static bool assemble_reply_data(
     JADE_ASSERT(output);
     JADE_ASSERT(output_len > payload_len);
 
-    // Concatentate fields and base-64 encode
+    // Concatenate fields and base-64 encode
     uint8_t data[sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter) + CLIENT_REQUEST_MAX_PAYLOAD_LEN];
     const size_t data_len = sizeof(pinkeys->cke) + sizeof(pinkeys->replay_counter) + payload_len;
     JADE_ASSERT(data_len <= sizeof(data));

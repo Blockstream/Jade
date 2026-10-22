@@ -54,8 +54,8 @@ bool validate_signers(const signer_t* signers, const size_t num_signers, const b
         // See if signer matches this wallet (by fingerprint)
         if (!sodium_memcmp(wallet_fingerprint, signer->fingerprint, wallet_fingerprint_len)) {
             // This signer has our fingerprint - check xpub provided
-            // NOTE: because some 3rd-party apps provide xpubs which are slightly incorrect in their ancilliary
-            // metadata fields, we can't strictly compare xpub strings without affecting compatabililty.
+            // NOTE: because some 3rd-party apps provide xpubs which are slightly incorrect in their ancillary
+            // metadata fields, we can't strictly compare xpub strings without affecting compatibility.
             // Instead we deserialise the provided xpub string and compare pubkey and chaincode only.
             // NOTE: a mismatch here is not a hard fail as could be a fingerprint clash with another signer
             struct ext_key hdkey_calculated;

@@ -188,7 +188,7 @@ bool jade_camera_scan_qr(
     qr_data->ds = JADE_MALLOC_PREFER_DRAM(sizeof(struct datastream));
     qr_data->ds->data = JADE_MALLOC_PREFER_DRAM(QUIRC_MAX_PAYLOAD * sizeof(uint8_t));
 
-    // Run the camera task trying to interpet frames as qr-codes
+    // Run the camera task trying to interpret frames as qr-codes
     const bool show_camera_ui = true;
     const bool show_click_button = false;
     gui_activity_t* camera_act = NULL;

@@ -230,7 +230,7 @@ void register_descriptor_process(void* process_ptr)
         goto cleanup;
     }
 
-    // Descriptor script and paramaterised values
+    // Descriptor script and parameterised values
     descriptor_data_t descriptor = { .script_len = 0, .num_values = 0, .type = DESCRIPTOR_TYPE_UNKNOWN };
 
     written = 0;

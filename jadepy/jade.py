@@ -959,7 +959,7 @@ class JadeAPI:
         Parameters
         ----------
         multisig_name : string
-            Name of multsig registration record to return.
+            Name of multisig registration record to return.
 
         as_file : string, optional
             If true the flat file format is returned, otherwise structured json is returned.

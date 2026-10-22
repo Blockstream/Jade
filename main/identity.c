@@ -307,7 +307,7 @@ bool get_identity_pubkey(const char* identity, const size_t identity_len, const 
         JADE_LOGE(
             "get_identity_pubkey() failed to get key/curve for '%.*s' and index %u", identity_len, identity, index);
     } else {
-        // Return the pubkey assoiciated with this identity/signature
+        // Return the pubkey associated with this identity/signature
         size_t pubkeylen = 0;
         JADE_ZERO_VERIFY(mbedtls_ecp_point_write_binary(&keypair.MBEDTLS_PRIVATE(grp), &keypair.MBEDTLS_PRIVATE(Q),
             MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len));
@@ -397,7 +397,7 @@ bool sign_identity(const char* identity, const size_t identity_len, const size_t
     bool result = false;
 
     if (get_internal_keypair(SLIP13_PATH_PREFIX, identity, identity_len, index, curve_name, curve_name_len, &keypair)) {
-        // Return the pubkey assoiciated with this identity/signature
+        // Return the pubkey associated with this identity/signature
         size_t pubkeylen = 0;
         JADE_ZERO_VERIFY(mbedtls_ecp_point_write_binary(&keypair.MBEDTLS_PRIVATE(grp), &keypair.MBEDTLS_PRIVATE(Q),
             MBEDTLS_ECP_PF_UNCOMPRESSED, &pubkeylen, pubkey_out, pubkey_out_len));

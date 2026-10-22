@@ -898,7 +898,7 @@ void gui_chain_activities(const link_activity_t* link_act, linked_activities_inf
     pActInfo->last_activity_next_button = link_act->next_button;
 }
 
-// attach a view node (recusively) to an activity, by inheriting the activity from the parent
+// attach a view node (recursively) to an activity, by inheriting the activity from the parent
 static void set_tree_activity(gui_view_node_t* node)
 {
     JADE_ASSERT(node);
@@ -2456,7 +2456,7 @@ static size_t handle_gui_input_queue(bool* switched_activities)
     while ((job = xRingbufferReceive(gui_input_queue, &item_size, 10 / portTICK_PERIOD_MS))) {
         JADE_ASSERT(item_size == sizeof(gui_task_job_t));
 
-        // A job can be be ONE of the following:
+        // A job can be ONE of the following:
         // - repainting a node, OR
         // - moving to another activity and optionally freeing other activities
         activity_holder_t* to_free = job->to_free;
@@ -2870,7 +2870,7 @@ void gui_touch_update(const uint16_t x, const uint16_t y, const bool is_pressed)
 }
 #endif // CONFIG_DISPLAY_TOUCH_DIRECT
 
-// Set the item to be initally selected when the activity is activated/switched-to
+// Set the item to be initially selected when the activity is activated/switched-to
 // 'node' can be NULL to unset any specific initial selection
 void gui_set_activity_initial_selection(gui_view_node_t* node)
 {
@@ -2888,7 +2888,7 @@ static void gui_post(const gui_task_job_t* task, const char* task_name)
 
 // Post a node to the gui task to be repainted
 // Should ultimately result in a call to repaint_node() from the gui_task.
-// This ensures all calls to the undlerying display driver come from the gui_task
+// This ensures all calls to the underlying display driver come from the gui_task
 // and are serialised, such that no mutexing should be required.
 void gui_repaint(gui_view_node_t* node)
 {
@@ -3035,7 +3035,7 @@ void gui_activity_register_event(
 }
 
 // Registers an event handler, then blocks waiting for it to fire.  A timeout can be passed.
-// Returns true if the event fires, false if the timeout elapsed without the event occuring.
+// Returns true if the event fires, false if the timeout elapsed without the event occurring.
 bool gui_activity_wait_event(gui_activity_t* activity, const char* event_base, uint32_t event_id,
     esp_event_base_t* trigger_event_base, int32_t* trigger_event_id, void** trigger_event_data, TickType_t max_wait)
 {

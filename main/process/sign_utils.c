@@ -250,7 +250,7 @@ bool params_additional_info(jade_process_t* process, CborValue* params, const st
     *is_partial = false;
     *txtype = TXTYPE_SEND_PAYMENT;
 
-    // If no 'additional_info' passed, assume this is a a simple send-payment 'classic' tx
+    // If no 'additional_info' passed, assume this is a simple send-payment 'classic' tx
     CborValue additional_info;
     if (!rpc_get_map("additional_info", params, &additional_info)) {
         return true;

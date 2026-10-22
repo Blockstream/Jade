@@ -107,7 +107,7 @@ void script_to_address(const network_t network_id, const uint8_t* script, const 
     }
 }
 
-// Convert the passed liquid script into an address (confidential if blindng key passed)
+// Convert the passed liquid script into an address (confidential if blinding key passed)
 void elements_script_to_address(const network_t network_id, const uint8_t* script, const size_t script_len,
     const bool has_value, const uint8_t* blinding_key, const size_t blinding_key_len, char* output,
     const size_t output_len)

@@ -418,7 +418,7 @@ bool storage_get_stats(size_t* entries_used, size_t* entries_free)
 bool storage_key_name_valid(const char* name)
 {
     // Allow ascii 33-126 incl - ie. letters, numbers and other printable/punctuation characters
-    // NOTE: space and \n are disllowed.
+    // NOTE: space and \n are disallowed.
     // Also check length.
     const char* pch = name;
     while (*pch != '\0') {

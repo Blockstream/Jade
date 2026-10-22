@@ -17,7 +17,7 @@ static bool abort_display_attempted = false;
 
 void jade_abort(const char* file, const int line_n)
 {
-    // Clear senstitive data
+    // Clear sensitive data
     keychain_clear();
     sensitive_clear_stack();
 

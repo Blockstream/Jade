@@ -120,7 +120,7 @@ static gui_activity_t* make_view_multisig_activities(const char* multisig_name, 
     const char* title = initial_confirmation ? "Register Multisig" : "Registered Wallet";
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
 
-    // Set the intially selected item to the 'Next' button
+    // Set the initially selected item to the 'Next' button
     gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
@@ -269,7 +269,7 @@ static gui_activity_t* make_final_multisig_summary_activities(const char* multis
     const char* title = initial_confirmation ? "Register Multisig" : "Registered Wallet";
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
 
-    // Set the intially selected item to 'Discard' when confirming new record
+    // Set the initially selected item to 'Discard' when confirming new record
     // but to 'Retain' when viewing existing record.
     gui_set_activity_initial_selection(hdrbtns[initial_confirmation ? 0 : 1].btn);
 
@@ -332,7 +332,7 @@ bool show_multisig_activity(const char* multisig_name, const bool is_sorted, con
     JADE_ASSERT(wallet_fingerprint);
     JADE_ASSERT(wallet_fingerprint_len == BIP32_KEY_FINGERPRINT_LEN);
 
-    // Overwriting only applies to intial confirmations - which cannot be invalid
+    // Overwriting only applies to initial confirmations - which cannot be invalid
     JADE_ASSERT(!overwriting || initial_confirmation);
     JADE_ASSERT(!initial_confirmation || is_valid);
 

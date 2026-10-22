@@ -120,7 +120,7 @@ bool multisig_data_to_bytes(const script_variant_t variant, const bool sorted, c
     return wallet_hmac_with_master_key(output_bytes, output_len - HMAC_SHA256_LEN, write_ptr, HMAC_SHA256_LEN);
 }
 
-// Before v3 signer data was the simply the signers' immediate parent xpubs, concatentated
+// Before v3 signer data was simply the signers' immediate parent xpubs, concatenated
 // Not possible to read full signer metadata records, just the xpubs needed to make pubkeys/addresses
 static bool read_simple_signers(
     const uint8_t* const signer_bytes, const size_t signer_bytes_len, const uint8_t version, multisig_data_t* output)
@@ -341,7 +341,7 @@ bool multisig_data_from_bytes(const uint8_t* bytes, const size_t bytes_len, mult
         }
     }
 
-    // What was saved per signer changed in v3 (so that we can re-consistite the original input data)
+    // What was saved per signer changed in v3 (so that we can re-constitute the original input data)
     // All bytes remaining in buffer, up to the hmac, are the signer data.
     const size_t signer_bytes_len = bytes + bytes_len - HMAC_SHA256_LEN - read_ptr;
     if (version < 3) {

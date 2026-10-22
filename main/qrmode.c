@@ -367,7 +367,7 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
         }
     }
 
-    // If updated, persist prefereces
+    // If updated, persist preferences
     *qr_flags = (uint16_t)(*qr_flags);
     *qr_flags |= (((uint32_t)account_index) << ACCOUNT_INDEX_FLAGS_SHIFT);
     if (initial_flags == *qr_flags) {
@@ -769,7 +769,7 @@ static bool verify_address(const address_data_t* const addr_data)
             }
             confirmed_at_index = index;
         } else {
-            // Giver user a chance to exit or to skip this batch of addresses
+            // Give user a chance to exit or to skip this batch of addresses
             int32_t ev_id = 0;
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
             const bool ret = sync_wait_event(event_data, NULL, &ev_id, NULL, 10 / portTICK_PERIOD_MS) == ESP_OK;
@@ -900,7 +900,7 @@ static bool handle_qr_options(uint32_t* qr_flags, const char* help_url)
         return false;
     }
 
-    // Persist prefereces and return true to indicate they were changed
+    // Persist preferences and return true to indicate they were changed
     storage_set_qr_flags(*qr_flags);
     return true;
 }
@@ -970,7 +970,7 @@ static void display_bcur_qr(const char* message[], const size_t message_size, co
     idletimer_set_min_timeout_secs(0);
 }
 
-// Handle undifferentiated byte string friom QR code
+// Handle undifferentiated byte string from QR code
 // ie. raw data (not BC-UR wrapped), OR the payload of a UR:BYTES message
 static bool handle_qr_bytes(const uint8_t* bytes, const size_t bytes_len)
 {
@@ -1136,7 +1136,7 @@ void show_bip85_bip39_entropy_qr(const uint8_t* cbor, const size_t cbor_len)
     display_bcur_qr(message, 3, BCUR_TYPE_JADE_BIP8539_REPLY, cbor, cbor_len, "blkstrm.com/bip85");
 }
 
-// Returns false if an error occured or the user cancelled the action
+// Returns false if an error occurred or the user cancelled the action
 static bool handle_bip85_bip39_request_qr(const uint8_t* cbor, const size_t cbor_len)
 {
     JADE_ASSERT(cbor && cbor_len);
@@ -1437,7 +1437,7 @@ static void add_cr_after_last_slash(const char* url, char* output, const size_t 
     JADE_ASSERT(index < url_len);
 
     strncpy(output, url, index + 1); // up to and including the '/'
-    output[index + 1] = '\n'; // explict line-break
+    output[index + 1] = '\n'; // explicit line-break
     strcpy(output + index + 2, url + index + 1);
 }
 
@@ -1590,7 +1590,7 @@ bool await_qr_back_continue_activity(
             gui_next_qrcode_color();
             gui_repaint(act->root_node);
         } else if (ev_id == BTN_YES || ev_id == BTN_NO) {
-            // Done: return whether 'Continue' was cicked
+            // Done: return whether 'Continue' was clicked
             return ev_id == BTN_YES;
         }
     }
@@ -1782,7 +1782,7 @@ static void auth_qr_client_task(void* ctx)
     // NOTE: we just use ctx being NULL or not to convey boolean
     const bool suppress_pin_change_confirmation = (ctx != NULL);
 
-    // Only needed/expected for 'full' inititialistion with pinserver
+    // Only needed/expected for 'full' initialisation with pinserver
     JADE_ASSERT(!keychain_has_temporary());
 
     // Drain any old messages sitting on the QR queue
@@ -1826,7 +1826,7 @@ cleanup:
 
 void handle_qr_auth(const bool suppress_pin_change_confirmation)
 {
-    // Only needed/expected for 'full' inititialistion with pinserver
+    // Only needed/expected for 'full' initialisation with pinserver
     JADE_ASSERT(!keychain_has_temporary());
 
     // Start a task to run the qr client side

@@ -122,7 +122,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
             const char* message[] = { display_str };
             act_scripts[iscreen] = make_show_message_activity(message, 1, title, hdrbtns, 2, NULL, 0);
 
-            // Set the intially selected item to the 'Next' button
+            // Set the initially selected item to the 'Next' button
             gui_set_activity_initial_selection(hdrbtns[1].btn);
         }
         *num_script_screens = script_screens_needed;
@@ -138,7 +138,7 @@ static gui_activity_t* make_view_descriptor_activities(const char* descriptor_na
     const char* title = initial_confirmation ? "Register Descriptor" : "Registered Wallet";
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 2);
 
-    // Set the intially selected item to the 'Next' button
+    // Set the initially selected item to the 'Next' button
     gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
@@ -241,7 +241,7 @@ static gui_activity_t* make_final_descriptor_summary_activities(
     const char* title = initial_confirmation ? "Register Descriptor" : "Registered Wallet";
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 3);
 
-    // Set the intially selected item to 'Discard' when confirming new record
+    // Set the initially selected item to 'Discard' when confirming new record
     // but to 'Retain' when viewing existing record.
     gui_set_activity_initial_selection(hdrbtns[initial_confirmation ? 0 : 1].btn);
 
@@ -293,7 +293,7 @@ bool show_descriptor_activity(const char* descriptor_name, const descriptor_data
     JADE_ASSERT(descriptor);
     JADE_ASSERT(signer_details);
 
-    // Overwriting only applies to intial confirmations - which cannot be invalid
+    // Overwriting only applies to initial confirmations - which cannot be invalid
     JADE_ASSERT(!overwriting || initial_confirmation);
     JADE_ASSERT(!initial_confirmation || is_valid);
 

@@ -92,7 +92,7 @@ static gui_activity_t* make_signer_activities(const signer_t* signer, const size
 
         *actxpub1 = make_show_message_activity(message, 1, "Xpub (1/2)", hdrbtns, 2, NULL, 0);
 
-        // Set the intially selected item to the 'Next' button
+        // Set the initially selected item to the 'Next' button
         gui_set_activity_initial_selection(hdrbtns[1].btn);
 
         // Second message screen has a tick button
@@ -104,7 +104,7 @@ static gui_activity_t* make_signer_activities(const signer_t* signer, const size
 
         *actxpub2 = make_show_message_activity(message, 1, "Xpub (2/2)", hdrbtns, 2, NULL, 0);
 
-        // Set the intially selected item to the 'Next' button
+        // Set the initially selected item to the 'Next' button
         gui_set_activity_initial_selection(hdrbtns[1].btn);
     }
 
@@ -145,7 +145,7 @@ static gui_activity_t* make_signer_activities(const signer_t* signer, const size
 
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, 4);
 
-    // Set the intially selected item to the 'Next' button
+    // Set the initially selected item to the 'Next' button
     gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created

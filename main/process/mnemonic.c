@@ -128,8 +128,8 @@ static bool mnemonic_export_qr(const char* mnemonic, bool* export_qr_verified)
     // scans and the data imported matches the expected entropy.
     // NOTE: the gui activities are created and freed (by frequent calls to
     // gui_set_current_activity_ex()) inside the loop - this is less efficient
-    // but keeps the maximum amout of free DRAM available at all times.
-    // This is vital to prevent fragmentation occuring which then causes the large
+    // but keeps the maximum amount of free DRAM available at all times.
+    // This is vital to prevent fragmentation occurring which then causes the large
     // allocations made by the qr-scanner to fail (even if there appears to be
     // sufficient DRAM available).
     bool retval = true;
@@ -302,7 +302,7 @@ static bool display_confirm_mnemonic(const size_t nwords, char* mnemonic, const 
                 continue;
             }
             if (ev_id == BTN_MNEMONIC_EXIT) {
-                // User abandonded
+                // User abandoned
                 JADE_LOGD("user abandoned noting mnemonic");
                 goto cleanup;
             }
@@ -934,7 +934,7 @@ static size_t get_wordlist_words(
             num_filter_words = calculate_valid_final_words(wordlist_words, word_index, nwords, final_words);
             p_filter_words = final_words;
 
-            // When we select from the valid words, randomise the initally selected word
+            // When we select from the valid words, randomise the initially selected word
             random_first_selection_word = true;
         }
 
@@ -1338,7 +1338,7 @@ bool import_mnemonic(const uint8_t* bytes, const size_t bytes_len, char* buf, co
     JADE_ASSERT(bytes[bytes_len] == '\0');
 
     // 1. Try seedsigner compact format (ie. raw 128bit or 256bit entropy)
-    // 2. Try seedsigner standard format (string of 4-digit indicies, no spaces)
+    // 2. Try seedsigner standard format (string of 4-digit indices, no spaces)
     // 3. Try bcur bip39 format (starts with a specific string prefix)
     // 4. Try to read word prefixes or whole words (space separated)
     return import_compactseedqr(bytes, bytes_len, buf, buf_len, written)
@@ -1473,7 +1473,7 @@ void get_passphrase(char* passphrase, const size_t passphrase_len)
 bool derive_keychain(const bool temporary_restore, const char* mnemonic)
 {
     JADE_ASSERT(mnemonic);
-    // NOTE: mnemnonic should be valid at this point for best UX
+    // NOTE: mnemonic should be valid at this point for best UX
 
     keychain_t keydata = { 0 };
     SENSITIVE_PUSH(&keydata, sizeof(keydata));

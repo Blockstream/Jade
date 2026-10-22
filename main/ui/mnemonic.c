@@ -18,7 +18,7 @@ gui_activity_t* make_mnemonic_setup_type_activity(void)
 
     gui_activity_t* const act = make_menu_activity("Setup Type", hdrbtns, 2, menubtns, 2);
 
-    // Set the intially selected item to the 'New' button
+    // Set the initially selected item to the 'New' button
     gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
@@ -39,7 +39,7 @@ gui_activity_t* make_mnemonic_setup_method_activity(const bool advanced)
     gui_activity_t* const act
         = make_menu_activity(advanced ? "Advanced Setup" : "Setup Method", hdrbtns, 2, menubtns, 2);
 
-    // Set the intially selected item to the 'New' button
+    // Set the initially selected item to the 'New' button
     gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
@@ -55,7 +55,7 @@ gui_activity_t* make_new_mnemonic_activity(void)
 
     gui_activity_t* const act = make_menu_activity("Recovery Phrase", hdrbtns, 2, menubtns, 2);
 
-    // Set the intially selected item to the '12 words' button
+    // Set the initially selected item to the '12 words' button
     gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
@@ -83,7 +83,7 @@ gui_activity_t* make_restore_mnemonic_activity(const bool temporary_restore)
 
     gui_activity_t* const act = make_menu_activity("Restore Wallet", hdrbtns, 2, menubtns, nbtns);
 
-    // Set the intially selected item to the '12 words' or 'Scan QR' buttons
+    // Set the initially selected item to the '12 words' or 'Scan QR' buttons
     gui_set_activity_initial_selection(menubtns[selected].btn);
 
     return act;
@@ -120,7 +120,7 @@ gui_activity_t* make_bip85_mnemonic_words_activity(void)
 
     gui_activity_t* const act = make_menu_activity("BIP85", hdrbtns, 2, menubtns, 2);
 
-    // Set the intially selected item to the '12 words' button
+    // Set the initially selected item to the '12 words' button
     gui_set_activity_initial_selection(menubtns[0].btn);
 
     return act;
@@ -170,7 +170,7 @@ static void make_show_new_mnemonic_page(
     }
     SENSITIVE_POP(prefixed_word);
 
-    // Set the intially selected item to the next/verify (ie. the last) button
+    // Set the initially selected item to the next/verify (ie. the last) button
     gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // Copy activity and prev and next buttons into output struct
@@ -452,7 +452,7 @@ gui_activity_t* make_export_qr_overview_activity(const Icon* icon, const bool in
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(node, icon_bg);
 
-    // First row, header, just a back button initally, a back and next button if looping round
+    // First row, header, just a back button initially, a back and next button if looping round
     btn_data_t hdrbtns[]
         = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_QR_EXPORT_PREV, .borders = GUI_BORDER_ALL },
               { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE }, // spacer

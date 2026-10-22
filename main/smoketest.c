@@ -213,7 +213,7 @@ static void check_template_three(gui_activity_t** act, const char* title, const 
     gui_make_fill(&node2, color, FILL_PLAIN, vsplit);
     gui_set_padding(node2, GUI_MARGIN_ALL_DIFFERENT, 2, 0, 2, 0);
 
-    // Main area, line threee
+    // Main area, line three
     gui_view_node_t* node3;
     gui_make_fill(&node3, color, FILL_PLAIN, vsplit);
     gui_set_padding(node3, GUI_MARGIN_ALL_DIFFERENT, 2, 0, 2, 0);

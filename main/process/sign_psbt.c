@@ -733,7 +733,7 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
     }
     const bool for_liquid = is_elements;
     // Liquid: Optional ELIP-0101 genesis blockhash can override test network defaults.
-    // Defers to params_genesis_hash() for validation (only needed for Lisuid/PSET).
+    // Defers to params_genesis_hash() for validation (only needed for Liquid/PSET).
     size_t has_genesis_blockhash = 0;
     if (for_liquid) {
         JADE_WALLY_VERIFY(wally_psbt_has_global_genesis_blockhash(psbt, &has_genesis_blockhash));

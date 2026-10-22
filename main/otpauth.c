@@ -662,7 +662,7 @@ static void pad_secret(uint8_t* secret, size_t* secret_len, const size_t min_siz
  * they just use the short secret as is.
  * To maintain maximum compatibility we do not lengthen the secret for SHA1 *only*, and we do
  * lengthen short secrets for other hash digest algorithms.
- * This provides compatability with gauth-like services, and should also remain compatible with
+ * This provides compatibility with gauth-like services, and should also remain compatible with
  * HOTP/SHA1 which does not extend the secrets.
  *
  * IMPORTANT: both *otp_ctx* and *md_ctx* must be initialized before calling this function.

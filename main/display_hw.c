@@ -334,7 +334,7 @@ void display_hw_draw_rect(int x, int y, int w, int h, const uint16_t color)
     const bool can_double = !(((intptr_t)screen_ptr) % 4) && !(w % 2);
 
     if ((!calculatedx && w == CONFIG_DISPLAY_WIDTH)) {
-        // Full display width. Write continously for a small speedup
+        // Full display width. Write continuously for a small speedup
         if (can_memset) {
             jmemset(screen_ptr, color, CONFIG_DISPLAY_WIDTH * h * sizeof(color_t));
         } else {

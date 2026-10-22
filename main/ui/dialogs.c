@@ -5,7 +5,7 @@
 
 void await_qr_help_activity(const char* url);
 
-// releative
+// relative
 #define TITLE_BAR_HEIGHT_PCNT 20
 #define FOOTER_BUTTONS_HEIGHT_PCNT 25
 
@@ -223,7 +223,7 @@ gui_activity_t* make_text_grid_activity(const char* title, btn_data_t* hdrbtns, 
     gui_activity_t* const act = gui_make_activity();
     gui_view_node_t* parent = act->root_node;
 
-    // Add a titlebar if deisred
+    // Add a titlebar if desired
     const bool have_hdr = title || num_hdrbtns;
     if (have_hdr) {
         parent = add_title_bar(act, title, hdrbtns, num_hdrbtns, NULL);
@@ -318,7 +318,7 @@ gui_activity_t* make_show_message_activity(const char* message[], const size_t m
     gui_activity_t* const act = gui_make_activity();
     gui_view_node_t* parent = act->root_node;
 
-    // Add a titlebar if deisred
+    // Add a titlebar if desired
     const bool have_hdr = title || num_hdrbtns;
     if (have_hdr) {
         parent = add_title_bar(act, title, hdrbtns, num_hdrbtns, NULL);
@@ -332,7 +332,7 @@ gui_activity_t* make_show_message_activity(const char* message[], const size_t m
         // Create a vsplit for the text lines
         const size_t ypct
             = 100 - (have_hdr ? TITLE_BAR_HEIGHT_PCNT : 0) - (num_ftrbtns ? FOOTER_BUTTONS_HEIGHT_PCNT : 0);
-        JADE_ASSERT(ypct > 50 && ypct <= 100); // sanity cehck
+        JADE_ASSERT(ypct > 50 && ypct <= 100); // sanity check
         const size_t yextent = (ypct * CONFIG_DISPLAY_HEIGHT) / 100;
 
         const size_t h = MESSAGE_LINE_ROW_HEIGHT; // each text line height, appropriate for the default font height

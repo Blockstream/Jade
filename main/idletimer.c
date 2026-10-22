@@ -38,7 +38,7 @@ static void set_screen_dimmed(const bool dimmed)
 }
 
 // Function to (temporarily?) set a minimum timeout value
-// eg. to set temporarilty while doing a 'slow' operation where
+// eg. to set temporarily while doing a 'slow' operation where
 // you don't want the hw hitting the idle timeout and shutting down.
 // eg. using the camera to scan large qrs or similar.
 void idletimer_set_min_timeout_secs(const uint16_t min_timeout_secs) { min_timeout_override_secs = min_timeout_secs; }
@@ -104,7 +104,7 @@ static bool show_timeout_warning_screen(void)
 
 // The idle timer task - loops, waking periodically to check the time since
 // the last registered user activity.  If sufficiently long ago, deactivates
-// the device, after having diplayed a warning/cancel screen for a few seconds.
+// the device, after having displayed a warning/cancel screen for a few seconds.
 static void idletimer_task(void* ignore)
 {
     const TickType_t period = SECS_TO_TICKS(TIMEOUT_SLEEP_PERIOD_SECS);
@@ -217,7 +217,7 @@ void idletimer_init(void)
     JADE_LOGI("powering screen, dimmed mode: %u", start_dimmed);
     set_screen_dimmed(start_dimmed);
 
-    // Create mutext semaphore.
+    // Create mutex semaphore.
     last_activity_mutex = xSemaphoreCreateMutex();
     JADE_ASSERT(last_activity_mutex);
 

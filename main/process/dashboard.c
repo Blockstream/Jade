@@ -403,7 +403,7 @@ static void process_add_entropy_request(jade_process_t* process)
         goto cleanup;
     }
 
-    // Feed received entropy into the random gnerator
+    // Feed received entropy into the random generator
     refeed_entropy(entropy, written);
     jade_process_reply_to_message_ok(process);
 
@@ -502,7 +502,7 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("ota")) {
         if (ota_allowed(process->ctx.source)) {
             // If we are about to start an OTA we stop the other/unused external connection
-            // interface for performance, stabililty and security reasons.
+            // interface for performance, stability and security reasons.
             enable_connection_interfaces(process->ctx.source);
             task_function = ota_process;
         } else {
@@ -512,7 +512,7 @@ static void dispatch_message(jade_process_t* process)
     } else if (IS_METHOD("ota_delta")) {
         if (ota_allowed(process->ctx.source)) {
             // If we are about to start an OTA we stop the other/unused external connection
-            // interface for performance, stabililty and security reasons.
+            // interface for performance, stability and security reasons.
             enable_connection_interfaces(process->ctx.source);
             task_function = ota_delta_process;
         } else {
@@ -1136,8 +1136,8 @@ static void handle_registered_wallets(void)
                         continue;
                     }
 
-                    // Warning for unsorted multisig, as this is not strictly handled by the origial
-                    // common file format and may not be supported by the imprting wallet.
+                    // Warning for unsorted multisig, as this is not strictly handled by the original
+                    // common file format and may not be supported by the importing wallet.
                     if (!multisig_data.sorted) {
                         await_message_4(
                             "Exporting unsorted", "multisig - ensure the", "wallet app supports", "this configuration");
@@ -2152,7 +2152,7 @@ static gui_activity_t* create_settings_menu(const bool startup_menu)
 {
     gui_activity_t* act = NULL;
     if (startup_menu) {
-        // Startup (click on spalsh screen) menu
+        // Startup (click on splash screen) menu
         act = make_startup_options_activity();
     } else if (keychain_get()) {
         // Unlocked Jade - main settings
@@ -2161,7 +2161,7 @@ static gui_activity_t* create_settings_menu(const bool startup_menu)
         // Locked Jade - before pin entry when saved wallet exists
         act = make_locked_settings_activity();
     } else {
-        // Uninitilised Jade - no wallet set
+        // Uninitialised Jade - no wallet set
         act = make_uninitialised_settings_activity();
     }
     return act;
@@ -2348,7 +2348,7 @@ static void handle_settings(const bool startup_menu)
             break;
 
         case BTN_SETTINGS_REGISTERED_WALLETS:
-            // Potentialy shows so many screens, menu screen will have been freed
+            // Potentially shows so many screens, menu screen will have been freed
             handle_registered_wallets();
             act = make_wallet_settings_activity();
             break;
@@ -2721,7 +2721,7 @@ static void do_dashboard(jade_process_t* process, const keychain_t* const initia
         // Allow serial to be plugged even if we're not unlocked over serial for eg. charging.
         // NOTE: if this clears a populated keychain then this loop will complete
         // and cause this function to return.
-        // NOTE: only applies to a *peristed* keychain - ie if we have a pin set, and *NOT*
+        // NOTE: only applies to a *persisted* keychain - ie if we have a pin set, and *NOT*
         // if this is a temporary/emergency-restore wallet.
         if (initial_has_pin && initial_keychain && !keychain_has_temporary()) {
             if ((initial_userdata == SOURCE_SERIAL && !tolerate_usb_disconnection && !usb_is_powered())
@@ -2792,7 +2792,7 @@ void dashboard_process(void* process_ptr)
         // We have six cases:
         // 1. Ready - has keys already associated with a message source
         //    - ready screen  (created early and persistent, see above)
-        // 2. Awaiting QR intialisation - this is a special case of either 3. or 4. below
+        // 2. Awaiting QR initialisation - this is a special case of either 3. or 4. below
         //    - just show 'Processing...' screen while we await QR client task
         // 3. Unused keys - has keys in memory, but not yet connected to an app
         //    - connect-to screen

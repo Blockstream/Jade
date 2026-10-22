@@ -423,7 +423,7 @@ static void socket_server_task(void* arg)
                 // esp_core_dump_write(&info);
             } else if (strncmp(rx_buffer, "stats", 5) == 0) {
                 // Dump debug stats. These will only be populated if debug code
-                // has been added somewhere to popuate them
+                // has been added somewhere to populate them
                 const size_t num_stats = sizeof(wifi_debug_stats) / sizeof(wifi_debug_stats[0]);
                 for (size_t i = 0; i < num_stats; ++i) {
                     snprintf(rx_buffer, sizeof(rx_buffer), "%" PRIx32 ",", wifi_debug_stats[i]);
@@ -556,7 +556,7 @@ void socket_server_send(const char* message, int message_len)
     xSemaphoreGive(socket_mutex);
 }
 
-// Convienience function to init WIFI, connect, and start socket server for logging
+// Convenience function to init WIFI, connect, and start socket server for logging
 esp_err_t wifi_socket_server_logger_start(void)
 {
     esp_err_t err = wifi_init(false);

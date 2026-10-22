@@ -151,7 +151,7 @@ cleanup:
     return;
 }
 
-// Helper so user can enter OTP Name and URI via the keyboard screeens
+// Helper so user can enter OTP Name and URI via the keyboard screens
 static bool get_otp_data_from_kb(
     char* otp_name, const size_t name_len, char* otp_uri, const size_t uri_len, size_t* uri_written)
 {
@@ -166,7 +166,7 @@ static bool get_otp_data_from_kb(
     kb_entry.keyboards[2] = KB_NUMBERS_SYMBOLS;
     kb_entry.keyboards[3] = KB_REMAINING_SYMBOLS;
     kb_entry.num_kbs = 4;
-    kb_entry.blocked_chars = " "; // OTP names cant have spaces
+    kb_entry.blocked_chars = " "; // OTP names can't have spaces
 
     make_keyboard_entry_activity(&kb_entry, "OTP Name");
     JADE_ASSERT(kb_entry.activity);

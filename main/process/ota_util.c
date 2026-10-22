@@ -297,7 +297,7 @@ void ota_finalize(jade_process_t* process, jade_ota_ctx_t* joctx, const bool is_
     JADE_ASSERT(joctx);
 
     if (joctx->ota_return_status != OTA_SUCCESS) {
-        goto error; // An error has already occured, return it
+        goto error; // An error has already occurred, return it
     }
 
     // To reach this far without error, the user must have confirmed

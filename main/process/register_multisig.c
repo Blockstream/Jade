@@ -23,7 +23,7 @@ bool show_multisig_activity(const char* multisig_name, bool is_sorted, uint32_t 
     const uint8_t* wallet_fingerprint, size_t wallet_fingerprint_len, bool initial_confirmation, bool overwriting,
     bool is_valid);
 
-// Function to validate multsig parameters and persist the record
+// Function to validate multisig parameters and persist the record
 static int register_multisig(const char* multisig_name, const network_t network_id,
     const script_variant_t script_variant, const bool sorted, const uint32_t threshold, const signer_t* signers,
     const size_t num_signers, const uint8_t* master_blinding_key, const size_t master_blinding_key_len,

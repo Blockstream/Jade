@@ -59,7 +59,7 @@ static gui_activity_t* make_sign_message_activities(const char* msgtxt, const ch
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
         *actmessage1 = make_show_message_activity(message, 1, "Message (1/2)", hdrbtns, 2, NULL, 0);
 
-        // Set the intially selected item to the 'Next' button
+        // Set the initially selected item to the 'Next' button
         gui_set_activity_initial_selection(hdrbtns[1].btn);
 
         // Second message screen has a tick button
@@ -70,7 +70,7 @@ static gui_activity_t* make_sign_message_activities(const char* msgtxt, const ch
         JADE_ASSERT(ret > 0 && ret < sizeof(buf));
         *actmessage2 = make_show_message_activity(message, 1, "Message (2/2)", hdrbtns, 2, NULL, 0);
 
-        // Set the intially selected item to the 'Next' button
+        // Set the initially selected item to the 'Next' button
         gui_set_activity_initial_selection(hdrbtns[1].btn);
     }
 

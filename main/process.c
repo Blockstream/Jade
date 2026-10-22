@@ -204,7 +204,7 @@ void init_jade_process(jade_process_t* process)
 {
     JADE_ASSERT(process);
 
-    // No 'current' message when intially created
+    // No 'current' message when initially created
     process->ctx.cbor = NULL;
     process->ctx.cbor_len = 0;
     process->ctx.source = SOURCE_NONE;

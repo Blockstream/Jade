@@ -324,7 +324,7 @@ struct gui_activity_t {
 
     // linked list of selectable elements
     selectable_t* selectables;
-    // The node intially selected when activated/switched-to
+    // The node initially selected when activated/switched-to
     gui_view_node_t* initial_selection;
 
     // linked list of updatable elements

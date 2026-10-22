@@ -310,7 +310,7 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
     const size_t num_btns = assetinfo || warning || is_wallet_output ? 4 : 2;
     gui_activity_t* const act = make_menu_activity(title, hdrbtns, 2, menubtns, num_btns);
 
-    // Set the intially selected item to the 'Next' button
+    // Set the initially selected item to the 'Next' button
     gui_set_activity_initial_selection(hdrbtns[1].btn);
 
     // NOTE: can only set scrolling *after* gui tree created
@@ -655,7 +655,7 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
     JADE_ASSERT(title);
     JADE_ASSERT(feeamount);
     JADE_ASSERT(ticker);
-    // warning msg is optinal
+    // warning msg is optional
     JADE_INIT_OUT_PPTR(actfeeamt);
     JADE_INIT_OUT_PPTR(actwarning);
 
