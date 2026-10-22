@@ -528,7 +528,7 @@ static bool read_hash_file_to_buffer(const char* filename, uint8_t* buffer, size
     return true;
 }
 
-static bool handle_ota_reply(const uint8_t* msg, const size_t len, void* ctx)
+bool handle_ota_reply(const uint8_t* msg, const size_t len, void* ctx)
 {
     JADE_ASSERT(msg);
     JADE_ASSERT(len);

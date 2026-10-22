@@ -148,7 +148,7 @@ static void tinyusb_cdc_rx_callback(int itf, cdcacm_event_t* event)
 #endif
 #endif // IDF_TARGET_ESP32S3
 
-static bool write_serial(const uint8_t* msg, const size_t length, void* ignore)
+bool write_serial(const uint8_t* msg, const size_t length, void* ignore)
 {
     JADE_ASSERT(msg);
     JADE_ASSERT(length);

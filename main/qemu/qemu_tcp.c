@@ -102,7 +102,7 @@ static void qemu_tcp_reader(void* ignore)
     }
 }
 
-static bool write_qemu_tcp(const uint8_t* msg, const size_t length, void* ignore)
+bool write_qemu_tcp(const uint8_t* msg, const size_t length, void* ignore)
 {
     JADE_ASSERT(msg);
     JADE_ASSERT(length);

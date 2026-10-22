@@ -56,6 +56,39 @@ static char jade_id[16];
 static heap_trace_record_t trace_record[HEAP_TRACING_NUM_RECORDS];
 #endif /* CONFIG_HEAP_TRACING */
 
+// jade_process_get_out_message whitelist
+bool handle_jade_reply_pinserver_request(const uint8_t* msg, const size_t len, void* ctx);
+#ifdef ESP_PLATFORM
+bool write_serial(const uint8_t* msg, const size_t length, void* ignore);
+#endif
+#ifdef CONFIG_BT_ENABLED
+bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore);
+#endif
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
+bool write_qemu_tcp(const uint8_t* msg, const size_t length, void* ignore);
+#endif
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
+bool handle_ota_reply(const uint8_t* msg, const size_t len, void* ctx);
+#endif
+
+static bool outbound_writer_is_allowed(const outbound_message_writer_fn_t writer)
+{
+    bool is_allowed = writer == handle_jade_reply_pinserver_request;
+#ifdef ESP_PLATFORM
+    is_allowed |= writer == write_serial;
+#endif
+#ifdef CONFIG_BT_ENABLED
+    is_allowed |= writer == write_ble;
+#endif
+#if defined(CONFIG_FREERTOS_UNICORE) && defined(CONFIG_ETH_USE_OPENETH)
+    is_allowed |= writer == write_qemu_tcp;
+#endif
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(CONFIG_HAS_BATTERY)
+    is_allowed |= writer == handle_ota_reply;
+#endif
+    return is_allowed;
+}
+
 // Deferred function whitelist
 void jade_wally_free_psbt_wrapper(void* psbt);
 static void jade_wally_free_string_wrapper(void* str) { wally_free_string((char*)str); }
@@ -458,6 +491,7 @@ bool jade_process_get_out_message(outbound_message_writer_fn_t writer, const jad
     // writer can be null to just discard messages
     // ctx is optional (but must be null if no writer callback)
     JADE_ASSERT(!ctx || writer);
+    JADE_ASSERT(!writer || outbound_writer_is_allowed(writer));
 
     RingbufHandle_t ring = NULL;
     switch (source) {

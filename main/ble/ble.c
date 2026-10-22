@@ -297,7 +297,7 @@ static void ble_start_advertising(void)
 #endif
 }
 
-static bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
+bool write_ble(const uint8_t* msg, const size_t towrite, void* ignore)
 {
     JADE_ASSERT(msg);
     JADE_ASSERT(towrite);

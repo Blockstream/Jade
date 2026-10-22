@@ -1756,7 +1756,7 @@ cleanup:
     return true;
 }
 
-static bool handle_jade_reply_pinserver_request(const uint8_t* msg, const size_t len, void* ctx)
+bool handle_jade_reply_pinserver_request(const uint8_t* msg, const size_t len, void* ctx)
 {
     const char* message[] = { "Step 1/2", "Scan Jade", "QR" };
     return handle_jade_reply_http_request_show_qr(message, 3, msg, len, ctx, "blkstrm.com/qrpin");
