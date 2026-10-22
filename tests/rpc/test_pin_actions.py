@@ -217,6 +217,48 @@ def test_version_info_interface(pin_test_setup):
     assert info['JADE_INTERFACE'] == 'NONE'
 
 
+@pytest.mark.skipif(transport_is_not('libjade'), reason='libjade only')
+@pytest.mark.mnemonic(mnemonics.reset)
+@pytest.mark.parametrize('temporary', [False, True])
+def test_other_source_cannot_logout_or_reauth_wallet(jade, mnemonic, temporary):
+    """Check a non-owning interface cannot log out or re-auth the unlocked wallet"""
+    # libjade tags any message containing 'libjade_request' as arriving on its
+    # internal source rather than the test connection serial source, so this
+    # can be used to bind the wallet to an 'other' interface
+    other_source = {'decoy': 'libjade_request'}
+
+    try:
+        # Log in the other source by setting the mnemonic with 'other_source' parameters
+        assert jade._jadeRpc('debug_set_mnemonic',
+                             {'mnemonic': mnemonics.default,
+                              'temporary_wallet': temporary,
+                              **other_source},
+                             long_timeout=True) is True
+
+        # Wallet held by the other source
+        info = jade.get_version_info()
+        assert info['JADE_STATE'] == 'LOCKED'
+        assert info['JADE_INTERFACE'] == 'LIBJADE'
+
+        # The non-owning (serial) source cannot log out or re-auth
+        for request_id, method, params in [
+            ('other_logout', 'logout', None),
+            ('other_auth_user', 'auth_user', {'network': 'mainnet'}),
+        ]:
+            request = jade.jade.build_request(request_id, method, params)
+            reply = jade.jade.make_rpc_call(request)
+            assert 'result' not in reply
+            assert reply.get('error', {}).get('code') == JadeError.HW_LOCKED
+
+        # The wallet is still held by the other source
+        info = jade.get_version_info()
+        assert info['JADE_STATE'] == 'LOCKED'
+        assert info['JADE_INTERFACE'] == 'LIBJADE'
+    finally:
+        # Logout the other source to clean up
+        assert jade._jadeRpc('logout', other_source) is True
+
+
 @pytest.mark.mnemonic(mnemonics.reset)
 def test_bad_pin(pin_test_setup):
     """Check that Jade rejects bad PINs passed to 'debug_set_pin'"""
