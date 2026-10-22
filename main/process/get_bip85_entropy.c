@@ -45,7 +45,7 @@ static void populate_bip85_reply_data(CborEncoder* container, const bip85_data_t
     JADE_ASSERT(cberr == CborNoError);
 }
 
-static void reply_bip85_data(const void* ctx, CborEncoder* container)
+void reply_bip85_data(const void* ctx, CborEncoder* container)
 {
     const bip85_data_t* const bip85_data = (const bip85_data_t*)ctx;
     populate_bip85_reply_data(container, bip85_data);

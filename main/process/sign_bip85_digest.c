@@ -16,7 +16,7 @@ typedef struct {
     size_t num_signatures;
 } signatures_t;
 
-static void reply_signatures(const void* ctx, CborEncoder* container)
+void reply_signatures(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
 

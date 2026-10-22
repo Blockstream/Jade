@@ -23,7 +23,7 @@ typedef struct {
     uint8_t pubkey[EC_PUBLIC_KEY_UNCOMPRESSED_LEN];
 } signature_and_pubkey_t;
 
-static void reply_signature_and_pubkey(const void* ctx, CborEncoder* container)
+void reply_signature_and_pubkey(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
     const signature_and_pubkey_t* data = (const signature_and_pubkey_t*)ctx;

@@ -65,7 +65,7 @@ static const char* ota_get_status_text(const ota_status_t status)
     }
 }
 
-static void reply_ok(const void* ctx, CborEncoder* container)
+void reply_ok(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
 

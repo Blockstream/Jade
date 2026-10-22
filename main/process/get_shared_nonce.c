@@ -17,7 +17,7 @@ typedef struct {
     const size_t pubkey_len;
 } nonce_pubkey_data_t;
 
-static void reply_nonce_and_pubkey(const void* ctx, CborEncoder* container)
+void reply_nonce_and_pubkey(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
 

@@ -11,7 +11,7 @@
 
 #include "process_utils.h"
 
-static void reply_commitments(const void* ctx, CborEncoder* container)
+void reply_commitments(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
 

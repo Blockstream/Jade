@@ -14,7 +14,7 @@ typedef struct {
     descriptor_data_t* descriptor_data;
 } descriptor_details_t;
 
-static void reply_registered_descriptor(const void* ctx, CborEncoder* container)
+void reply_registered_descriptor(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
 

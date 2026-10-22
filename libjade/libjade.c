@@ -381,7 +381,7 @@ void libjade_set_log_level(int level)
 #endif
 }
 
-static void build_display_size_reply(const void* ctx, CborEncoder* container)
+void build_display_size_reply(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx && container);
     CborEncoder map_encoder;

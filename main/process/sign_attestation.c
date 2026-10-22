@@ -16,7 +16,7 @@ typedef struct {
     size_t ext_signature_len;
 } attestation_reply_t;
 
-static void reply_attestation(const void* ctx, CborEncoder* container)
+void reply_attestation(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
     const attestation_reply_t* data = (const attestation_reply_t*)ctx;

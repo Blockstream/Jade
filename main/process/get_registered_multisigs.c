@@ -24,7 +24,7 @@ typedef struct {
     size_t num_multisigs;
 } multisig_descriptions_t;
 
-static void reply_registered_multisigs(const void* ctx, CborEncoder* container)
+void reply_registered_multisigs(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
 

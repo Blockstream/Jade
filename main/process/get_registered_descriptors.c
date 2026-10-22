@@ -20,7 +20,7 @@ typedef struct {
     size_t num_descriptors;
 } descriptor_descriptions_t;
 
-static void reply_registered_descriptors(const void* ctx, CborEncoder* container)
+void reply_registered_descriptors(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
 

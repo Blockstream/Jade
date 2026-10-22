@@ -111,6 +111,46 @@ static bool inbound_reader_is_allowed(const inbound_message_reader_fn_t reader)
     return reader == process_cbor_msg || reader == handle_in_bin_data;
 }
 
+// jade_process_reply_to_message_result_with_id whitelist
+void cbor_result_boolean_cb(const void* ctx, CborEncoder* container);
+void cbor_result_bytes_cb(const void* ctx, CborEncoder* container);
+void cbor_result_string_cb(const void* ctx, CborEncoder* container);
+void cbor_result_uint64_cb(const void* ctx, CborEncoder* container);
+void build_version_info_reply(const void* ctx, CborEncoder* container);
+void client_data_request_reply(const void* ctx, CborEncoder* container);
+void reply_bip85_data(const void* ctx, CborEncoder* container);
+void reply_commitments(const void* ctx, CborEncoder* container);
+void reply_nonce_and_pubkey(const void* ctx, CborEncoder* container);
+void reply_ok(const void* ctx, CborEncoder* container);
+void reply_registered_descriptor(const void* ctx, CborEncoder* container);
+void reply_registered_descriptors(const void* ctx, CborEncoder* container);
+void reply_registered_multisig(const void* ctx, CborEncoder* container);
+void reply_registered_multisigs(const void* ctx, CborEncoder* container);
+void reply_signature_and_pubkey(const void* ctx, CborEncoder* container);
+void reply_signatures(const void* ctx, CborEncoder* container);
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_LIBJADE)
+void reply_attestation(const void* ctx, CborEncoder* container);
+#endif
+#ifdef CONFIG_LIBJADE
+void build_display_size_reply(const void* ctx, CborEncoder* container);
+#endif
+
+static bool reply_fn_is_allowed(const cbor_encoder_fn_t fn)
+{
+    return fn == cbor_result_boolean_cb || fn == cbor_result_bytes_cb || fn == cbor_result_string_cb
+        || fn == cbor_result_uint64_cb || fn == build_version_info_reply || fn == client_data_request_reply
+        || fn == reply_bip85_data || fn == reply_commitments || fn == reply_nonce_and_pubkey || fn == reply_ok
+        || fn == reply_registered_descriptor || fn == reply_registered_descriptors || fn == reply_registered_multisig
+        || fn == reply_registered_multisigs || fn == reply_signature_and_pubkey || fn == reply_signatures
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_LIBJADE)
+        || fn == reply_attestation
+#endif
+#ifdef CONFIG_LIBJADE
+        || fn == build_display_size_reply
+#endif
+        ;
+}
+
 // Deferred void(*)(void*) function
 struct _jade_deferred_fn_t {
     void_fn_t fn;
@@ -561,9 +601,7 @@ void jade_process_reply_to_message_ex(jade_msg_source_t source, const uint8_t* r
 void jade_process_reply_to_message_result_with_id(const char* id, uint8_t* output, const size_t output_size,
     const jade_msg_source_t source, const void* cbctx, cbor_encoder_fn_t cb)
 {
-    JADE_ASSERT(id);
-    JADE_ASSERT(output);
-    JADE_ASSERT(cb);
+    JADE_ASSERT(id && output && reply_fn_is_allowed(cb));
     CborEncoder root_encoder;
 
     cbor_encoder_init(&root_encoder, output, output_size, 0);

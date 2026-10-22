@@ -16,7 +16,7 @@ typedef struct {
     signer_t* signer_details;
 } multisig_details_t;
 
-static void reply_registered_multisig(const void* ctx, CborEncoder* container)
+void reply_registered_multisig(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);
 
