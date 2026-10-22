@@ -1143,7 +1143,7 @@ typedef struct {
     struct wally_psbt* psbt_out;
 } psbt_parse_data_t;
 
-static bool parse_psbt_bytes(void* ctx)
+bool parse_psbt_bytes(void* ctx)
 {
     JADE_ASSERT(ctx);
     psbt_parse_data_t* data = (psbt_parse_data_t*)ctx;

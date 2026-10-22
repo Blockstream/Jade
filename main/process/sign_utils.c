@@ -346,7 +346,7 @@ bool asset_summary_validate(asset_summary_t* sums, const size_t num_sums)
 // on a temporary stack, as the underlying libsecp calls require over 50kb of stack space.
 // NOTE: devices without SPIRAM do not have sufficient free memory to be able to do this verification,
 // so atm we exclude it for those devices.
-static bool verify_explicit_proofs(void* ctx)
+bool verify_explicit_proofs(void* ctx)
 {
     JADE_ASSERT(ctx);
 

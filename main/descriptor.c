@@ -49,7 +49,7 @@ typedef struct {
     char* addr_output;
 } descriptor_evaluation_data_t;
 
-static bool descriptor_to_address_impl(void* ctx)
+bool descriptor_to_address_impl(void* ctx)
 {
     JADE_ASSERT(ctx);
     descriptor_evaluation_data_t* const data = (descriptor_evaluation_data_t*)ctx;
@@ -63,7 +63,7 @@ static bool descriptor_to_address_impl(void* ctx)
         == WALLY_OK;
 }
 
-static bool descriptor_to_script_impl(void* ctx)
+bool descriptor_to_script_impl(void* ctx)
 {
     JADE_ASSERT(ctx);
     descriptor_evaluation_data_t* const data = (descriptor_evaluation_data_t*)ctx;
@@ -100,7 +100,7 @@ static bool descriptor_to_script_impl(void* ctx)
     return true;
 }
 
-static bool descriptor_search_for_script_impl(void* ctx)
+bool descriptor_search_for_script_impl(void* ctx)
 {
     JADE_ASSERT(ctx);
     descriptor_evaluation_data_t* const data = (descriptor_evaluation_data_t*)ctx;

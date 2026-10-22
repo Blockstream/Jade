@@ -10,6 +10,15 @@
 #define CONFIG_ESP_MINIMAL_SHARED_STACK_SIZE 2048
 #endif
 
+// run_in_temporary_task whitelist
+bool descriptor_search_for_script_impl(void* ctx);
+bool descriptor_to_address_impl(void* ctx);
+bool descriptor_to_script_impl(void* ctx);
+bool parse_psbt_bytes(void* ctx);
+#ifdef CONFIG_SPIRAM
+bool verify_explicit_proofs(void* ctx);
+#endif
+
 // Helper to run function which may require a larger amount of stack space in a temporary task.
 // Function protected by a mutex so can only be running once (prevents excessive memory
 // allocation of multiple large stacks).
@@ -33,7 +42,19 @@ void temp_stack_init(void)
 static void temp_task_wrapper(void* ctx)
 {
     temp_task_args_t* args = (temp_task_args_t*)ctx;
+#if defined(CONFIG_DEBUG_MODE) && defined(CONFIG_LIBJADE) && defined(SELFCHECK)
+    // Allow libjade selfchecks to call anything
     JADE_ASSERT(args && args->fn);
+#else
+    // Use a whitelist of allowed calls
+    JADE_ASSERT(args);
+    bool is_allowed = args->fn == &descriptor_search_for_script_impl || args->fn == &descriptor_to_address_impl
+        || args->fn == &descriptor_to_script_impl || args->fn == &parse_psbt_bytes;
+#ifdef CONFIG_SPIRAM
+    is_allowed |= args->fn == &verify_explicit_proofs;
+#endif // CONFIG_SPIRAM
+    JADE_ASSERT(is_allowed);
+#endif // CONFIG_DEBUG_MODE / CONFIG_LIBJADE / SELFCHECK
 
     // Run the passed function, then signal the completion semaphore
     args->rslt = args->fn(args->ctx);
