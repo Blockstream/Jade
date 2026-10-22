@@ -78,6 +78,10 @@ typedef struct {
 
 const char* get_jade_id(void);
 
+// Name of the connection interface
+const char* get_interface_name(jade_msg_source_t source);
+const char* get_interface_ui_name(jade_msg_source_t source);
+
 #ifdef CONFIG_HEAP_TRACING
 void dump_mem_report(void);
 #endif

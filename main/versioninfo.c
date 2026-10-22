@@ -24,26 +24,6 @@ extern esp_app_desc_t running_app_info;
 extern esp_chip_info_t chip_info;
 extern uint8_t macid[6];
 
-static const char* get_interface_name(const jade_msg_source_t source)
-{
-    switch (source) {
-    case SOURCE_INTERNAL:
-        return "QR";
-    case SOURCE_SERIAL:
-        return "SERIAL";
-    case SOURCE_QEMU_TCP:
-        return "QEMU_TCP";
-    case SOURCE_BLE:
-        return "BLE";
-#ifdef CONFIG_LIBJADE
-    case SOURCE_LIBJADE:
-        return "LIBJADE";
-#endif
-    default:
-        return "NONE";
-    }
-}
-
 void build_version_info_reply(const void* ctx, CborEncoder* container)
 {
     JADE_ASSERT(ctx);

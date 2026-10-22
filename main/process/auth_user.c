@@ -11,6 +11,7 @@
 #include "../utils/network.h"
 
 #include <sodium/utils.h>
+#include <strings.h>
 
 #include "process_utils.h"
 
@@ -110,6 +111,18 @@ static void check_wallet_erase_pin(jade_process_t* process, const uint8_t* pin_e
     }
 }
 
+// Build a PIN-screen title naming the requesting interface, eg. "Unlock Jade (USB)"
+static void make_pin_title(const jade_msg_source_t source, const char* base_title, char* title, const size_t title_len)
+{
+    JADE_ASSERT(base_title);
+    JADE_ASSERT(title && title_len);
+
+    const char* const source_name = source == SOURCE_NONE ? NULL : get_interface_ui_name(source);
+    const int ret = source_name ? snprintf(title, title_len, "%s (%s)", base_title, source_name)
+                                : snprintf(title, title_len, "%s", base_title);
+    JADE_ASSERT(ret > 0 && (size_t)ret < title_len);
+}
+
 static bool get_pin_get_aeskey(jade_process_t* process, const char* title, uint8_t* pin, const size_t pin_len,
     uint8_t* aeskey, const size_t aes_len)
 {
@@ -203,7 +216,9 @@ static bool set_pin_get_aeskey(jade_process_t* process, const char* title, uint8
 
         // this is the first pin, copy it and clear screen fields and have the user confirm
         memcpy(pin, digit_entry.digit, sizeof(digit_entry.digit));
-        reset_digit_entry(&digit_entry, "Confirm PIN");
+        char confirm_pin_title[40]; // sufficient
+        make_pin_title(process->ctx.source, "Confirm PIN", confirm_pin_title, sizeof(confirm_pin_title));
+        reset_digit_entry(&digit_entry, confirm_pin_title);
 
 #ifndef CONFIG_DEBUG_UNATTENDED_CI
         if (!run_digit_entry_loop(&digit_entry)) {
@@ -262,7 +277,9 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
 
     // Do the pinserver 'getpin' process
     const char* unlock_pin_msg = suppress_pin_change_confirmation ? "Enter Current PIN" : "Unlock Jade";
-    if (!get_pin_get_aeskey(process, unlock_pin_msg, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
+    char unlock_pin_title[40]; // sufficient
+    make_pin_title(process->ctx.source, unlock_pin_msg, unlock_pin_title, sizeof(unlock_pin_title));
+    if (!get_pin_get_aeskey(process, unlock_pin_title, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
         // User abandoned entering PIN, or some sort of server or networking/connection error
         // NOTE: reply message will have already been sent
         goto cleanup;
@@ -315,7 +332,9 @@ static bool get_pin_load_keys(jade_process_t* process, const bool suppress_pin_c
     if (change_pin_requested) {
         const char* question[] = { "Do you want to", "change your PIN?" };
         if (suppress_pin_change_confirmation || await_yesno_activity("Change PIN", question, 2, true, NULL)) {
-            if (set_pin_get_aeskey(process, "Enter New PIN", pin, sizeof(pin), aeskey_new, sizeof(aeskey_new))) {
+            char new_pin_title[40]; // sufficient
+            make_pin_title(process->ctx.source, "Enter New PIN", new_pin_title, sizeof(new_pin_title));
+            if (set_pin_get_aeskey(process, new_pin_title, pin, sizeof(pin), aeskey_new, sizeof(aeskey_new))) {
                 JADE_LOGI("PIN changed on server");
                 if (keychain_reencrypt(aeskey, sizeof(aeskey), aeskey_new, sizeof(aeskey_new))) {
                     await_message("PIN changed");
@@ -363,7 +382,9 @@ static bool set_pin_save_keys(jade_process_t* process)
 #endif
 
     // Do the pinserver 'setpin' process
-    if (!set_pin_get_aeskey(process, "Enter New PIN", pin, sizeof(pin), aeskey, sizeof(aeskey))) {
+    char new_pin_title[40]; // sufficient
+    make_pin_title(process->ctx.source, "Enter New PIN", new_pin_title, sizeof(new_pin_title));
+    if (!set_pin_get_aeskey(process, new_pin_title, pin, sizeof(pin), aeskey, sizeof(aeskey))) {
         // User abandoned entering PIN, or some sort of server or networking/connection error
         // NOTE: reply message will have already been sent
         goto cleanup;

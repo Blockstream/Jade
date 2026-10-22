@@ -17,6 +17,31 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+// Interface names shared by the version-info RPC and UI screens
+static const char* get_interface_name_impl(const jade_msg_source_t source, const bool for_ui)
+{
+    switch (source) {
+    case SOURCE_INTERNAL:
+        return "QR";
+    case SOURCE_SERIAL:
+        return for_ui ? "USB" : "SERIAL";
+    case SOURCE_QEMU_TCP:
+        return "QEMU_TCP";
+    case SOURCE_BLE:
+        return "BLE";
+#ifdef CONFIG_LIBJADE
+    case SOURCE_LIBJADE:
+        return "LIBJADE";
+#endif
+    default:
+        return "NONE";
+    }
+}
+
+const char* get_interface_name(const jade_msg_source_t source) { return get_interface_name_impl(source, false); }
+
+const char* get_interface_ui_name(const jade_msg_source_t source) { return get_interface_name_impl(source, true); }
+
 static TaskHandle_t gui_handle = NULL;
 static RingbufHandle_t shared_in = NULL;
 
