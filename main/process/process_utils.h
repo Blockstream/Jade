@@ -103,6 +103,12 @@ bool jade_process_check_network(jade_process_t* process, CborValue* params, netw
 #define KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)                                                                   \
     (keychain_get() && keychain_get_userdata() == (uint8_t)process->ctx.source)
 
+// Do we have a keychain associated with a different 'source' than the
+// current message?
+#define KEYCHAIN_UNLOCKED_BY_OTHER_MESSAGE_SOURCE(process)                                                             \
+    (keychain_get() && keychain_get_userdata() != SOURCE_NONE                                                          \
+        && keychain_get_userdata() != (uint8_t)process->ctx.source)
+
 #define ASSERT_KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process) JADE_ASSERT(KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process))
 
 // For tracking input types

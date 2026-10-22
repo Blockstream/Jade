@@ -403,6 +403,16 @@ void auth_user_process(void* process_ptr)
 
     ASSERT_CURRENT_MESSAGE(process, "auth_user");
     GET_MSG_PARAMS(process);
+
+    if (KEYCHAIN_UNLOCKED_BY_OTHER_MESSAGE_SOURCE(process)) {
+        // Reject the message as hw unlocked on other source
+        const char* errmsg = keychain_has_temporary()
+            ? "Cannot process message - temporary wallet associated with different connection"
+            : "Cannot process message - wallet associated with different connection";
+        jade_process_reject_message(process, CBOR_RPC_HW_LOCKED, errmsg);
+        goto cleanup;
+    }
+
     CHECK_NETWORK_CONSISTENT(process);
 
     // Can optionally include epoch time to set internal clock
@@ -429,6 +439,8 @@ void auth_user_process(void* process_ptr)
     //    - prompt for PIN to secure/encrypt the keys
     // 5. Uninitialised - has no persisted/encrypted keys and no keys in memory
     //    - prompt for mnemonic setup, then onto PIN to secure keys
+    // NOTE: a wallet (temporary or not) already unlocked by a *different* source
+    // is rejected above, So the branches below only see this source or NONE.
     bool rslt = false;
     if (keychain_has_temporary()) {
         JADE_LOGI("using temporary keychain already present - skipping PIN step");
@@ -438,19 +450,15 @@ void auth_user_process(void* process_ptr)
             JADE_LOGI("temporary keychain already unlocked by this message-source");
             jade_process_reply_to_message_ok(process);
             rslt = true;
-        } else if (keychain_get_userdata() == SOURCE_NONE) {
+        } else {
             // First use of this temporary wallet
             // Re-set the (same) keychain in order to confirm the 'source'
             // (ie interface) which we will accept receiving messages from.
+            JADE_ASSERT(keychain_get_userdata() == SOURCE_NONE);
             JADE_LOGI("First use of temporary keychain, associating with this message-source");
             keychain_set(keychain_get(), process->ctx.source, true);
             jade_process_reply_to_message_ok(process);
             rslt = true;
-        } else {
-            // Reject the message as hw locked
-            JADE_LOGI("Trying to reuse temporary keychain with different message-source");
-            jade_process_reject_message(process, CBOR_RPC_HW_LOCKED,
-                "Cannot process message - temporary wallet associated with different connection");
         }
     } else if (keychain_has_pin()) {
         // Jade is initialised with persisted wallet - if required use PIN to unlock
@@ -459,6 +467,7 @@ void auth_user_process(void* process_ptr)
             jade_process_reply_to_message_ok(process);
             rslt = true;
         } else {
+            JADE_ASSERT(!keychain_get() || keychain_get_userdata() == SOURCE_NONE);
             JADE_LOGI("keychain locked for this source, requesting pin");
             if (keychain_get()) {
                 keychain_clear();

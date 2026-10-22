@@ -434,6 +434,14 @@ cleanup:
 static void process_logout_request(jade_process_t* process)
 {
     ASSERT_CURRENT_MESSAGE(process, "logout");
+
+    if (keychain_get() && !KEYCHAIN_UNLOCKED_BY_MESSAGE_SOURCE(process)) {
+        // Reject the message as hw not unlocked on this source
+        jade_process_reject_message(
+            process, CBOR_RPC_HW_LOCKED, "Cannot process message - hardware not unlocked by this source");
+        return;
+    }
+
     keychain_clear();
     jade_process_reply_to_message_ok(process);
 }
