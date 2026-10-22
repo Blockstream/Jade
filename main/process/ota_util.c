@@ -172,7 +172,7 @@ void handle_in_bin_data(void* ctx, uint8_t* data, const size_t rawsize)
     joctx->id[0] = '\0';
 }
 
-static void ota_free(void* ctx)
+void ota_free(void* ctx)
 {
     jade_ota_ctx_t* joctx = (jade_ota_ctx_t*)ctx;
     if (joctx) {

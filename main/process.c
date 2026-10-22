@@ -56,6 +56,19 @@ static char jade_id[16];
 static heap_trace_record_t trace_record[HEAP_TRACING_NUM_RECORDS];
 #endif /* CONFIG_HEAP_TRACING */
 
+// Deferred function whitelist
+void jade_wally_free_psbt_wrapper(void* psbt);
+static void jade_wally_free_string_wrapper(void* str) { wally_free_string((char*)str); }
+void jade_wally_free_tx_wrapper(void* tx);
+void ota_free(void* ctx);
+void signing_data_free(void* signing_data);
+
+static bool deferred_is_allowed(const void_fn_t fn)
+{
+    return fn == free || fn == jade_wally_free_psbt_wrapper || fn == jade_wally_free_string_wrapper
+        || fn == jade_wally_free_tx_wrapper || fn == ota_free || fn == signing_data_free;
+}
+
 // Deferred void(*)(void*) function
 struct _jade_deferred_fn_t {
     void_fn_t fn;
@@ -68,8 +81,7 @@ struct _jade_deferred_fn_t {
 // of the existing stack of deferred functions (ie. most recent at top).
 static void add_deferred_function(jade_deferred_fn_t** existing, void_fn_t fn, void* param)
 {
-    JADE_ASSERT(existing);
-    JADE_ASSERT(fn);
+    JADE_ASSERT(existing && fn && deferred_is_allowed(fn));
 
     jade_deferred_fn_t* fn_deferred = JADE_MALLOC(sizeof(jade_deferred_fn_t));
 
@@ -88,7 +100,7 @@ static void cleanup_deferred_functions(jade_deferred_fn_t** p_fns, bool call)
     while (*p_fns) {
         jade_deferred_fn_t* deferred = *p_fns;
         *p_fns = deferred->next;
-        JADE_ASSERT(deferred->fn);
+        JADE_ASSERT(deferred_is_allowed(deferred->fn));
 
         // Maybe call the function on the param, then free the function-holder
         if (call) {
@@ -242,8 +254,6 @@ void cleanup_jade_process(jade_process_t* process)
 }
 
 // On-exit handlers - register functions to be called when process is freed
-
-static void jade_wally_free_string_wrapper(void* str) { JADE_WALLY_VERIFY(wally_free_string((char*)str)); }
 
 void jade_process_wally_free_string_on_exit(jade_process_t* process, char* str)
 {
