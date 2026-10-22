@@ -102,6 +102,15 @@ static bool deferred_is_allowed(const void_fn_t fn)
         || fn == jade_wally_free_tx_wrapper || fn == ota_free || fn == signing_data_free;
 }
 
+// jade_process_get_in_message whitelist
+void process_cbor_msg(void* ctx, uint8_t* data, size_t size);
+void handle_in_bin_data(void* ctx, uint8_t* data, size_t rawsize);
+
+static bool inbound_reader_is_allowed(const inbound_message_reader_fn_t reader)
+{
+    return reader == process_cbor_msg || reader == handle_in_bin_data;
+}
+
 // Deferred void(*)(void*) function
 struct _jade_deferred_fn_t {
     void_fn_t fn;
@@ -428,6 +437,7 @@ void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, 
     // reader can be null to just discard messages
     // ctx is optional (but must be null if no reader callback)
     JADE_ASSERT(!ctx || reader);
+    JADE_ASSERT(!reader || inbound_reader_is_allowed(reader));
 
     const TickType_t delay = 40 / portTICK_PERIOD_MS;
     do {
@@ -460,7 +470,7 @@ void jade_process_get_in_message(void* ctx, inbound_message_reader_fn_t reader, 
     } while (blocking);
 }
 
-static void process_cbor_msg(void* ctx, uint8_t* data, size_t size)
+void process_cbor_msg(void* ctx, uint8_t* data, size_t size)
 {
     JADE_ASSERT(size > 2); // 1 for source and 1 for data
     cbor_msg_t* cbor_msg = ctx;
