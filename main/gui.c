@@ -672,16 +672,24 @@ static void push_selectable(gui_activity_t* activity, gui_view_node_t* node, uin
     }
 }
 
+// Updatable whitelist
+static bool icon_animation_frame_callback(gui_view_node_t* node, void* extra_args);
+static bool text_scroll_frame_callback(gui_view_node_t* node, void* extra_args);
+
+static bool updatable_is_allowed(gui_updatable_callback_t callback)
+{
+    return callback == icon_animation_frame_callback || callback == text_scroll_frame_callback;
+}
+
 static void push_updatable(gui_view_node_t* node, gui_updatable_callback_t callback, void* extra_args)
 {
-    JADE_ASSERT(node);
-    JADE_ASSERT(node->activity);
+    JADE_ASSERT(node && node->activity);
+    JADE_ASSERT(updatable_is_allowed(callback));
 
     // allocate & fill all the fields
     updatable_t* us = JADE_CALLOC(1, sizeof(updatable_t));
 
     us->node = node;
-
     us->callback = callback;
     us->extra_args = extra_args;
 
@@ -2545,14 +2553,11 @@ static bool update_updateables(void)
 
     updatable_t* current = current_activity->updatables;
     while (current) {
-        // this shouldn't really happen but better add a check anyways
-        if (!current->callback) {
-            continue;
-        }
+        JADE_ASSERT(updatable_is_allowed(current->callback));
 
-        // let's see if we need to repaint this
-        bool result = current->callback(current->node, current->extra_args);
-        if (result) {
+        // Callbacks return whether we need to repaint the node
+        const bool need_repaint = current->callback(current->node, current->extra_args);
+        if (need_repaint) {
             // repaint the node on-screen
             // TODO: we are ignoring the return code here...
             repaint_node(current->node);
