@@ -238,7 +238,7 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
     wallet_get_default_xpub_export_path(script_variant, account_index, path, EXPORT_XPUB_PATH_LEN, &path_len);
 
     // Construct BC-UR CBOR message for 'crypto-account' or 'crypto-hdkey' bcur
-    uint8_t cbor[128];
+    uint8_t cbor[136]; // sufficient
     size_t written = 0;
     if (use_format_hdkey) {
         bcur_build_cbor_crypto_hdkey(path, path_len, cbor, sizeof(cbor), &written);
