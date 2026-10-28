@@ -281,7 +281,7 @@ def check_mem_stats(jadeapi, startinfo, endinfo, has_psram, has_ble, strict, ret
         assert len(endinfo) == NUM_VALUES_VERINFO, \
             f'Unexpected version info values: {len(endinfo)}'
         return check_mem_stats(
-            jadeapi, startinfo, endinfotest_bad_params, has_psram, has_ble, strict,
+            jadeapi, startinfo, endinfo, has_psram, has_ble, strict,
             retry_count=retry_count + 1)
 
     assert not breaches, \
