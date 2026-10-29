@@ -37,6 +37,16 @@ def _test_good_params(jade, rpc_args):
     return reply['result']
 
 
+def test_long_field(jade):
+    # {"id": "1", "method": "ping"} with an 8 byte length for "ping"
+    long_ping = 'a26269646131666d6574686f647b000000000000000470696e67'
+    jade.jade.write(bytes.fromhex(long_ping))
+    reply = jade.jade.read_response()
+    assert reply['id'] == '1'
+    assert 'error' not in reply
+    assert 'result' in reply  # 'result' may be 0 or 1
+
+
 def test_bad_message(jade):
     bad_requests = [{'method': 'get_version_info'},  # no-id
                     {'id': '2'},               # no method

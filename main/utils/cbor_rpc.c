@@ -123,27 +123,31 @@ bool rpc_request_valid(const CborValue* request)
     return true;
 }
 
-static uint8_t get_skip(const uint8_t lencode)
+static bool get_skip(const uint8_t lencode, size_t* skip_out)
 {
+    JADE_INIT_OUT_SIZE(skip_out);
     /**
-     * The value here indicates the size of the following varint-like data-length field.
+     * lencode indicates the size of the following varint-like data-length field.
      * <24 - Just skip this byte (as it contains the length)
-     *  24 - Next byte is uint8_t for payload length, so skip 2 bytes (this and next one)
-     *  25 - Next byte is uint16_t for payload length, so skip 3 bytes (this and next two)
-     *  26 - Next byte is uint32_t for payload length, so skip 5 bytes (this and next four)
-     *  27 is theoretically uint64_t but we are not expecting payloads in that size range!
+     *  24 - Next byte is uint8_t for payload length, so skip 2 bytes (this and next 1)
+     *  25 - Next 2 bytes are uint16_t for payload length, so skip 3 bytes (this and next 2)
+     *  26 - Next 4 byte are uint32_t for payload length, so skip 5 bytes (this and next 4)
+     *  27 - Next 8 bytes are uint64_t payload length, so skip 9 bytes (this and next 8)
      **/
-    JADE_ASSERT(lencode < 27);
     if (lencode < 24) {
-        return 1;
+        *skip_out = 1;
     } else if (lencode == 24) {
-        return 2;
+        *skip_out = 2;
     } else if (lencode == 25) {
-        return 3;
+        *skip_out = 3;
     } else if (lencode == 26) {
-        return 5;
+        *skip_out = 5;
+    } else if (lencode == 27) {
+        *skip_out = 9;
+    } else {
+        return false; /* Indefinite/reserved/unknown length; treat as absent */
     }
-    return 0;
+    return true;
 }
 
 static void rpc_get_raw_type_ptr(const CborValue* value, const uint8_t** data, size_t* size, const uint8_t masktype)
@@ -164,7 +168,12 @@ static void rpc_get_raw_type_ptr(const CborValue* value, const uint8_t** data, s
     }
 
     const uint8_t lencode = *next_byte & CBOR_LEN_MASK;
-    *data = next_byte + get_skip(lencode);
+    size_t bytes_to_skip = 0;
+    if (!get_skip(lencode, &bytes_to_skip)) {
+        *size = 0;
+        return;
+    }
+    *data = next_byte + bytes_to_skip;
 }
 
 void rpc_get_raw_bytes_ptr(const CborValue* value, const uint8_t** data, size_t* size)
