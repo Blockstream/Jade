@@ -5,6 +5,15 @@
 from . import *
 
 
+def _strip_modifiable_changes(result):
+    psbt = wally.psbt_from_bytes(result, 0)
+    flags = wally.WALLY_PSBT_TXMOD_INPUTS | wally.WALLY_PSBT_TXMOD_OUTPUTS
+    if wally.psbt_get_version(psbt) == 2:
+        # Remove changes to the elements tx modifiable flags
+        wally.psbt_set_tx_modifiable_flags(psbt, flags)
+    return wally.psbt_to_bytes(psbt, 0)
+
+
 def _test_sign_psbt(jade, test_case):
     psbt_bin = test_case['input']['psbt']
 
@@ -34,6 +43,7 @@ def _test_sign_psbt(jade, test_case):
 
     # Otherwise, should have worked, check expected output
     assert 'expected_error' not in test_case
+    rslt = _strip_modifiable_changes(rslt)
     assert rslt == test_case['expected_output']['psbt'], base64.b64encode(rslt).decode()
 
     # Optionally test extracted tx
