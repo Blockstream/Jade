@@ -190,8 +190,7 @@ static bool parse_descriptor(const char* name, const descriptor_data_t* descript
     struct wally_map values;
     JADE_WALLY_VERIFY(wally_map_init(descriptor->num_values, NULL, &values));
     string_values_to_map(descriptor->values, descriptor->num_values, &values);
-    const uint32_t wallet_policy_flags
-        = descriptor->num_values ? (WALLY_MINISCRIPT_POLICY_TEMPLATE | WALLY_MINISCRIPT_UNIQUE_KEYPATHS) : 0;
+    const uint32_t wallet_policy_flags = descriptor->num_values ? WALLY_MINISCRIPT_POLICY_TEMPLATE : 0;
 
     // Parse descriptor string - note we pass a sanity max depth to protect against
     // stack overflow during parsing.  It's possible that parsing here succeeds but we later
