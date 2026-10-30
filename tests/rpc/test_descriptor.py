@@ -37,14 +37,14 @@ Z9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
               'datavalues': {'@B': blinding_key, '@0': signer}}),
             'not supported on liquid')
 
-    # Non-liquid descriptor with SLIP-77 should fail
+    # Non-liquid descriptor with SLIP-77 will fail to parse in wally
     check_bad_params(
         jade.jade,
         ('btc_s77_bad', 'register_descriptor',
          {'network': 'testnet', 'descriptor_name': 'btcs77bad',
           'descriptor': descriptor_with_slip77,
           'datavalues': {'@B': blinding_key, '@0': signer}}),
-        'Descriptor must not be confidential for bitcoin network')
+        'Failed to parse descriptor')
 
     # Non-liquid descriptor without SLIP-77 should pass.
     assert jade.register_descriptor(
