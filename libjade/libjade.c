@@ -147,7 +147,7 @@ esp_log_level_t _libjade_log_level = ESP_LOG_NONE;
 // clang-format on
 #endif
 
-esp_app_desc_t running_app_info = { "123456789012345678901" };
+esp_app_desc_t running_app_info = { LIBJADE_FIRMWARE_VERSION };
 esp_chip_info_t chip_info = { 0 };
 
 void esp_restart() { abort(); }

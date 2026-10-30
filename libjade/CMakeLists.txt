@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.16) # same we use in idf
 project(libjade C CXX)
 
+execute_process(COMMAND git -C "${CMAKE_CURRENT_SOURCE_DIR}/.." describe --tags
+    OUTPUT_VARIABLE LIBJADE_GIT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+set(LIBJADE_FIRMWARE_VERSION "${LIBJADE_GIT_VERSION}" CACHE STRING "Firmware version")
+string(LENGTH "${LIBJADE_FIRMWARE_VERSION}" LIBJADE_VERSION_LENGTH)
+if(NOT LIBJADE_FIRMWARE_VERSION MATCHES "^[0-9]+(\\.[0-9]+)+(-[0-9]+-g[0-9a-f]+)?$" OR LIBJADE_VERSION_LENGTH GREATER_EQUAL 32)
+    message(WARNING "Invalid firmware version '${LIBJADE_FIRMWARE_VERSION}'; using 0.0.0")
+    set(LIBJADE_FIRMWARE_VERSION "0.0.0" CACHE STRING "Firmware version" FORCE)
+endif()
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build (Debug|Release|RelWithDebInfo|MinSizeRel|Sanitize)" FORCE)
   message(STATUS "Building in ${CMAKE_BUILD_TYPE} mode (default)")
@@ -134,7 +143,7 @@ target_include_directories(jade PRIVATE ${COMMON_INCLUDES})
 
 set_source_files_properties(libjade.c PROPERTIES COMPILE_OPTIONS
   "-Wall;-W;-Wno-format;-Wno-unused-function;-Wno-unused-parameter;-Wno-sign-compare;-Wno-missing-field-initializers;-Wno-narrowing")
-target_compile_definitions(jade PRIVATE LIBJADE_BUILD CBOR_PARSER_MAX_RECURSIONS=${CBOR_MAX_RECURSIONS})
+target_compile_definitions(jade PRIVATE LIBJADE_BUILD LIBJADE_FIRMWARE_VERSION=\"${LIBJADE_FIRMWARE_VERSION}\" CBOR_PARSER_MAX_RECURSIONS=${CBOR_MAX_RECURSIONS})
 
 # libjade selfcheck overrides - used for internal firmware unit tests.
 # build with -DSELFCHECK=<test> to link libjade/selfcheck/<test>.c
@@ -148,7 +157,7 @@ endif()
 add_library(jade_static STATIC ${COMMON_SRC})
 target_link_libraries(jade_static PRIVATE m z mbedtls mbedcrypto mbedx509 bcur)
 target_include_directories(jade_static PRIVATE ${COMMON_INCLUDES})
-target_compile_definitions(jade_static PRIVATE LIBJADE_BUILD CBOR_PARSER_MAX_RECURSIONS=${CBOR_MAX_RECURSIONS})
+target_compile_definitions(jade_static PRIVATE LIBJADE_BUILD LIBJADE_FIRMWARE_VERSION=\"${LIBJADE_FIRMWARE_VERSION}\" CBOR_PARSER_MAX_RECURSIONS=${CBOR_MAX_RECURSIONS})
 target_compile_definitions(jade PRIVATE CONFIG_DISPLAY_WIDTH=${JADE_DISPLAY_WIDTH} CONFIG_DISPLAY_HEIGHT=${JADE_DISPLAY_HEIGHT})
 target_compile_definitions(jade_static PRIVATE CONFIG_DISPLAY_WIDTH=${JADE_DISPLAY_WIDTH} CONFIG_DISPLAY_HEIGHT=${JADE_DISPLAY_HEIGHT})
 
