@@ -51,6 +51,26 @@ Z9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
       'testnet', 'btcnos77', descriptor_no_slip77, {'@0': signer}) is True
 
 
+def test_descriptor_tapscript_rejected(jade):
+    # TODO: enable taproot descriptors containing tapscript
+    tpub1 = ''
+    tr_keys = {
+        "@0": "[e3ebcc79/86'/1'/0']"
+        "tpubDCXH5giLNcN6MfDQwvskJVJMT4HemX3LKmKFac5xe9rzaFVkiUb"
+        "x8wrPAt9NGKW2yXS8XsnqYm6FSP36WD4fnhNr5CweqaRwZcknepxtc9d",
+        "@1": "[d34db33f/44'/0'/0']"
+        "tpubD6NzVbkrYhZ4XJDrzRvuxHEyQaPd1mwwdDofEJwekX18tAdsqeK"
+        "fxss79AJzg1431FybXg5rfpTrJF4iAhyR7RubberdzEQXiRmXGADH2eA"
+    }
+    tr_tapscript = 'tr(@0/**,pk(@1/**))'
+    expected_message = 'Descriptors with tapscript are not yet supported'
+
+    with pytest.raises(JadeError) as excinfo:
+        jade.register_descriptor('testnet', 'tr_tapscript', tr_tapscript, tr_keys)
+    assert excinfo.value.code == JadeError.BAD_PARAMETERS
+    assert excinfo.value.message == expected_message
+
+
 @with_test_cases('tests/rpc/data/descriptor/descriptor_*.json')
 def test_miniscript_descriptor_registration(jade, test_case):
     """Test descriptor wallets"""

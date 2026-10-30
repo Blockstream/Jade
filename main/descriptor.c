@@ -264,6 +264,15 @@ static bool parse_descriptor(const char* name, const descriptor_data_t* descript
         goto fail;
     }
 
+    uint32_t num_leaves = 0;
+    JADE_WALLY_VERIFY(wally_descriptor_get_taproot_num_leaves(d, &num_leaves));
+    if (num_leaves) {
+        // TODO: Add support for script path spends
+        JADE_LOGE("Descriptor '%s' appears to contain tapscript", name);
+        *errmsg = "Descriptors with tapscript are not yet supported";
+        goto fail;
+    }
+
     const bool is_liquid = network_id != NETWORK_NONE && network_is_liquid(network_id);
     if (is_liquid || (features & WALLY_MS_ANY_BLINDING_KEY)) {
         if (!descriptor_allow_liquid()) {
