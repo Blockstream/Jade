@@ -174,6 +174,10 @@ static void rpc_get_raw_type_ptr(const CborValue* value, const uint8_t** data, s
         return;
     }
     *data = next_byte + bytes_to_skip;
+
+    // Belt-n-braces: declared length must fit in the remaining parser bytes
+    const uint8_t* const end = value->parser ? value->parser->source.end : NULL;
+    JADE_ASSERT(end && *data < end && *size <= (size_t)(end - *data));
 }
 
 void rpc_get_raw_bytes_ptr(const CborValue* value, const uint8_t** data, size_t* size)
