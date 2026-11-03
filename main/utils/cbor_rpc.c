@@ -259,6 +259,9 @@ bool rpc_get_n_bytes(const char* field, const CborValue* value, const size_t exp
 void rpc_get_string_ptr(const char* field, const CborValue* value, const char** data, size_t* size)
 {
     rpc_get_type_ptr(field, value, (const uint8_t**)data, size, CBOR_TEXT_MASK);
+    if (*data) {
+        JADE_ASSERT(!memchr(*data, '\0', *size)); // Disallow embedded NUL
+    }
 }
 
 void rpc_get_string(const char* field, const size_t max, const CborValue* value, char* data, size_t* written)
@@ -298,6 +301,7 @@ void rpc_get_string(const char* field, const size_t max, const CborValue* value,
     JADE_ASSERT(cberr == CborNoError);
     JADE_ASSERT(local_written < max); // local_written does not include nul terminator
     JADE_ASSERT(data[local_written] == '\0');
+    JADE_ASSERT(strlen(data) == local_written); // Disallow embedded NUL
     *written = local_written;
 }
 
