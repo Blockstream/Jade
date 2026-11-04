@@ -702,6 +702,53 @@ static bool psbt_update_outputs(const network_t network_id, struct wally_psbt* p
     return true;
 }
 
+// Return whether an input has a supported signing script
+static bool is_valid_input_signing_script(
+    const struct wally_psbt* psbt, const size_t index, const struct wally_tx_output* utxo, const uint32_t sig_type)
+{
+    JADE_ASSERT(psbt && index < psbt->num_inputs && utxo);
+
+    if (sig_type != WALLY_SIGTYPE_PRE_SW && sig_type != WALLY_SIGTYPE_SW_V0 && sig_type != WALLY_SIGTYPE_SW_V1) {
+        return false; // Unknown sig_type
+    }
+
+    size_t prevout_type = 0;
+    size_t redeem_len = 0;
+    if (wally_scriptpubkey_get_type(utxo->script, utxo->script_len, &prevout_type) != WALLY_OK
+        || wally_psbt_get_input_redeem_script_len(psbt, index, &redeem_len) != WALLY_OK
+        || (prevout_type == WALLY_SCRIPT_TYPE_P2SH && !redeem_len)) {
+        return false; // P2SH missing the corresponding redeem script
+    }
+
+    uint8_t script[WALLY_SCRIPTSIG_MAX_LEN];
+    size_t script_len = 0;
+    size_t scriptcode_len = 0;
+    if (wally_psbt_get_input_signing_script(psbt, index, script, sizeof(script), &script_len) != WALLY_OK
+        || script_len > sizeof(script)
+        || wally_psbt_get_input_scriptcode_len(psbt, index, script, script_len, &scriptcode_len) != WALLY_OK
+        || scriptcode_len > WALLY_SCRIPTSIG_MAX_LEN) {
+        return false; // Signing script or scriptcode too large
+    }
+
+    if (sig_type == WALLY_SIGTYPE_SW_V1 && prevout_type != WALLY_SCRIPT_TYPE_P2TR) {
+        return false; // Attempting to v1 sign a non-v1 input
+    }
+
+    size_t witness_len = 0;
+    size_t script_type = 0;
+    if (wally_psbt_get_input_witness_script_len(psbt, index, &witness_len) != WALLY_OK) {
+        return false; // Error fetching witness script length
+    }
+    if (witness_len) {
+        // Witness script is present
+        if (wally_scriptpubkey_get_type(script, script_len, &script_type) != WALLY_OK
+            || script_type != WALLY_SCRIPT_TYPE_P2WSH) {
+            return false; // scriptPubKey/redeem script is not P2WSH
+        }
+    }
+    return true;
+}
+
 // Deduce the network to try to sign with given a psbt/pset.
 network_t network_from_psbt_type(struct wally_psbt* psbt)
 {
@@ -851,7 +898,11 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
         }
-        JADE_ASSERT(sig_type);
+        if (!is_valid_input_signing_script(psbt, index, utxo, sig_type)) {
+            *errmsg = "Unsupported or invalid input script";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
         sig_types[index] = (uint8_t)sig_type; // Sufficient
         if (sig_type == WALLY_SIGTYPE_SW_V1 && txtype == TXTYPE_SWAP) {
             // The Liquid segwit v1 signature hash does not currently support swaps
@@ -880,7 +931,11 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         if (utxo->script && utxo->script_len) {
             bool is_p2tr = false;
             const script_flavour_t script_flavour = get_script_flavour(utxo->script, utxo->script_len, &is_p2tr);
-            JADE_ASSERT(is_p2tr == (sig_type == WALLY_SIGTYPE_SW_V1));
+            if (is_p2tr != (sig_type == WALLY_SIGTYPE_SW_V1)) {
+                *errmsg = "Unsupported or invalid input script";
+                retval = CBOR_RPC_BAD_PARAMETERS;
+                goto cleanup;
+            }
             update_aggregate_scripts_flavour(script_flavour, &aggregate_inputs_scripts_flavour);
         }
 
