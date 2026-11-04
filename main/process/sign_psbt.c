@@ -846,7 +846,11 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         }
 
         uint32_t sig_type;
-        JADE_WALLY_VERIFY(wally_psbt_get_input_signature_type(psbt, index, &sig_type));
+        if (wally_psbt_get_input_signature_type(psbt, index, &sig_type) != WALLY_OK) {
+            *errmsg = "Failed to determine input signature type";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
         JADE_ASSERT(sig_type);
         sig_types[index] = (uint8_t)sig_type; // Sufficient
         if (sig_type == WALLY_SIGTYPE_SW_V1 && txtype == TXTYPE_SWAP) {
