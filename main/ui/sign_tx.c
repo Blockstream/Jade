@@ -659,13 +659,14 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
     JADE_INIT_OUT_PPTR(actfeeamt);
     JADE_INIT_OUT_PPTR(actwarning);
 
-    char display_str[128];
+    char display_str[160];
     const bool show_help_btn = false;
     gui_view_node_t* node;
 
     // First row, fee amount + ticker
     gui_view_node_t* splitfee;
-    gui_make_hsplit(&splitfee, GUI_SPLIT_RELATIVE, 3, 18, 52, 30);
+    const bool is_btc = strcmp(ticker, TICKER_BTC) == 0;
+    gui_make_hsplit(&splitfee, GUI_SPLIT_RELATIVE, 3, 18, is_btc ? 60 : 52, is_btc ? 22 : 30);
 
     gui_make_text(&node, "Fee:", TFT_WHITE);
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
@@ -691,7 +692,12 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
         gui_make_text(&warning, warning_msg, TFT_WHITE);
         gui_set_align(warning, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-        *actwarning = make_show_single_value_activity("Warning", warning_msg, show_help_btn);
+        btn_data_t warning_hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+        ret = snprintf(display_str, sizeof(display_str), "%s\n", warning_msg);
+        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
+        const char* message[] = { display_str };
+        *actwarning = make_show_message_activity(message, 1, "Warning", warning_hdrbtns, 2, NULL, 0);
     }
 
     // Buttons - Cancel and Confirm
@@ -755,12 +761,14 @@ static bool show_final_confirmation_activity(
     }
 }
 
-bool show_btc_final_confirmation_activity(const network_t network_id, const uint64_t fee, const char* warning_msg)
+bool show_btc_final_confirmation_activity(
+    const network_t network_id, const uint64_t fee, const char* warning_msg, const bool is_minimum_fee)
 {
     JADE_ASSERT(!network_is_liquid(network_id));
+    JADE_ASSERT(!is_minimum_fee || warning_msg);
 
-    char feeamount[32];
-    const int ret = snprintf(feeamount, sizeof(feeamount), "%.08f", 1.0 * fee / 1e8);
+    char feeamount[33];
+    const int ret = snprintf(feeamount, sizeof(feeamount), "%.08f%s", 1.0 * fee / 1e8, is_minimum_fee ? "+" : "");
     JADE_ASSERT(ret > 0 && ret < sizeof(feeamount));
 
     return show_final_confirmation_activity("Send Transaction", feeamount, TICKER_BTC, warning_msg);

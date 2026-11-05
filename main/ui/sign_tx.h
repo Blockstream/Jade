@@ -12,7 +12,8 @@ struct wally_tx;
 bool show_btc_transaction_outputs_activity(
     network_t network_id, const struct wally_tx* tx, const output_info_t* output_info);
 
-bool show_btc_final_confirmation_activity(const network_t network_id, uint64_t fee, const char* warning_msg);
+bool show_btc_final_confirmation_activity(
+    const network_t network_id, uint64_t fee, const char* warning_msg, bool is_minimum_fee);
 
 bool show_elements_transaction_outputs_activity(network_t network_id, const struct wally_tx* tx,
     const output_info_t* output_info, const asset_info_t* assets, size_t num_assets);

@@ -761,6 +761,38 @@ network_t network_from_psbt_type(struct wally_psbt* psbt)
     return is_elements ? NETWORK_LIQUID : NETWORK_BITCOIN;
 }
 
+// Verify a btc transaction prevout.
+// TODO: Use wally to verify this when its validation functions are exposed.
+static bool is_valid_btc_prevout(
+    const struct wally_psbt_input* input, const struct wally_tx_input* tx_input, const char** errmsg)
+{
+    JADE_ASSERT(input && input->utxo && tx_input && errmsg);
+
+    uint8_t txhash[WALLY_TXHASH_LEN];
+    const int res = wally_tx_get_txid(input->utxo, txhash, sizeof(txhash));
+    if (res != WALLY_OK || sodium_memcmp(txhash, tx_input->txhash, sizeof(txhash)) != 0) {
+        *errmsg = "Input non-witness utxo cannot be verified against transaction input data";
+        return false;
+    }
+
+    if (input->utxo->num_outputs <= tx_input->index) {
+        *errmsg = "Input non-witness utxo missing corresponding output";
+        return false;
+    }
+
+    const struct wally_tx_output* const witness = input->witness_utxo;
+    if (witness) {
+        const struct wally_tx_output* const prevout = &input->utxo->outputs[tx_input->index];
+        if (witness->satoshi != prevout->satoshi || witness->script_len != prevout->script_len
+            || (prevout->script_len && sodium_memcmp(witness->script, prevout->script, prevout->script_len))) {
+            *errmsg = "Input witness utxo does not match non-witness utxo";
+            return false;
+        }
+    }
+
+    return true;
+}
+
 // Sign a psbt/pset - the passed wally psbt struct is updated with any signatures.
 // Returns 0 if no errors occurred - does not necessarily indicate that signatures were added.
 // Returns an rpc/message error code on error, and the error string should be populated.
@@ -838,6 +870,7 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
     // For inputs we are signing, record the signature type
     uint8_t* const sig_types = JADE_CALLOC(psbt->num_inputs, sizeof(uint8_t));
     uint64_t input_amount = 0;
+    size_t num_unverified_inputs = 0;
     uint8_t signing_flags = 0;
     char wallet_name[NVS_KEY_NAME_MAX_SIZE] = { '\0' };
     multisig_data_t* multisig_data = NULL;
@@ -846,7 +879,6 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         struct wally_psbt_input* input = &psbt->inputs[index];
 
         // Get the utxo being spent
-        // FIXME: for btc only accept 'non-witness utxo' ?
         const struct wally_tx_output* utxo = NULL;
         if (wally_psbt_get_input_best_utxo(psbt, index, &utxo) != WALLY_OK || !utxo) {
             *errmsg = "Input utxo missing";
@@ -854,8 +886,10 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
             goto cleanup;
         }
         if (!for_liquid) {
-            // Bitcoin: Collect input total for fee calculation
-            if (!checked_add_uint64(input_amount, utxo->satoshi, &input_amount)) {
+            if (!input->utxo) {
+                // Exclude witness-only amounts from the verified fee total
+                ++num_unverified_inputs;
+            } else if (!checked_add_uint64(input_amount, utxo->satoshi, &input_amount)) {
                 *errmsg = "Total input amounts exceed maximum";
                 retval = CBOR_RPC_BAD_PARAMETERS;
                 goto cleanup;
@@ -863,7 +897,12 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         }
 
         if (!key_iter_input_begin_public(psbt, index, &iter)) {
-            // Our key not present: we are not signing this input
+            // Our key not present: we are not signing this input.
+            // Fox BTC, validate the input's prevout, as it contributes to the fee
+            if (!for_liquid && input->utxo && !is_valid_btc_prevout(input, &tx->inputs[index], errmsg)) {
+                retval = CBOR_RPC_BAD_PARAMETERS; // Invalid prevout
+                goto cleanup;
+            }
             continue;
         }
 
@@ -1092,7 +1131,7 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
         }
-        if (output_amount > input_amount) {
+        if (!num_unverified_inputs && output_amount > input_amount) {
             *errmsg = "Total input amounts less than total output amounts";
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
@@ -1107,8 +1146,8 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
 
         // User to agree fee amount
         // Check to see whether user accepted or declined
-        if (!show_btc_fee_confirmation_activity(
-                network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
+        if (!show_btc_fee_confirmation_activity(network_id, tx, output_info, aggregate_inputs_scripts_flavour,
+                input_amount, output_amount, num_unverified_inputs)) {
             *errmsg = "User declined to sign psbt";
             retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;

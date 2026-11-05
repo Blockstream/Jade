@@ -66,7 +66,8 @@ void params_genesis_hash(network_t network_id, bool for_liquid, const uint8_t* g
     uint8_t* genesis_out, size_t genesis_out_len, const char** errmsg);
 
 bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
-    script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount);
+    script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount,
+    size_t num_unverified_inputs);
 
 bool show_elements_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx,
     const output_info_t* outinfo, script_flavour_t aggregate_inputs_scripts_flavour, uint64_t fees, TxType_t txtype,

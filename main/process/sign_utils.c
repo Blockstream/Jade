@@ -777,19 +777,20 @@ void params_genesis_hash(network_t network_id, const bool for_liquid, const uint
 
 bool show_btc_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,
     const output_info_t* outinfo, const script_flavour_t aggregate_inputs_scripts_flavour, const uint64_t input_amount,
-    const uint64_t output_amount)
+    const uint64_t output_amount, const size_t num_unverified_inputs)
 {
     JADE_ASSERT(tx);
-    // outputinfo is optional
-    JADE_ASSERT(input_amount);
-    JADE_ASSERT(output_amount);
-
-    JADE_ASSERT(input_amount >= output_amount);
+    // outinfo is optional
+    // Amount checks only make sense for a complete input total
+    if (!num_unverified_inputs) {
+        JADE_ASSERT(input_amount && output_amount && input_amount >= output_amount);
+    }
 
     // User to agree fee amount
     // The fee amount is the shortfall between input and output amounts
+    // With unverified inputs excluded, 'fees' is only a lower bound, clamped to zero
     // The 'spend' amount is the total of the outputs not flagged as change
-    const uint64_t fees = input_amount - output_amount;
+    const uint64_t fees = input_amount > output_amount ? input_amount - output_amount : 0;
     uint64_t spend_amount = output_amount;
     if (outinfo) {
         for (size_t i = 0; i < tx->num_outputs; ++i) {
@@ -801,10 +802,19 @@ bool show_btc_fee_confirmation_activity(const network_t network_id, const struct
         }
     }
 
-    char warnbuf[128]; // sufficient
+    char warnbuf[144]; // sufficient
     const char* warning_msg = NULL;
     const bool warn_fees = fees && fees >= spend_amount;
     const bool warn_scripts = aggregate_inputs_scripts_flavour == SCRIPT_FLAVOUR_MIXED;
+    if (num_unverified_inputs) {
+        // Show the lower bound instead of exact fee as excluded inputs may increase it
+        const int retval = snprintf(warnbuf, sizeof(warnbuf), "Fee excludes %lu unverified input%s%s%s%s%s",
+            (unsigned long)num_unverified_inputs, num_unverified_inputs == 1 ? "" : "s", warn_fees ? " " : "",
+            warn_fees ? WARN_MSG_HIGH_FEES : "", warn_scripts ? " " : "", warn_scripts ? WARN_MSG_MIXED_INPUTS : "");
+        JADE_ASSERT(retval > 0 && retval < sizeof(warnbuf));
+        return show_btc_final_confirmation_activity(network_id, fees, warnbuf, true);
+    }
+
     if (warn_fees && warn_scripts) {
         const int retval = snprintf(warnbuf, sizeof(warnbuf), "%s %s", WARN_MSG_HIGH_FEES, WARN_MSG_MIXED_INPUTS);
         JADE_ASSERT(retval > 0 && retval < sizeof(warnbuf));
@@ -816,7 +826,7 @@ bool show_btc_fee_confirmation_activity(const network_t network_id, const struct
     }
 
     // Return whether the user accepts or declines
-    return show_btc_final_confirmation_activity(network_id, fees, warning_msg);
+    return show_btc_final_confirmation_activity(network_id, fees, warning_msg, false);
 }
 
 bool show_elements_fee_confirmation_activity(const network_t network_id, const struct wally_tx* tx,

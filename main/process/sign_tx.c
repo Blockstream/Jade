@@ -878,7 +878,7 @@ static void sign_tx_impl(jade_process_t* process, const bool for_liquid)
         // User to agree fee amount
         // If user cancels we'll send the 'cancelled' error response for the last input message only
         if (!show_btc_fee_confirmation_activity(
-                network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount)) {
+                network_id, tx, output_info, aggregate_inputs_scripts_flavour, input_amount, output_amount, 0)) {
             // If using ae-signatures, we need to load the message to send the error back on
             if (use_ae_signatures) {
                 jade_process_load_in_message(process, true);
