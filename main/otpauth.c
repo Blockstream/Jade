@@ -120,6 +120,10 @@ bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx)
     JADE_ASSERT(uri);
     JADE_ASSERT(otp_ctx);
 
+    if (!uri_len || uri_len >= OTP_MAX_URI_LEN) {
+        return false;
+    }
+
     struct http_parser_url u;
     http_parser_url_init(&u);
     OTP_CHECK_BOOL_RETURN(http_parser_parse_url(uri, uri_len, 0, &u) == 0);
@@ -779,8 +783,7 @@ static bool get_otp_encryption_key(uint8_t* aeskey, const size_t aeskey_len)
 bool otp_save_uri(const char* otp_name, const char* uri, const size_t uri_len)
 {
     JADE_ASSERT(otp_name);
-    JADE_ASSERT(uri);
-    JADE_ASSERT(uri_len);
+    JADE_ASSERT(uri && uri_len && uri_len < OTP_MAX_URI_LEN);
 
     bool ret = false;
     uint8_t encrypted[AES_ENCRYPTED_LEN(uri_len)];

@@ -96,10 +96,11 @@ def test_totp(jade):
     # Test bad uri parameters
     totp_uri = '&'.join(totp_uri.split('&')[:-2])
     bad_params = [
-        '&digits=',     # digits not given
-        '&digits=7',    # digits not valid (6 or 8)
-        '&period=',     # period empty
-        '&period=256',  # period too large
+        '&digits=',         # digits not given
+        '&digits=7',        # digits not valid (6 or 8)
+        '&period=',         # period empty
+        '&period=256',      # period too large
+        '&z=' + 'A' * 512,  # uri too long
     ]
     for params in bad_params:
         try:
