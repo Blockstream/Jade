@@ -87,7 +87,7 @@ static size_t get_file_size(const char* filename)
     return !stat(filename, &st) ? st.st_size : 0;
 }
 
-static size_t read_file_to_buffer(const char* filename, uint8_t* buffer, size_t buf_len)
+static WARN_UNUSED_RESULT size_t read_file_to_buffer(const char* filename, uint8_t* buffer, size_t buf_len)
 {
     JADE_ASSERT(filename);
     JADE_ASSERT(buffer);
@@ -103,14 +103,18 @@ static size_t read_file_to_buffer(const char* filename, uint8_t* buffer, size_t 
 
     size_t bytes_read = 0;
     while (bytes_read < file_size) {
-        bytes_read += fread(buffer + bytes_read, 1, buf_len - bytes_read, fp);
+        const size_t n = fread(buffer + bytes_read, 1, buf_len - bytes_read, fp);
+        if (!n) {
+            break; // Failed: return partial read
+        }
+        bytes_read += n;
     }
-    fclose(fp);
+    fclose(fp); // Note we ignore fclose failure on reading
 
     return bytes_read;
 }
 
-static size_t write_buffer_to_file(const char* filename, const uint8_t* buffer, size_t buf_len)
+static WARN_UNUSED_RESULT size_t write_buffer_to_file(const char* filename, const uint8_t* buffer, size_t buf_len)
 {
     JADE_ASSERT(filename);
     JADE_ASSERT(buffer);
@@ -123,10 +127,15 @@ static size_t write_buffer_to_file(const char* filename, const uint8_t* buffer, 
 
     size_t bytes_written = 0;
     while (bytes_written < buf_len) {
-        bytes_written += fwrite(buffer + bytes_written, 1, buf_len - bytes_written, fp);
+        const size_t n = fwrite(buffer + bytes_written, 1, buf_len - bytes_written, fp);
+        if (!n) {
+            break; // Failed: return partial write
+        }
+        bytes_written += n;
     }
-    fclose(fp);
-
+    if (fclose(fp) != 0) {
+        bytes_written = 0; // Failed: assume a partial write
+    }
     return bytes_written;
 }
 
@@ -517,7 +526,7 @@ static bool read_hash_file_to_buffer(const char* filename, uint8_t* buffer, size
     }
 
     const size_t bytes_read = read_file_to_buffer(filename, (uint8_t*)hash_hex, sizeof(hash_hex));
-    if (bytes_read != 64) {
+    if (bytes_read != sizeof(hash_hex)) {
         return false;
     }
 
@@ -792,7 +801,11 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
 
     // Try to read as binary psbt first
     const size_t bytes_read = read_file_to_buffer(filename, psbt_bytes, psbt_len);
-    JADE_ASSERT(bytes_read == psbt_len);
+    if (bytes_read != psbt_len) {
+        free(psbt_bytes);
+        await_error("PSBT file read failed");
+        return false;
+    }
     if (!deserialise_psbt(psbt_bytes, psbt_len, &psbt) || !psbt) {
         // Failed ...
         // Try to interpret as base64 text file
@@ -862,7 +875,10 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
         const size_t psbt64_len = strlen(psbt64);
         const size_t written = write_buffer_to_file(output_filename, (const uint8_t*)psbt64, psbt64_len);
         JADE_WALLY_VERIFY(wally_free_string(psbt64));
-        JADE_ASSERT(written == psbt64_len);
+        if (written != psbt64_len) {
+            await_error_2("Failed to", "write PSBT");
+            goto cleanup;
+        }
     } else {
         // Serialise signed PSBT to bytes
         if (!serialise_psbt(psbt, &psbt_bytes, &psbt_len)) {
@@ -870,7 +886,10 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
             goto cleanup;
         }
         const size_t written = write_buffer_to_file(output_filename, psbt_bytes, psbt_len);
-        JADE_ASSERT(written == psbt_len);
+        if (written != psbt_len) {
+            await_error_2("Failed to", "write PSBT");
+            goto cleanup;
+        }
     }
 
     const size_t mount_point_len = strlen(USBSTORAGE_MOUNT_POINT);
