@@ -40,16 +40,18 @@ def test_hotp(jade):
     # Test bad uri parameters
     hotp_uri = '&'.join(hotp_uri.split('&')[:-1])
     bad_params = [
-        '',                                # counter not given
-        '&counter=',                       # counter empty
-        '&counter=000000000000000000001',  # counter too long
-        '&counter=18446744073709551616',   # counter too large
-        '&counter=abc',                    # counter not a number
+        hotp_uri,                                            # counter not given
+        hotp_uri + '&counter=',                              # counter empty
+        hotp_uri + '&counter=000000000000000000001',         # counter too long
+        hotp_uri + '&counter=18446744073709551616',          # counter too large
+        hotp_uri + '&counter=abc',                           # counter not a number
+        'otpauth://hotp?secret=JBSWY3DPEHPK3PXP&counter=0',  # No path/label (1)
+        'otpauth://hotp/?secret=JBSWY3DPEHPK3PXP&counter=0'  # No path/label (2)
     ]
-    for params in bad_params:
+    for param in bad_params:
         try:
-            jade.register_otp(hotp_name, hotp_uri + params)
-            assert False, f'hotp error not raised for "{params}"'
+            jade.register_otp(hotp_name, param)
+            assert False, f'hotp error not raised for "{param}"'
         except JadeError as err:
             assert err.code == JadeError.BAD_PARAMETERS
             assert 'Failed to parse otp record' in err.message
