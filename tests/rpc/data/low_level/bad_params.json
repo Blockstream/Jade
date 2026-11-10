@@ -1557,6 +1557,51 @@
     ],
     [
       [
+        "baddescr19",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "nochangeindex",
+          "descriptor": "wsh(pkh(@0/*))",
+          "datavalues": {
+            "@0": "[e3ebcc79/48'/1'/0'/2']tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to obtain address from descriptor"
+    ],
+    [
+      [
+        "baddescr20",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "nooriginkeypath",
+          "descriptor": "wsh(pkh(@0/**))",
+          "datavalues": {
+            "@0": "[e3ebcc79]tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Failed to get derivation path string"
+    ],
+    [
+      [
+        "baddescr21",
+        "register_descriptor",
+        {
+          "network": "testnet",
+          "descriptor_name": "noorigin",
+          "descriptor": "wsh(pkh(@0/**))",
+          "datavalues": {
+            "@0": "tpubDDvj9CrVJ9kWXSL2kjtA8v53rZvTmL3HmWPvgD3hiTnD5KZuMkxSUsgGraZ9vavB5JSA3F9s5E4cXuCte5rvBs5N4DjfxYssQk1L82Bq4FE"
+          }
+        }
+      ],
+      "Invalid key features"
+    ],
+    [
+      [
         "badrecvaddr1",
         "get_receive_address"
       ],

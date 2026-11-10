@@ -388,8 +388,9 @@ bool descriptor_get_signers(const char* name, const descriptor_data_t* descripto
 
         // Derivation path
         str = NULL;
-        if (wally_descriptor_get_key_origin_path_str(d, i, &str) != WALLY_OK || !str) {
+        if (wally_descriptor_get_key_origin_path_str(d, i, &str) != WALLY_OK || !str || *str == '\0') {
             *errmsg = "Failed to get derivation path string";
+            IGNORE_RESULT(wally_free_string(str)); // Ignore as it may be NULL
             goto cleanup;
         }
         const size_t derivation_path_len = sizeof(signer->derivation) / sizeof(signer->derivation[0]);
@@ -420,11 +421,15 @@ bool descriptor_get_signers(const char* name, const descriptor_data_t* descripto
         // Child path (as string)
         str = NULL;
         if (wally_descriptor_get_key_child_path_str(d, i, &str) != WALLY_OK || !str) {
-            *errmsg = "Failed to get child path string";
+            *errmsg = "Failed to get child key path";
             goto cleanup;
         }
         const size_t child_path_len = strlen(str);
-        JADE_ASSERT(child_path_len < sizeof(signer->path_str));
+        if (child_path_len >= sizeof(signer->path_str)) {
+            *errmsg = "Child key path too long";
+            JADE_WALLY_VERIFY(wally_free_string(str));
+            goto cleanup;
+        }
         strcpy(signer->path_str, str);
         signer->path_len = child_path_len;
         signer->path_is_string = true;
