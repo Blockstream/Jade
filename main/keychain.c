@@ -625,7 +625,7 @@ bool keychain_load(const uint8_t* aeskey, const size_t aeslen)
         keychain_set(&keydata, 0, false);
         SENSITIVE_POP(&keydata);
     } else {
-        JADE_LOGE("Unexpected length of decrypted serialised data: %d", serialized_data_len);
+        JADE_LOGE("Unexpected length of decrypted serialised data: %u", serialized_data_len);
         SENSITIVE_POP(serialized);
         return false;
     }
