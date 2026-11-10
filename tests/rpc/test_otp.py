@@ -96,16 +96,18 @@ def test_totp(jade):
     # Test bad uri parameters
     totp_uri = '&'.join(totp_uri.split('&')[:-2])
     bad_params = [
-        '&digits=',         # digits not given
-        '&digits=7',        # digits not valid (6 or 8)
-        '&period=',         # period empty
-        '&period=256',      # period too large
-        '&z=' + 'A' * 512,  # uri too long
+        totp_uri + '&digits=',                     # digits not given
+        totp_uri + '&digits=7',                    # digits not valid (6 or 8)
+        totp_uri + '&period=',                     # period empty
+        totp_uri + '&period=256',                  # period too large
+        totp_uri + '&z=' + 'A' * 512,              # uri too long
+        'otpauth://totp?secret=JBSWY3DPEHPK3PXP',  # No path/label (1)
+        'otpauth://totp/?secret=JBSWY3DPEHPK3PXP'  # No path/label (2)
     ]
-    for params in bad_params:
+    for param in bad_params:
         try:
-            jade.register_otp(totp_name, totp_uri + params)
-            assert False, f'totp error not raised for "{params}"'
+            jade.register_otp(totp_name, param)
+            assert False, f'totp error not raised for "{param}"'
         except JadeError as err:
             assert err.code == JadeError.BAD_PARAMETERS
             assert 'Failed to parse otp record' in err.message

@@ -137,6 +137,7 @@ bool otp_uri_to_ctx(const char* uri, size_t uri_len, otpauth_ctx_t* otp_ctx)
     OTP_CHECK_BOOL_RETURN(u.field_set & (1 << UF_SCHEMA));
     OTP_CHECK_BOOL_RETURN(u.field_set & (1 << UF_HOST));
     OTP_CHECK_BOOL_RETURN(u.field_set & (1 << UF_QUERY));
+    OTP_CHECK_BOOL_RETURN((u.field_set & (1 << UF_PATH)) && u.field_data[UF_PATH].len > 1);
     OTP_CHECK_BOOL_RETURN(!(u.field_set & (1 << UF_PORT)));
     OTP_CHECK_BOOL_RETURN(!(u.field_set & (1 << UF_FRAGMENT)));
 
