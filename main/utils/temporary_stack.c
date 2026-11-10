@@ -109,8 +109,8 @@ bool run_in_temporary_task(const size_t stack_size, temporary_stack_function_t f
 
     // Wait for the task to flag completion and copy the result.
     // Use a timeout to avoid deadlocking if the temporary task hangs/crashes.
-#ifdef CONFIG_ETH_USE_OPENETH
-    const TickType_t timeout_ms = 300000 / portTICK_PERIOD_MS; // 5 minutes for QEMU
+#if defined(CONFIG_ETH_USE_OPENETH) || (defined(CONFIG_DEBUG_MODE) && defined(CONFIG_LIBJADE))
+    const TickType_t timeout_ms = 300000 / portTICK_PERIOD_MS; // 5 minutes for QEMU/Debug libjade
 #else
     const TickType_t timeout_ms = 30000 / portTICK_PERIOD_MS; // 30 seconds for real hardware
 #endif
