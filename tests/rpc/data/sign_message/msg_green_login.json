@@ -1,0 +1,10 @@
+{
+  "input": {
+    "path": [
+      1195487518
+    ],
+    "message": "greenaddress.it      login ABCDE",
+    "use_ae_signatures": false
+  },
+  "expected_output": "H/bXtGN8FhkaPkLwKCZf4+AISH+SrCRnwpBNXxMxO/W5QRMDPKqJAjJGnRMqO+RusL9fQwlG7EtMOhbITiBPxWs="
+}

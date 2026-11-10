@@ -1,0 +1,6 @@
+{
+  "input": {
+    "filedata": "signmessage m/44'/0'/0' ascii"
+  },
+  "expected_error": "Invalid message prefix"
+}

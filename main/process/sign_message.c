@@ -4,59 +4,109 @@
 #include "../process.h"
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
+#include "../utils/malloc_ext.h"
 #include "../wallet.h"
 
 #include "../button_events.h"
 
 #include "process_utils.h"
 
+#include <ctype.h>
 #include <wally_anti_exfil.h>
 
 bool show_sign_message_activity(const char* msg_str, const char* hashhex, const char* path_as_str);
+
+// Maximum message length
+#define SIGN_MESSAGE_MAX_LEN 4096u
 
 static const char SIGN_MESSAGE_FILE_PREFIX[] = "signmessage";
 static const char SIGN_MESSAGE_FILE_LABEL_ASCII[] = "ascii";
 
 // GDK logon parameters
-static const uint32_t GDK_CHALLENGE_LENGTH = 32;
-static const char GDK_CHALLENGE_PREFIX[] = "greenaddress.it      login ";
-static const uint32_t GDK_CHALLENGE_PATH = 0x4741b11e;
+#define GDK_CHALLENGE_LENGTH 32u
+#define GDK_CHALLENGE_PREFIX "greenaddress.it      login "
+#define GDK_CHALLENGE_PATH "m/1195487518"
 
 // Return true if the path and message-prefix match a gdk login challenge
-static inline bool isGdkLoginChallenge(
-    const uint32_t* path, const size_t path_len, const char* message, const size_t msg_len)
+static inline bool is_gdk_login_challenge(const char* msg, const size_t msg_len, const char* pathstr)
 {
-    JADE_ASSERT(message);
-    return path_len == 1 && path[0] == GDK_CHALLENGE_PATH && msg_len == GDK_CHALLENGE_LENGTH
-        && !strncmp(message, GDK_CHALLENGE_PREFIX, sizeof(GDK_CHALLENGE_PREFIX) - 1);
+    JADE_ASSERT(msg && msg_len && pathstr);
+    return msg_len == GDK_CHALLENGE_LENGTH && !strncmp(msg, GDK_CHALLENGE_PREFIX, strlen(GDK_CHALLENGE_PREFIX))
+        && strlen(pathstr) == strlen(GDK_CHALLENGE_PATH) && !strcmp(pathstr, GDK_CHALLENGE_PATH);
+}
+
+static char* get_sign_msg_display_text(const char* msg, const size_t msg_len)
+{
+    char* display_text = JADE_MALLOC(msg_len + 1);
+    char* out = display_text;
+
+    for (size_t i = 0; i < msg_len; ++i) {
+        const char c = msg[i];
+        if (isprint(c) || c == ' ' || c == '\n') {
+            *out++ = c;
+        } else {
+            JADE_ASSERT(c != '\0');
+            *out++ = '?'; // Unrepresentable
+        }
+    }
+    *out++ = '\0';
+    return display_text;
 }
 
 // Ask the user to confirm signing the message
-static bool confirm_sign_message(
-    const char* msg, const size_t msg_len, const uint8_t* hash, const size_t hash_len, const char* pathstr)
+static int confirm_sign_message(const char* msg, const size_t msg_len, const char* pathstr, uint8_t* hash_out,
+    const size_t hash_len, bool* skipped_confirm, const char** errmsg)
 {
-    JADE_ASSERT(msg);
-    JADE_ASSERT(hash);
-    JADE_ASSERT(hash_len == SHA256_LEN);
-    JADE_ASSERT(pathstr);
+    JADE_ASSERT(msg && pathstr);
+    JADE_ASSERT(hash_out && hash_len == SHA256_LEN);
+    JADE_ASSERT(skipped_confirm);
+    *skipped_confirm = false;
+
+    JADE_INIT_OUT_PPTR(errmsg);
+
+    if (!msg || !msg_len || msg_len > SIGN_MESSAGE_MAX_LEN) {
+        *errmsg = "Invalid message";
+        return CBOR_RPC_INVALID_REQUEST;
+    }
+
+    if (!wallet_get_message_hash((const uint8_t*)msg, msg_len, hash_out, hash_len)) {
+        *errmsg = "Failed to get message hash";
+        return CBOR_RPC_INTERNAL_ERROR;
+    }
+
+    if (is_gdk_login_challenge(msg, msg_len, pathstr)) {
+        // gdk login challenge: sign without prompting the user to confirm.
+        *skipped_confirm = true;
+        JADE_LOGI("Auto-signing GDK login challenge message");
+        return 0;
+    }
+
+    char* display_text = get_sign_msg_display_text(msg, msg_len);
+    const size_t display_len = strlen(display_text);
 
     // Truncate message if overlong
     char message[MAX_DISPLAY_MESSAGE_LEN];
-    if (msg_len < MAX_DISPLAY_MESSAGE_LEN) {
-        const int ret = snprintf(message, sizeof(message), "%.*s", msg_len, msg);
-        JADE_ASSERT(ret == msg_len);
+    if (display_len < MAX_DISPLAY_MESSAGE_LEN) {
+        const int ret = snprintf(message, sizeof(message), "%.*s", display_len, display_text);
+        JADE_ASSERT(ret == display_len);
     } else {
-        const int ret = snprintf(message, sizeof(message), "%.*s...", sizeof(message) - 4, msg);
+        const int ret = snprintf(message, sizeof(message), "%.*s...", sizeof(message) - 4, display_text);
         JADE_ASSERT(ret == sizeof(message) - 1);
     }
 
     // Ask user to confirm
     char* hashhex = NULL;
-    JADE_WALLY_VERIFY(wally_hex_from_bytes(hash, hash_len, &hashhex));
+    JADE_WALLY_VERIFY(wally_hex_from_bytes(hash_out, hash_len, &hashhex));
     const bool confirmed = show_sign_message_activity(message, hashhex, pathstr);
     JADE_WALLY_VERIFY(wally_free_string(hashhex));
+    free(display_text);
 
-    return confirmed;
+    if (!confirmed) {
+        *errmsg = "User declined to sign message";
+        return CBOR_RPC_USER_CANCELLED;
+    }
+    JADE_LOGD("User pressed accept");
+    return 0;
 }
 
 int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output, const size_t sig_len, size_t* written,
@@ -86,6 +136,10 @@ int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output
     // bip32 path - parse, then print back as standardised nul-terminated string
     ptr = end + 1;
     end = memchr(ptr, ' ', str_end - ptr);
+    if (!end) {
+        *errmsg = "Invalid bip32 path";
+        return CBOR_RPC_BAD_PARAMETERS;
+    }
     uint32_t path[MAX_PATH_LEN];
     size_t path_len = 0;
     if (!wallet_bip32_path_from_str(ptr, end - ptr, path, sizeof(path) / sizeof(path[0]), &path_len) || !path_len) {
@@ -109,25 +163,23 @@ int sign_message_file(const char* str, const size_t str_len, uint8_t* sig_output
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    // Get the message string and compute the hash
+    // Get the message string
     ptr = end + 1;
     if (ptr >= str_end || *ptr == '\0') {
         *errmsg = "Invalid message bytes";
         return CBOR_RPC_BAD_PARAMETERS;
     }
 
-    const size_t len = str_end - ptr;
+    const size_t msg_len = str_end - ptr;
     uint8_t message_hash[SHA256_LEN];
-    if (!wallet_get_message_hash((const uint8_t*)ptr, len, message_hash, sizeof(message_hash))) {
-        *errmsg = "Failed to get message hash";
-        return CBOR_RPC_INTERNAL_ERROR;
-    }
-
     // Ask the user to confirm signing the message
-    if (!confirm_sign_message(ptr, len, message_hash, sizeof(message_hash), pathstr)) {
-        JADE_LOGW("User declined to sign message");
-        *errmsg = "User declined to sign message";
-        return CBOR_RPC_USER_CANCELLED;
+    bool skipped_confirm = false;
+    const int ret
+        = confirm_sign_message(ptr, msg_len, pathstr, message_hash, sizeof(message_hash), &skipped_confirm, errmsg);
+    JADE_ASSERT(!skipped_confirm);
+    if (ret != 0) {
+        JADE_LOGW("%s", *errmsg);
+        return ret;
     }
 
     // Compute the signature and send back to caller
@@ -195,12 +247,6 @@ void sign_message_process(void* process_ptr)
         goto cleanup;
     }
 
-    uint8_t message_hash[SHA256_LEN];
-    if (!wallet_get_message_hash((const uint8_t*)message, msg_len, message_hash, sizeof(message_hash))) {
-        jade_process_reject_message(process, CBOR_RPC_INTERNAL_ERROR, "Failed to convert message to btc hex format");
-        goto cleanup;
-    }
-
     // NOTE: for signing the root key (empty bip32 path) is not allowed.
     size_t path_len = 0;
     uint32_t path[MAX_PATH_LEN];
@@ -232,20 +278,16 @@ void sign_message_process(void* process_ptr)
         }
     }
 
-    // If the path and message suggest a gdk login challenge, just sign
-    // the message without prompting the user to explicitly confirm.
-    // (Otherwise the user has to confirm message or hash and the path.)
-    const bool auto_sign = isGdkLoginChallenge(path, path_len, message, msg_len);
-    if (auto_sign) {
-        JADE_LOGI("Auto-signing GDK login challenge message");
-    } else {
-        // Ask the user to confirm signing the message
-        if (!confirm_sign_message(message, msg_len, message_hash, sizeof(message_hash), pathstr)) {
-            JADE_LOGW("User declined to sign message");
-            jade_process_reject_message(process, CBOR_RPC_USER_CANCELLED, "User declined to sign message");
-            goto cleanup;
-        }
-        JADE_LOGD("User pressed accept");
+    uint8_t message_hash[SHA256_LEN];
+    // Ask the user to confirm signing the message
+    const char* errmsg = NULL;
+    bool skipped_confirm = false;
+    const int ret = confirm_sign_message(
+        message, msg_len, pathstr, message_hash, sizeof(message_hash), &skipped_confirm, &errmsg);
+    if (ret != 0) {
+        JADE_LOGW("%s", errmsg);
+        jade_process_reject_message(process, ret, errmsg);
+        goto cleanup;
     }
 
     // Send signature replies.
@@ -259,7 +301,7 @@ void sign_message_process(void* process_ptr)
         JADE_ASSERT(ae_host_commitment);
         JADE_ASSERT(ae_host_commitment_len == WALLY_HOST_COMMITMENT_LEN);
 
-        if (!auto_sign) {
+        if (!skipped_confirm) {
             display_processing_message_activity();
         }
 
