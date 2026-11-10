@@ -153,6 +153,10 @@ bool write_serial(const uint8_t* msg, const size_t length, void* ignore)
     JADE_ASSERT(msg);
     JADE_ASSERT(length);
 
+    const unsigned int FAILURE_DELAY_MS = 10; // MS to wait after failed write
+    const unsigned int MAX_WRITE_FAILURES = 25; // Max failed writes before bailing
+    unsigned int num_failed = 0;
+
     int written = 0;
     while (written != length) {
 #ifdef CONFIG_IDF_TARGET_ESP32S3
@@ -166,10 +170,15 @@ bool write_serial(const uint8_t* msg, const size_t length, void* ignore)
 #ifdef CONFIG_IDF_TARGET_ESP32
         const int wrote = uart_write_bytes(UART_NUM_0, msg + written, length - written);
 #endif
-        if (wrote == -1) {
-            return false;
+        if (wrote <= 0) {
+            if (++num_failed > MAX_WRITE_FAILURES) {
+                return false; // Unrecoverable write failure
+            }
+            vTaskDelay(FAILURE_DELAY_MS / portTICK_PERIOD_MS);
+        } else {
+            num_failed = 0; // Reset failure counter
+            written += wrote;
         }
-        written += wrote;
     }
     return true;
 }
