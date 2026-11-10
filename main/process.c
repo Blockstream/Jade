@@ -311,7 +311,6 @@ bool jade_process_init(TaskHandle_t** serial_h, TaskHandle_t** ble_h, TaskHandle
 
 #ifdef CONFIG_HEAP_TRACING
     const esp_err_t err = heap_trace_init_standalone(trace_record, HEAP_TRACING_NUM_RECORDS);
-    JADE_LOGW("Failed to initialise heap tracing");
     if (err != ESP_OK) {
         JADE_LOGW("Failed to initialise heap tracing");
     }
