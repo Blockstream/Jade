@@ -395,12 +395,25 @@ int register_otp_migrate_string(const char* otp_migrate_uri, size_t uri_len, con
 
     // Parse uri
     otpauth_migrate_ctx_t otp_migrate_ctx;
-    if (!otp_migrate_uri_to_ctx(otp_migrate_uri, uri_len, 8, &otp_migrate_ctx)) {
+    if (!otp_migrate_uri_to_ctx(otp_migrate_uri, uri_len, OTP_MAX_MIGRATE_RECORDS, &otp_migrate_ctx)) {
         *errmsg = "Failed to parse otp migrate record";
         goto cleanup;
     }
 
-    // Register each opt uri contained in the migrate uri
+    // Ensure the uri contains at least one record
+    bool has_record = false;
+    for (size_t i = 0; i < otp_migrate_ctx.uris_out_len; ++i) {
+        if (otp_migrate_ctx.uris_out[i]) {
+            has_record = true;
+            break;
+        }
+    }
+    if (!has_record) {
+        *errmsg = "No otp records found in migrate uri";
+        goto cleanup;
+    }
+
+    // Register each otp uri contained in the migrate uri
     for (size_t i = 0; i < otp_migrate_ctx.uris_out_len; i++) {
         const char* otp_uri = otp_migrate_ctx.uris_out[i];
         if (!otp_uri) {

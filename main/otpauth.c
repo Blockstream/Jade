@@ -271,15 +271,27 @@ static bool otp_migrate_url_to_data(const char* uri, size_t uri_len, uint8_t** d
         free(data_b64);
         return false;
     }
-    size_t data_b64_len = strlen(data_b64);
+    const size_t data_b64_len = strlen(data_b64);
 
     // convert from base64
-    size_t data_max_len;
-    JADE_WALLY_VERIFY(wally_base64_get_maximum_length(data_b64, 0, &data_max_len));
+    size_t data_max_len = 0;
+    if (wally_base64_get_maximum_length(data_b64, 0, &data_max_len) != WALLY_OK || !data_max_len) {
+        JADE_LOGE("Invalid otp migrate data");
+        SENSITIVE_POP(data_b64);
+        free(data_b64);
+        return false;
+    }
+
     *data = JADE_MALLOC(data_max_len);
-    JADE_WALLY_VERIFY(wally_base64_n_to_bytes(data_b64, data_b64_len, 0, *data, data_max_len, data_len));
+    const int wret = wally_base64_n_to_bytes(data_b64, data_b64_len, 0, *data, data_max_len, data_len);
     SENSITIVE_POP(data_b64);
     free(data_b64);
+    if (wret != WALLY_OK || !*data_len) {
+        JADE_LOGE("Invalid otp migrate data");
+        free(*data);
+        *data = NULL;
+        return false;
+    }
 
     return true;
 }
@@ -360,6 +372,10 @@ typedef struct {
 
 static bool decode_name_fn(pb_istream_t* stream, const pb_field_t* field, void** arg)
 {
+    if (!stream->bytes_left) {
+        return true; // Empty value, treat as if the field were absent
+    }
+
     uint8_t buf[OTP_MIGRATE_PB_FIELD_LEN];
     const size_t buf_len = pb_read_stream(stream, "name", buf, sizeof(buf) - 1);
     if (!buf_len) {
@@ -385,6 +401,10 @@ static bool decode_name_fn(pb_istream_t* stream, const pb_field_t* field, void**
 
 static bool decode_issuer_fn(pb_istream_t* stream, const pb_field_t* field, void** arg)
 {
+    if (!stream->bytes_left) {
+        return true; // Empty value, treat as if the field were absent
+    }
+
     uint8_t buf[OTP_MIGRATE_PB_FIELD_LEN];
     const size_t buf_len = pb_read_stream(stream, "issuer", buf, sizeof(buf) - 1);
     if (!buf_len) {
@@ -467,6 +487,12 @@ static bool decode_otp_parameters_fn(pb_istream_t* stream, const pb_field_t* fie
         if (!append_uri_param(uri_out, "issuer", str_ctx.issuer_encoded, false)) {
             return false;
         }
+    } else if (!str_ctx.has_name) {
+        // A label is mandatory in an otpauth uri (use a placeholder,
+        // the user names the record on import)
+        if (!otp_uri_insert(uri_out, OTP_SCHEMA_FULL, "otp")) {
+            return false;
+        }
     }
 
     // insert OTP type
@@ -522,8 +548,12 @@ static bool decode_otp_parameters_fn(pb_istream_t* stream, const pb_field_t* fie
         }
     }
 
-    // add counter if HOTP and counter > 0
-    if (message.type == MigrationPayload_OtpType_OTP_TYPE_HOTP && message.counter > 0) {
+    // add counter for HOTP
+    if (message.type == MigrationPayload_OtpType_OTP_TYPE_HOTP) {
+        if (message.counter < 0) {
+            JADE_LOGE("Unsupported HOTP counter: %" PRId64, message.counter);
+            return false;
+        }
         char counter_str[21]; // Big enough to hold 64-bit integer
         const int ret = snprintf(counter_str, sizeof(counter_str), "%" PRId64, message.counter);
         JADE_ASSERT(ret > 0 && ret < sizeof(counter_str));

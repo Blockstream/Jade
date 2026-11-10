@@ -14,6 +14,9 @@
 
 #define OTP_MAX_RECORDS 16
 
+// Maximum number of records supported in an 'otpauth-migration://' uri
+#define OTP_MAX_MIGRATE_RECORDS 8
+
 #define OTP_SCHEMA "otpauth"
 #define OTP_SCHEMA_FULL "otpauth://"
 #define OTP_MIGRATE_SCHEMA "otpauth-migration"
