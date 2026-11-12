@@ -760,6 +760,7 @@ if __name__ == '__main__':
     # Remove PINs left over from previous test runs
     for f in glob.glob("./*.pin"):
         os.remove(f)
+    os.chmod('server_private_key.key', 0o600)
 
     try:
         info = get_jade_info()

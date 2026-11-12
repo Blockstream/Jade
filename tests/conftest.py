@@ -156,6 +156,7 @@ def pytest_configure(config):
                             'mnemonic(value): set a custom Jade mnemonic before the test')
     set_jade_config(JadeConfig(config))
     _remove_pin_files()
+    os.chmod('server_private_key.key', 0o600)
 
 
 def pytest_unconfigure(config):
