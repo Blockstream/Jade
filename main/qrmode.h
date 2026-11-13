@@ -24,6 +24,28 @@
 #define ACCOUNT_INDEX_MAX 65536
 #define ACCOUNT_INDEX_FLAGS_SHIFT 16
 #define EXPORT_XPUB_PATH_LEN 4
+// Large enough for a 'crypto-account' with the longest custom path, using
+// the largest indices, two script tags, and the testnet 'use-info' map (145 bytes).
+#define EXPORT_XPUB_CBOR_BUFLEN 256
+
+// Longest custom path string accepted - the longest that is shown in full on the
+// path confirmation and xpub qr screens on the smallest (240x135) display.
+// eg. "m/48'/10000'/10000'/2'"
+#define XPUB_CUSTOM_PATH_MAX_STR_LEN 22
+
+typedef enum {
+    XPUB_PATH_ERR_OK,
+    XPUB_PATH_ERR_TOO_LONG_UNPREFIXED,
+    XPUB_PATH_ERR_INVALID,
+    XPUB_PATH_ERR_TOO_LONG
+} xpub_path_err_t;
+
+// Parse and validate a user-entered custom xpub export path.
+// 'path' must hold at least EXPORT_XPUB_PATH_LEN elements, and 'pathstr' at least
+// MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN) characters.  On XPUB_PATH_ERR_OK and
+// XPUB_PATH_ERR_TOO_LONG 'pathstr' holds the normalised path string (with 'm/' prefix).
+WARN_UNUSED_RESULT xpub_path_err_t parse_custom_xpub_export_path(const char* str, size_t str_len, uint32_t* path,
+    size_t path_len, size_t* written, char* pathstr, size_t pathstr_len);
 
 // Display singlesig xpub qr code
 void display_xpub_qr(void);

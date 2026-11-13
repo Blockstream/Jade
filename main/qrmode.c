@@ -61,8 +61,8 @@ gui_activity_t* make_qr_back_continue_activity(
 
 gui_activity_t* make_show_xpub_qr_activity(
     const char* label, const char* pathstr, Icon* icons, size_t num_icons, size_t frames_per_qr_icon);
-gui_activity_t* make_xpub_qr_options_activity(
-    gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox, gui_view_node_t** density_textbox);
+gui_activity_t* make_xpub_qr_options_activity(gui_view_node_t** script_textbox, gui_view_node_t** wallet_textbox,
+    gui_view_node_t** account_textbox, bool show_path, gui_view_node_t** path_textbox);
 
 gui_activity_t* make_show_otp_qr_actvity(const char* otp_name, Icon* qr_icon);
 
@@ -104,6 +104,9 @@ int wally_psbt_free(struct wally_psbt* psbt);
 #define NUM_BATCHES_TO_RECONFIRM(registered_wallet) (registered_wallet ? 20 : 25)
 #define NUM_INDEXES_TO_RECONFIRM(registered_wallet)                                                                    \
     (NUM_BATCHES_TO_RECONFIRM(registered_wallet) * ADDRESS_SEARCH_BATCH_SIZE(registered_wallet))
+
+// Longest path string shown in full in the options menu - longer paths are shown as 'Custom'
+#define XPUB_CUSTOM_PATH_MENU_MAX_LEN 16
 
 // Test whether 'flags' contains the entirety of the 'test_flags'
 // (ie. maybe compound/multiple bits set)
@@ -225,20 +228,33 @@ static inline const char* xpub_wallettype_desc_from_flags(const uint32_t qr_flag
     return contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
 }
 
-static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
+static gui_activity_t* create_display_xpub_qr_activity(
+    const uint32_t qr_flags, const uint32_t* custom_path, const size_t custom_path_len)
 {
+    JADE_ASSERT(custom_path);
+    JADE_ASSERT(custom_path_len <= EXPORT_XPUB_PATH_LEN);
+
     const bool use_format_hdkey = false; // qr_flags & QR_XPUB_HDKEY;  - not currently in use
     const char* const xpub_qr_format = use_format_hdkey ? BCUR_TYPE_CRYPTO_HDKEY : BCUR_TYPE_CRYPTO_ACCOUNT;
     const script_variant_t script_variant = xpub_script_variant_from_flags(qr_flags);
     const uint16_t account_index = qr_flags >> ACCOUNT_INDEX_FLAGS_SHIFT;
 
-    // Deduce path based on script type and main/test network restrictions
-    uint32_t path[EXPORT_XPUB_PATH_LEN]; // 3 or 4 - purpose'/cointype'/account'/[multisig bip48 script type']
+    // Use the custom derivation path the user has entered, otherwise
+    // deduce path based on script type and main/test network restrictions
+    // Default path is 3 or 4 - purpose'/cointype'/account'/[multisig bip48 script type']
+    uint32_t path[EXPORT_XPUB_PATH_LEN];
     size_t path_len = 0;
-    wallet_get_default_xpub_export_path(script_variant, account_index, path, EXPORT_XPUB_PATH_LEN, &path_len);
+    const bool is_custom_path = custom_path_len > 0;
+    if (is_custom_path) {
+        memcpy(path, custom_path, custom_path_len * sizeof(custom_path[0]));
+        path_len = custom_path_len;
+    } else {
+        wallet_get_default_xpub_export_path(script_variant, account_index, path, EXPORT_XPUB_PATH_LEN, &path_len);
+    }
 
     // Construct BC-UR CBOR message for 'crypto-account' or 'crypto-hdkey' bcur
-    uint8_t cbor[128];
+    // NOTE: any custom path is tagged with the script type selected by the user
+    uint8_t cbor[EXPORT_XPUB_CBOR_BUFLEN];
     size_t written = 0;
     if (use_format_hdkey) {
         bcur_build_cbor_crypto_hdkey(path, path_len, cbor, sizeof(cbor), &written);
@@ -257,14 +273,220 @@ static gui_activity_t* create_display_xpub_qr_activity(const uint32_t qr_flags)
     const bool path_only = false;
     const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr), path_only);
     JADE_ASSERT(ret);
-    const char* label = contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
+    const char* label = is_custom_path               ? "Custom"
+        : contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig"
+                                                     : "Singlesig";
     const uint8_t frames_per_qr = qr_framerate_from_flags(QR_SPEED_LOW); // always use slow framerate for xpub export
     return make_show_xpub_qr_activity(label, pathstr, icons, num_icons, frames_per_qr);
 }
 
-bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
+static void set_menu_item_enabled(gui_view_node_t* item, const bool enabled)
+{
+    JADE_ASSERT(item);
+    JADE_ASSERT(item->parent);
+
+    gui_set_color(item, enabled ? TFT_WHITE : TFT_DARKGREY);
+    gui_set_active(item->parent, enabled);
+}
+
+// Update the menu items to reflect any custom path.
+// A custom path replaces the default path's account index, so when one is set that item is disabled.
+// The script and wallet types remain selectable, as they determine the script tags exported with the path.
+// No custom path can be set when exporting a descriptor, in which case there is no 'Path' item (NULL).
+static void update_xpub_path_menu_items(gui_view_node_t* account_item, gui_view_node_t* path_item,
+    const uint16_t account_index, const uint32_t* custom_path, const size_t custom_path_len)
+{
+    JADE_ASSERT(account_item);
+    JADE_ASSERT(path_item || !custom_path_len);
+    JADE_ASSERT(custom_path);
+
+    char buf[8];
+    const int ret = snprintf(buf, sizeof(buf), "%u", account_index);
+    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+    update_menu_item(account_item, "Account Index", buf);
+
+    if (custom_path_len) {
+        char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
+        const bool path_only = false;
+        const bool have_pathstr
+            = wallet_bip32_path_as_str(custom_path, custom_path_len, pathstr, sizeof(pathstr), path_only);
+        JADE_ASSERT(have_pathstr);
+        update_menu_item(path_item, "Path", strlen(pathstr) <= XPUB_CUSTOM_PATH_MENU_MAX_LEN ? pathstr : "Custom");
+    } else if (path_item) {
+        gui_update_text(path_item, "Custom Path");
+    }
+
+    set_menu_item_enabled(account_item, !custom_path_len);
+}
+
+xpub_path_err_t parse_custom_xpub_export_path(const char* str, const size_t str_len, uint32_t* path,
+    const size_t path_len, size_t* written, char* pathstr, const size_t pathstr_len)
+{
+    JADE_ASSERT(str);
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len >= EXPORT_XPUB_PATH_LEN);
+    JADE_INIT_OUT_SIZE(written);
+    JADE_ASSERT(pathstr);
+    JADE_ASSERT(pathstr_len >= MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN));
+
+    // A path entered without the 'm/' prefix gains it when shown and exported, so must leave room for it
+    if (str_len > XPUB_CUSTOM_PATH_MAX_STR_LEN - 2 && strncasecmp(str, "m/", 2)) {
+        return XPUB_PATH_ERR_TOO_LONG_UNPREFIXED;
+    }
+
+    // Path must parse (and not be too deep)
+    const bool path_only = false;
+    if (!wallet_bip32_path_from_str(str, str_len, path, EXPORT_XPUB_PATH_LEN, written) || !*written
+        || !wallet_bip32_path_as_str(path, *written, pathstr, pathstr_len, path_only)) {
+        return XPUB_PATH_ERR_INVALID;
+    }
+
+    // ... and be short enough to be shown in full when confirming and exporting
+    if (strlen(pathstr) > XPUB_CUSTOM_PATH_MAX_STR_LEN) {
+        return XPUB_PATH_ERR_TOO_LONG;
+    }
+
+    return XPUB_PATH_ERR_OK;
+}
+
+// Ask the user to type a custom bip32 path for the xpub export.
+// Returns true if the path was changed - in which case 'path_len' holds the new length.
+// To cancel, the user declines the confirmation screen.  An empty path (or just 'm') leaves
+// the path unchanged - reverting to the default path is a separate option.
+// On invalid entry an error is shown and the path is unchanged (we do not loop, as in
+// unattended CI builds the keyboard returns a fixed, invalid string).
+static bool enter_custom_xpub_export_path(keyboard_entry_t* kb_entry, uint32_t* path, size_t* path_len)
+{
+    JADE_ASSERT(kb_entry);
+    JADE_ASSERT(kb_entry->activity);
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+    JADE_ASSERT(*path_len <= EXPORT_XPUB_PATH_LEN);
+
+    // Pre-enter any existing custom path, or just "m/" if none
+    const bool path_only = false;
+    if (*path_len) {
+        const bool ret
+            = wallet_bip32_path_as_str(path, *path_len, kb_entry->strdata, sizeof(kb_entry->strdata), path_only);
+        JADE_ASSERT(ret);
+    } else {
+        strcpy(kb_entry->strdata, "m/");
+    }
+    kb_entry->len = strlen(kb_entry->strdata);
+    JADE_ASSERT(kb_entry->len <= kb_entry->max_allowed_len);
+
+    run_keyboard_entry_loop(kb_entry);
+
+    if (!kb_entry->len || !strcasecmp(kb_entry->strdata, "m") || !strcasecmp(kb_entry->strdata, "m/")) {
+        return false;
+    }
+
+    uint32_t new_path[EXPORT_XPUB_PATH_LEN];
+    size_t new_path_len = 0;
+    char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
+    switch (parse_custom_xpub_export_path(kb_entry->strdata, kb_entry->len, new_path,
+        sizeof(new_path) / sizeof(new_path[0]), &new_path_len, pathstr, sizeof(pathstr))) {
+    case XPUB_PATH_ERR_TOO_LONG_UNPREFIXED: {
+        char length[24];
+        const int ret = snprintf(length, sizeof(length), "Max %u characters", XPUB_CUSTOM_PATH_MAX_STR_LEN - 2);
+        JADE_ASSERT(ret > 0 && ret < sizeof(length));
+        await_error_3("Path too long", length, "without m/");
+        return false;
+    }
+    case XPUB_PATH_ERR_INVALID: {
+        char depth[24];
+        const int ret = snprintf(depth, sizeof(depth), "Max %u levels", EXPORT_XPUB_PATH_LEN);
+        JADE_ASSERT(ret > 0 && ret < sizeof(depth));
+        await_error_3("Invalid path", "Check format and", depth);
+        return false;
+    }
+    case XPUB_PATH_ERR_TOO_LONG: {
+        char length[24];
+        const int ret = snprintf(length, sizeof(length), "Max %u characters", XPUB_CUSTOM_PATH_MAX_STR_LEN);
+        JADE_ASSERT(ret > 0 && ret < sizeof(length));
+        await_error_3("Path too long", length, pathstr);
+        return false;
+    }
+    case XPUB_PATH_ERR_OK:
+        break;
+    }
+
+    // Ask user to confirm the new path
+    const char* message[] = { "Export xpub at path:", pathstr };
+    if (!await_yesno_activity("Confirm Path", message, 2, true, "blkstrm.com/xpub")) {
+        return false;
+    }
+
+    if (new_path_len == *path_len && !memcmp(new_path, path, new_path_len * sizeof(new_path[0]))) {
+        // Custom derivation path did not change
+        return false;
+    }
+    memcpy(path, new_path, new_path_len * sizeof(new_path[0]));
+    *path_len = new_path_len;
+    return true;
+}
+
+typedef enum { CUSTOM_PATH_BACK, CUSTOM_PATH_EDIT, CUSTOM_PATH_DEFAULT } custom_path_action_t;
+
+// Show the current custom derivation path and ask whether to edit it or to revert to the default path.
+// The back button leaves the path as it is.
+static custom_path_action_t offer_custom_path_action(
+    const uint32_t* path, const size_t path_len, gui_activity_t** edit_act)
+{
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len);
+    JADE_ASSERT(path_len <= EXPORT_XPUB_PATH_LEN);
+    JADE_INIT_OUT_PPTR(edit_act);
+
+    char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
+    const bool path_only = false;
+    const bool have_pathstr = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr), path_only);
+    JADE_ASSERT(have_pathstr);
+
+    btn_data_t hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
+        { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
+
+    btn_data_t ftrbtns[]
+        = { { .txt = "Default", .font = GUI_DEFAULT_FONT, .ev_id = BTN_NO, .borders = GUI_BORDER_TOPRIGHT },
+              { .txt = "Edit", .font = GUI_DEFAULT_FONT, .ev_id = BTN_YES, .borders = GUI_BORDER_TOPLEFT } };
+
+    const char* message[] = { "Custom xpub path:", pathstr };
+    gui_activity_t* const act = make_show_message_activity(message, 2, "Xpub Path", hdrbtns, 2, ftrbtns, 2);
+    gui_set_activity_initial_selection(ftrbtns[1].btn);
+
+    gui_activity_t* const prev_act = gui_current_activity(); // Save current activity
+    custom_path_action_t action = CUSTOM_PATH_BACK;
+    while (true) {
+        gui_set_current_activity(act);
+
+        const int32_t ev_id = gui_activity_wait_button(act, BTN_BACK);
+        if (ev_id == BTN_YES) {
+            action = CUSTOM_PATH_EDIT;
+            break;
+        } else if (ev_id == BTN_NO) {
+            action = CUSTOM_PATH_DEFAULT;
+            break;
+        } else if (ev_id == BTN_BACK) {
+            break;
+        }
+    }
+
+    if (action == CUSTOM_PATH_EDIT) {
+        *edit_act = act;
+    } else {
+        gui_destroy_current_activity(act, prev_act); // restore previous activity
+    }
+
+    return action;
+}
+
+// The custom path is not persisted - it is held by the caller for the lifetime of the xpub screen.
+// It is ignored (and cannot be set) when exporting a descriptor, in which case it may be NULL.
+static bool handle_xpub_options_with_path(
+    uint32_t* qr_flags, const bool for_descriptor, uint32_t* custom_path, size_t* custom_path_len)
 {
     JADE_ASSERT(qr_flags);
+    JADE_ASSERT(for_descriptor || (custom_path && custom_path_len));
     if (for_descriptor) {
         *qr_flags &= ~QR_XPUB_MULTISIG; // Disallow multisig
     }
@@ -272,16 +494,27 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
     uint16_t account_index = (*qr_flags) >> ACCOUNT_INDEX_FLAGS_SHIFT;
 
     char buf[8];
-    int rc = snprintf(buf, sizeof(buf), "%u", account_index);
-    JADE_ASSERT(rc > 0 && rc < sizeof(buf));
+
+    // Work on a local copy of any custom path, to detect changes
+    uint32_t path[EXPORT_XPUB_PATH_LEN] = { 0 };
+    size_t path_len = 0;
+    if (!for_descriptor) {
+        JADE_ASSERT(*custom_path_len <= EXPORT_XPUB_PATH_LEN);
+        memcpy(path, custom_path, *custom_path_len * sizeof(custom_path[0]));
+        path_len = *custom_path_len;
+    }
 
     gui_view_node_t* script_item = NULL;
     gui_view_node_t* wallet_item = NULL;
     gui_view_node_t* account_item = NULL;
-    gui_activity_t* const act = make_xpub_qr_options_activity(&script_item, &wallet_item, &account_item);
+    gui_view_node_t* path_item = NULL;
+
+    const bool show_path = !for_descriptor;
+    gui_activity_t* const act
+        = make_xpub_qr_options_activity(&script_item, &wallet_item, &account_item, show_path, &path_item);
     update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
     update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
-    update_menu_item(account_item, "Account Index", buf);
+    update_xpub_path_menu_items(account_item, path_item, account_index, path, path_len);
     gui_set_current_activity(act);
 
     gui_view_node_t* script_textbox = NULL;
@@ -295,6 +528,11 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
     digit_entry_t digit_entry = { .entry_type = DIGIT_ENTRY_INDEX, .initial_state = ZERO, .digits_shown = true };
     make_digit_entry_activity(&digit_entry, "Account Index", "Enter index:");
     JADE_ASSERT(digit_entry.activity);
+
+    // Custom derivation path keyboard
+    keyboard_entry_t kb_entry = { .max_allowed_len = XPUB_CUSTOM_PATH_MAX_STR_LEN };
+    kb_entry.keyboards[0] = KB_BIP32_PATH;
+    kb_entry.num_kbs = 1;
 
     const uint32_t initial_flags = *qr_flags;
     while (true) {
@@ -359,6 +597,41 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
                     await_error_3("Account index must", "be less than", buf);
                 }
             }
+        } else if (!for_descriptor && ev_id == BTN_XPUB_OPTIONS_PATH) {
+            // If a custom path is already set, offer to edit it or to revert to the default path
+            custom_path_action_t action = CUSTOM_PATH_EDIT;
+            gui_activity_t* edit_act = NULL;
+            if (path_len) {
+                action = offer_custom_path_action(path, path_len, &edit_act);
+            }
+
+            if (action == CUSTOM_PATH_DEFAULT) {
+                path_len = 0;
+                update_xpub_path_menu_items(account_item, path_item, account_index, path, path_len);
+            } else if (action == CUSTOM_PATH_EDIT) {
+                if (!kb_entry.activity) {
+                    make_keyboard_entry_activity(&kb_entry, "Xpub Path");
+                    JADE_ASSERT(kb_entry.activity);
+                }
+                const bool path_set = enter_custom_xpub_export_path(&kb_entry, path, &path_len);
+
+                // Show the menu again, destroying any edit/default screen shown beforehand
+                if (edit_act) {
+                    gui_destroy_current_activity(edit_act, act);
+                } else {
+                    gui_set_current_activity(act);
+                }
+
+                if (path_set) {
+                    // New custom path set - update the menu with the account index disabled
+                    update_xpub_path_menu_items(account_item, path_item, account_index, path, path_len);
+
+                    // Move to the script type, which the user should now choose
+                    gui_view_node_t* script_btn = script_item->parent;
+                    const bool script_btn_active = true;
+                    gui_activity_set_active_selection(act, &script_btn, 1, &script_btn_active, script_btn);
+                }
+            }
         } else if (ev_id == BTN_XPUB_OPTIONS_HELP) {
             await_qr_help_activity("blkstrm.com/xpub");
         } else if (ev_id == BTN_XPUB_OPTIONS_EXIT) {
@@ -370,13 +643,29 @@ bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
     // If updated, persist preferences
     *qr_flags = (uint16_t)(*qr_flags);
     *qr_flags |= (((uint32_t)account_index) << ACCOUNT_INDEX_FLAGS_SHIFT);
-    if (initial_flags == *qr_flags) {
-        return false;
+    const bool flags_changed = initial_flags != *qr_flags;
+    if (flags_changed) {
+        storage_set_qr_flags(*qr_flags);
+    }
+
+    // Return any updated custom path to the caller (not persisted)
+    bool path_changed = false;
+    if (!for_descriptor) {
+        path_changed = path_len != *custom_path_len || memcmp(path, custom_path, path_len * sizeof(path[0]));
+        if (path_changed) {
+            memcpy(custom_path, path, path_len * sizeof(path[0]));
+            *custom_path_len = path_len;
+        }
     }
 
     // Return to indicate if any options were updated
-    storage_set_qr_flags(*qr_flags);
-    return true;
+    return flags_changed || path_changed;
+}
+
+// Xpub options without a custom path (eg. for usb storage descriptor export)
+bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor)
+{
+    return handle_xpub_options_with_path(qr_flags, for_descriptor, NULL, NULL);
 }
 
 // Display xpub qr code
@@ -384,8 +673,12 @@ void display_xpub_qr(void)
 {
     uint32_t qr_flags = storage_get_qr_flags();
 
+    // Any custom path only applies while this screen is shown - it is not persisted
+    uint32_t custom_path[EXPORT_XPUB_PATH_LEN];
+    size_t custom_path_len = 0;
+
     // Create show xpub activity for those icons
-    gui_activity_t* act = create_display_xpub_qr_activity(qr_flags);
+    gui_activity_t* act = create_display_xpub_qr_activity(qr_flags, custom_path, custom_path_len);
 
     while (true) {
         // Show, and await button click
@@ -394,9 +687,9 @@ void display_xpub_qr(void)
         const int32_t ev_id = gui_activity_wait_button(act, BTN_XPUB_EXIT);
         if (ev_id == BTN_XPUB_OPTIONS) {
             const bool for_descriptor = false;
-            if (handle_xpub_options(&qr_flags, for_descriptor)) {
+            if (handle_xpub_options_with_path(&qr_flags, for_descriptor, custom_path, &custom_path_len)) {
                 // Options were updated - re-create xpub screen
-                act = create_display_xpub_qr_activity(qr_flags);
+                act = create_display_xpub_qr_activity(qr_flags, custom_path, custom_path_len);
             }
         } else if (ev_id == BTN_QR_BRIGHTNESS) {
             gui_next_qrcode_color();
