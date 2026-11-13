@@ -96,8 +96,8 @@ bool select_registered_wallet(const char multisig_names[][NVS_KEY_NAME_MAX_SIZE]
 // PSBT struct and functions
 struct wally_psbt;
 network_t network_from_psbt_type(struct wally_psbt* psbt);
-int sign_psbt(
-    jade_process_t* process, CborValue* params, network_t network_id, struct wally_psbt* psbt, const char** errmsg);
+int sign_psbt(jade_process_t* process, CborValue* params, network_t network_id, struct wally_psbt* psbt, bool is_qr,
+    const char** errmsg);
 int wally_psbt_free(struct wally_psbt* psbt);
 
 #define ADDRESS_SEARCH_BATCH_SIZE(registered_wallet) (registered_wallet ? 10 : 20)
@@ -1103,7 +1103,7 @@ static bool parse_sign_display_bcur_psbt_qr(const uint8_t* cbor, const size_t cb
     const network_t network_id = network_from_psbt_type(psbt);
 
     // Note we pass NULL process/params as we don't have any additional info
-    const int errcode = sign_psbt(NULL, NULL, network_id, psbt, &errmsg);
+    const int errcode = sign_psbt(NULL, NULL, network_id, psbt, true, &errmsg);
     if (errcode) {
         if (errcode != CBOR_RPC_USER_CANCELLED) {
             await_error(errmsg);

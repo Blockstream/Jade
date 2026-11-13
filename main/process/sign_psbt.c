@@ -797,7 +797,7 @@ static bool is_valid_btc_prevout(
 // Returns 0 if no errors occurred - does not necessarily indicate that signatures were added.
 // Returns an rpc/message error code on error, and the error string should be populated.
 int sign_psbt(jade_process_t* process, CborValue* params, const network_t network_id, struct wally_psbt* psbt,
-    const char** errmsg)
+    const bool is_qr, const char** errmsg)
 {
     JADE_ASSERT(psbt);
     JADE_INIT_OUT_PPTR(errmsg);
@@ -869,9 +869,9 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
     // Also, if we are signing this input, inspect the script type and any multisig info
     // For inputs we are signing, record the signature type
     uint8_t* const sig_types = JADE_CALLOC(psbt->num_inputs, sizeof(uint8_t));
-    uint64_t input_amount = 0;
-    size_t num_unverified_inputs = 0;
+    uint64_t unverified_input_amount = 0, input_amount = 0;
     uint8_t signing_flags = 0;
+    bool signing_segwit_v0 = false;
     char wallet_name[NVS_KEY_NAME_MAX_SIZE] = { '\0' };
     multisig_data_t* multisig_data = NULL;
     descriptor_data_t* descriptor = NULL;
@@ -886,10 +886,18 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
             goto cleanup;
         }
         if (!for_liquid) {
-            if (!input->utxo) {
-                // Exclude witness-only amounts from the verified fee total
-                ++num_unverified_inputs;
-            } else if (!checked_add_uint64(input_amount, utxo->satoshi, &input_amount)) {
+            if (!utxo->satoshi) {
+                *errmsg = "input amounts must be non-zero";
+                retval = CBOR_RPC_BAD_PARAMETERS;
+                goto cleanup;
+            }
+            uint64_t* amt = &input_amount;
+            if (!input->utxo && psbt->num_inputs != 1) {
+                // Treat witness-only amounts as unverified in txs that
+                // may be vulnerable to the segwit fee attack.
+                amt = &unverified_input_amount;
+            }
+            if (!checked_add_uint64(*amt, utxo->satoshi, amt)) {
                 *errmsg = "Total input amounts exceed maximum";
                 retval = CBOR_RPC_BAD_PARAMETERS;
                 goto cleanup;
@@ -937,6 +945,8 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
         }
+        signing_segwit_v0 |= sig_type == WALLY_SIGTYPE_SW_V0;
+
         if (!is_valid_input_signing_script(psbt, index, utxo, sig_type)) {
             *errmsg = "Unsupported or invalid input script";
             retval = CBOR_RPC_BAD_PARAMETERS;
@@ -1131,7 +1141,20 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
         }
-        if (!num_unverified_inputs && output_amount > input_amount) {
+        uint64_t total_input_amount = 0;
+        if (!checked_add_uint64(unverified_input_amount, input_amount, &total_input_amount)) {
+            *errmsg = "Total input amounts exceed maximum";
+            retval = CBOR_RPC_BAD_PARAMETERS;
+            goto cleanup;
+        }
+        if (unverified_input_amount && !signing_segwit_v0) {
+            // Not signing segwit v0 inputs - not vulnerable to segwit fee attack.
+            // Treat unverified inputs as verified, since any sigs generated
+            // for them are invalid in any other tx.
+            unverified_input_amount = 0;
+            input_amount = total_input_amount;
+        }
+        if (output_amount > total_input_amount) {
             *errmsg = "Total input amounts less than total output amounts";
             retval = CBOR_RPC_BAD_PARAMETERS;
             goto cleanup;
@@ -1147,12 +1170,21 @@ int sign_psbt(jade_process_t* process, CborValue* params, const network_t networ
         // User to agree fee amount
         // Check to see whether user accepted or declined
         if (!show_btc_fee_confirmation_activity(network_id, tx, output_info, aggregate_inputs_scripts_flavour,
-                input_amount, output_amount, num_unverified_inputs)) {
+                input_amount, output_amount, unverified_input_amount != 0)) {
             *errmsg = "User declined to sign psbt";
             retval = CBOR_RPC_USER_CANCELLED;
             goto cleanup;
         }
         JADE_LOGD("User accepted fee");
+
+        if (unverified_input_amount != 0 && !is_qr) {
+            const char* fee_msg[] = { "Fee may be higher", "than shown.", "Sign anyway?" };
+            if (!await_yesno_activity("Sign Transaction", fee_msg, 3, false, "blkstrm.com/inputs")) {
+                *errmsg = "User declined to sign psbt";
+                retval = CBOR_RPC_USER_CANCELLED;
+                goto cleanup;
+            }
+        }
     }
 
     // Show warning if nothing to sign
@@ -1350,7 +1382,8 @@ void sign_psbt_process(void* process_ptr)
 
     // Sign the psbt - parameter updated with any signatures
     const char* errmsg = NULL;
-    const int errcode = sign_psbt(process, &params, network_id, psbt, &errmsg);
+    const bool is_qr = false;
+    const int errcode = sign_psbt(process, &params, network_id, psbt, is_qr, &errmsg);
     if (errcode) {
         jade_process_reject_message(process, errcode, errmsg);
         goto cleanup;
