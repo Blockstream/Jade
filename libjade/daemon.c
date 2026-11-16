@@ -327,7 +327,11 @@ static bool socket_bridge(const char* socket_path)
     serv_addr.sun_family = AF_UNIX;
     strncpy(serv_addr.sun_path, socket_path, sizeof(serv_addr.sun_path) - 1);
 
-    unlink(socket_path);
+    if (unlink(socket_path) != 0 && errno != ENOENT) {
+        perror("unlink failed (unix socket)");
+        close(listen_fd);
+        return false;
+    }
 
     if (bind(listen_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("bind failed (unix socket)");

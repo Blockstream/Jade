@@ -19,7 +19,11 @@ BUILD_TYPE="Debug"
 NVS_FILE="nvs_flash.bin"
 LOG_LEVEL="CRITICAL"
 JADE_DISPLAY="v2"
-CBOR_SOCKET="/tmp/jade_cbor.sock"
+SOCK_DIR="${XDG_RUNTIME_DIR:-}"
+if [ ! -d "$SOCK_DIR" ] || [ ! -O "$SOCK_DIR" ]; then
+    SOCK_DIR="${TMPDIR:-/tmp}"
+fi
+CBOR_SOCKET="$SOCK_DIR/jade_cbor.sock"
 BRIDGE_PORT=""
 
 while [[ $# -gt 0 ]]; do
@@ -86,22 +90,31 @@ if [ "$MODE" == "daemon" ]; then
     echo "  CBOR socket : $CBOR_SOCKET"
     echo "--------------------------------"
 
+    if [ -e "$CBOR_SOCKET" ] && [ ! -O "$CBOR_SOCKET" ]; then
+        echo "Error: $CBOR_SOCKET exists and is not owned by you" >&2
+        exit 1
+    fi
+
     "$DAEMON_BIN" --socketfile "$CBOR_SOCKET" --log-level "$LOG_LEVEL" &
     DAEMON_PID=$!
 
     cleanup() {
         echo "Stopping libjade daemon (pid $DAEMON_PID)..."
         kill "$DAEMON_PID" 2>/dev/null || true
-        rm -f "$CBOR_SOCKET"
+        rm -f "$CBOR_SOCKET" 2>/dev/null || true
     }
     trap cleanup EXIT INT TERM
 
     # wait for daemon to create its socket file (up to 10s)
     echo "Waiting for daemon sockets..."
     for i in $(seq 1 100); do
-        if [ -S "$CBOR_SOCKET" ]; then
+        if [ -S "$CBOR_SOCKET" ] && [ -O "$CBOR_SOCKET" ]; then
             echo "Daemon socket ready."
             break
+        fi
+        if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
+            echo "Error: daemon exited without creating its own $CBOR_SOCKET" >&2
+            exit 1
         fi
         if [ "$i" -eq 100 ]; then
             echo "Error: daemon socket did not appear after 10s" >&2
