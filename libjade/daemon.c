@@ -1,4 +1,5 @@
 #define _XOPEN_SOURCE 600
+#define _DARWIN_C_SOURCE 1
 
 #include "libjade.h"
 
@@ -244,14 +245,18 @@ static void serial_bridge(void)
     close(master_fd);
 }
 
-static void tcp_bridge(int port)
+static bool tcp_bridge(struct in_addr* bind_addr, const int port)
 {
-    printf("-> TCP mode enabled on port %d.\n", port);
+    char addr_str[INET_ADDRSTRLEN];
+    addr_str[0] = '\0';
+    inet_ntop(AF_INET, bind_addr, addr_str, sizeof(addr_str));
+
+    printf("-> TCP mode enabled on %s:%d.\n", addr_str, port);
 
     int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_fd < 0) {
         perror("socket creation failed (tcp)");
-        return;
+        return false;
     }
 
     int optval = 1;
@@ -262,22 +267,22 @@ static void tcp_bridge(int port)
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serv_addr.sin_addr = *bind_addr;
     serv_addr.sin_port = htons(port);
 
     if (bind(listen_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("bind failed (tcp)");
         close(listen_fd);
-        return;
+        return false;
     }
 
     if (listen(listen_fd, 1) < 0) {
         perror("listen failed (tcp)");
         close(listen_fd);
-        return;
+        return false;
     }
 
-    printf("TCP bridge listening on port %d\n", port);
+    printf("TCP bridge listening on %s:%d\n", addr_str, port);
 
     while (1) {
         struct sockaddr_in cli_addr;
@@ -304,16 +309,17 @@ static void tcp_bridge(int port)
     printf("Closing listening socket (fd: %d).\n", listen_fd);
     close(listen_fd);
     printf("TCP bridge exiting.\n");
+    return true;
 }
 
-static void socket_bridge(const char* socket_path)
+static bool socket_bridge(const char* socket_path)
 {
     printf("-> Socket mode enabled on %s.\n", socket_path);
 
     int listen_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (listen_fd < 0) {
         perror("socket creation failed (unix socket)");
-        return;
+        return false;
     }
 
     struct sockaddr_un serv_addr;
@@ -326,13 +332,13 @@ static void socket_bridge(const char* socket_path)
     if (bind(listen_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("bind failed (unix socket)");
         close(listen_fd);
-        return;
+        return false;
     }
 
     if (listen(listen_fd, 1) < 0) {
         perror("listen failed (unix socket)");
         close(listen_fd);
-        return;
+        return false;
     }
 
     printf("Socket bridge listening on %s\n", socket_path);
@@ -358,6 +364,7 @@ static void socket_bridge(const char* socket_path)
     close(listen_fd);
     unlink(socket_path);
     printf("Socket bridge exiting.\n");
+    return true;
 }
 
 static int usage(const char* cmd, const char* error)
@@ -365,6 +372,7 @@ static int usage(const char* cmd, const char* error)
     fprintf(stderr, "Error: %s.\n", error);
     fprintf(stderr,
         "Usage: %s [--serialport [SYMLINK_PATH] | --tcp PORT | --socketfile PATH]"
+        " [--bind ADDR (default 127.0.0.1, --tcp only)]"
         " [--log-level DEBUG|INFO|WARNING|ERROR|CRITICAL]\n",
         cmd);
     return EXIT_FAILURE;
@@ -379,6 +387,9 @@ int main(int argc, char* argv[])
     int socket_mode = 0;
     char* socket_path = NULL;
     int log_level = ESP_LOG_NONE;
+    const char* tcp_bind = NULL;
+    struct in_addr tcp_bind_addr;
+    tcp_bind_addr.s_addr = htonl(INADDR_LOOPBACK); // Bind to localhost by default
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--serialport") == 0) {
@@ -408,6 +419,14 @@ int main(int argc, char* argv[])
             } else {
                 return usage(argv[0], "--socketfile requires a PATH argument");
             }
+        } else if (strcmp(argv[i], "--bind") == 0) {
+            if (i + 1 >= argc || argv[i + 1][0] == '-') {
+                return usage(argv[0], "--bind requires an ADDR argument");
+            }
+            tcp_bind = argv[++i];
+            if (inet_pton(AF_INET, tcp_bind, &tcp_bind_addr) != 1) {
+                return usage(argv[0], "invalid --bind ADDR argument");
+            }
         } else if (strcmp(argv[i], "--log-level") == 0) {
             if (i + 1 >= argc) {
                 return usage(argv[0], "--log-level requires an argument");
@@ -435,21 +454,26 @@ int main(int argc, char* argv[])
         return usage(argv[0], "Exactly one of --serialport, --tcp, or --socketfile must be given");
     }
 
+    if (tcp_bind && !tcp_mode) {
+        return usage(argv[0], "--bind is only valid with --tcp");
+    }
+
     libjade_start();
     libjade_set_log_level(log_level);
 
+    bool setup_ok = true;
     if (serial_mode) {
         serial_init(serial_link_path);
         printf("-> Serial mode enabled.\n");
         serial_bridge();
     } else if (tcp_mode) {
-        tcp_bridge(tcp_port);
+        setup_ok = tcp_bridge(&tcp_bind_addr, tcp_port);
     } else {
-        socket_bridge(socket_path);
+        setup_ok = socket_bridge(socket_path);
     }
 
     printf("Exiting libjade daemon.\n");
     libjade_stop();
 
-    return EXIT_SUCCESS;
+    return setup_ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
