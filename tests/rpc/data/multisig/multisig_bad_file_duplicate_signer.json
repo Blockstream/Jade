@@ -1,0 +1,6 @@
+{
+  "input": {
+    "multisig_file": "multisig_bad_file_duplicate_signer.dat"
+  },
+  "expected_error": "Failed to validate co-signers"
+}

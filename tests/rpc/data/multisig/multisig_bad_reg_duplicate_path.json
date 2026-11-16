@@ -1,0 +1,51 @@
+{
+    "comment": "Signer 2 is signer 3's xpub with its extra path applied, i.e. an invalid duplicate key",
+    "input": {
+        "network": "testnet",
+        "multisig_name": "ms_dup_key",
+        "descriptor": {
+            "variant": "sh(wsh(multi(k)))",
+            "sorted": false,
+            "threshold": 2,
+            "signers": [
+                {
+                    "fingerprint": "0xb5281696",
+                    "derivation": [
+                        3
+                    ],
+                    "xpub": "tpubECMbgHMZm4QymrFbuEntaWbSsaaKvJVpoR6rhVwxGUrT9qf6WLfC88piWYVsQDV86PUKx3QsXYiCqugWX1oz8ekucUdFUdupuNCgjf17EYK",
+                    "path": []
+                },
+                {
+                    "fingerprint": "0xe3ebcc79",
+                    "derivation": [
+                        2147483651,
+                        2147483650,
+                        1
+                    ],
+                    "xpub": "tpubDD8fpYqWy6DEvbqdj9CVWptA3gd3xqarNN6wCAjfDs1sFnd8zfb9SeDzRAXA3S4eeeYvo2sz6mbyS3KaXuDe5PcWy94PqShTpBjiJN198A6",
+                    "path": []
+                },
+                {
+                    "fingerprint": "0x1273da33",
+                    "derivation": [
+                        1
+                    ],
+                    "xpub": "tpubD8PzcLmm1rVeUpEjmd2kQD6a9DXy6dwVVgE14mrh1zc6L98nmNqmDaApAbEcbrJ1iPBpo2gnEniSpVXHgovU8ecWwfHVP113DK2bWEMPpEs",
+                    "path": [
+                        0
+                    ]
+                },
+                {
+                    "fingerprint": "0x1273da33",
+                    "derivation": [
+                        1
+                    ],
+                    "xpub": "tpubDACNLqc4TcCSFyZjR75L8XkSgWJJ6xMBncRKQbLWpTaBbEy8GsmmDo8uTkcHE4jvAzVinduG9cNMoTFua1v3Fbb4YwCgQ8YZG8P7ysZnjz9",
+                    "path": []
+                }
+            ]
+        }
+    },
+    "expected_error": "Failed to validate co-signers"
+}

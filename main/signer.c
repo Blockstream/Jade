@@ -2,9 +2,43 @@
 
 #include "signer.h"
 #include "jade_assert.h"
+#include "utils/malloc_ext.h"
 #include "wallet.h"
 
 #include <sodium/utils.h>
+#include <string.h>
+
+static bool signer_keys_are_unique(const signer_t* signers, const size_t num_signers)
+{
+    struct ext_key hdkey;
+    uint8_t* const pubkeys = JADE_MALLOC(num_signers * EC_PUBLIC_KEY_LEN);
+    bool ret = false;
+    size_t num_keys = 0;
+
+    for (size_t i = 0; i < num_signers; ++i) {
+        const signer_t* const signer = signers + i;
+        const uint32_t flags = BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_SKIP_HASH;
+
+        if (!wallet_derive_from_xpub(signer->xpub, signer->path, signer->path_len, flags, &hdkey)) {
+            JADE_LOGE("Cannot deserialise xpub for signer %d", i);
+            goto cleanup;
+        }
+
+        for (size_t j = 0; j < num_keys; ++j) {
+            if (!memcmp(pubkeys + (j * EC_PUBLIC_KEY_LEN), hdkey.pub_key, EC_PUBLIC_KEY_LEN)) {
+                JADE_LOGE("Duplicate co-signer key found at signer %d", i);
+                goto cleanup;
+            }
+        }
+        memcpy(pubkeys + (num_keys * EC_PUBLIC_KEY_LEN), hdkey.pub_key, EC_PUBLIC_KEY_LEN);
+        ++num_keys;
+    }
+    ret = true;
+
+cleanup:
+    free(pubkeys);
+    return ret;
+}
 
 // Walks the signers and validates - this wallet must have at least one xpub and it must be correct
 bool validate_signers(const signer_t* signers, const size_t num_signers, const bool accept_string_path,
@@ -80,6 +114,8 @@ bool validate_signers(const signer_t* signers, const size_t num_signers, const b
         *total_num_path_elements += signer->path_len;
     }
 
-    return bFound;
+    // Check uniqueness only for the non-descriptor case (where string paths are not
+    // accepted), since descriptor parsing already performs key uniqueness checks.
+    return bFound && (accept_string_path || signer_keys_are_unique(signers, num_signers));
 }
 #endif // AMALGAMATED_BUILD

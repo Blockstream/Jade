@@ -92,7 +92,7 @@ def _check_multisig_registration(jade, multisig_data):
 
 
 @with_test_cases('tests/rpc/data/multisig/multisig_reg_*.json')
-def test_generic_multisig_registration(jade, test_case):
+def test_generic_multisig_registrations(jade, test_case):
     """Generic multisig - check register multisig wallets and get receive addresses"""
     # Run all of these tests since later test cases rely on them :(
     _check_multisig_registration(jade, test_case)
@@ -110,6 +110,25 @@ def test_generic_multisig_registration(jade, test_case):
                                       descriptor['signers'],
                                       master_blinding_key=descriptor.get('master_blinding_key'))
         assert rslt
+
+
+@with_test_cases('tests/rpc/data/multisig/multisig_bad_reg_*.json')
+def test_generic_multisig_bad_registrations(jade, test_case):
+    """Generic multisig - check invalid registrations fail"""
+    expected_error = test_case['expected_error']
+    inputdata = test_case['input']
+    descriptor = inputdata['descriptor']
+    try:
+        jade.register_multisig(inputdata['network'],
+                               inputdata['multisig_name'],
+                               descriptor['variant'],
+                               descriptor['sorted'],
+                               descriptor['threshold'],
+                               descriptor['signers'],
+                               master_blinding_key=descriptor.get('master_blinding_key'))
+        assert False, 'Expected error: ' + expected_error
+    except JadeError as e:
+        assert e.message == expected_error, 'Expected: ' + expected_error
 
 
 @with_test_cases('tests/rpc/data/multisig/multisig_file_*.json')

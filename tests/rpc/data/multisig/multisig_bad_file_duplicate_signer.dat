@@ -1,0 +1,9 @@
+# Exported by Blockstream Jade
+Name: Jade_Dup_Signer
+Policy: 1 of 3
+Format: P2WSH
+Sorted: False
+Derivation: m/48'/0'/0'/2'
+e3ebcc79: xpub6DKw8J3a2uow2TiJn64sQCg8BFhuaVUG3Uk12jhQb3M9gQZpjGHFyBVpyheKRHPnk1WjR4X3n59xfUbN7X1Qw5pDVy3z2pb14pAMqKjDQnF
+1273da33: xpub6Ch41kHXUBgLjAPHeSZCC1v8emQ2x2BhDcRHcxbhSmqTV8AmGYh8xQdLzM5uPpvScYAMjcMFHL983xvuqYWtW1athULQ2W9mV37ZKbkMjML
+249192D2: xpub6Ch41kHXUBgLii2RL9ZaaLCmEuBzNR6EkXEoiGPaRFrfo6P4m1tspm7RztKoE1KLLDB35WnkE1QTZGq17P6HZinQ824THgRj29ojhJtzFHL
