@@ -470,6 +470,8 @@ bool wallet_is_expected_singlesig_path(const network_t network_id, const script_
     return true;
 }
 
+bool wallet_is_expected_descriptor_child_num(const uint32_t child_num) { return child_num < MAX_PATH_PTR; }
+
 bool wallet_is_expected_multisig_path(
     const size_t cosigner_index, const bool is_change, const uint32_t* path, size_t path_len)
 {

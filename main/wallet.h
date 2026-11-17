@@ -84,6 +84,7 @@ void wallet_get_default_xpub_export_path(
     script_variant_t variant, uint16_t account, uint32_t* path, size_t path_len, size_t* written);
 bool wallet_is_expected_singlesig_path(
     network_t network_id, script_variant_t script_variant, bool is_change, const uint32_t* path, size_t path_len);
+bool wallet_is_expected_descriptor_child_num(uint32_t child_num);
 bool wallet_is_expected_multisig_path(size_t cosigner_index, bool is_change, const uint32_t* path, size_t path_len);
 void wallet_build_receive_path(
     uint32_t subaccount, uint32_t branch, uint32_t pointer, uint32_t* output_path, size_t output_len, size_t* written);

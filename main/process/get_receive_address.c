@@ -120,6 +120,12 @@ void get_receive_address_process(void* process_ptr)
             goto cleanup;
         }
 
+        if (branch || !wallet_is_expected_descriptor_child_num(pointer)) {
+            const int ret = snprintf(warning_msg, sizeof(warning_msg), "\nWarning:\nNon-standard %s:\n%" PRIu32,
+                branch ? "(change)" : "child", pointer);
+            JADE_ASSERT(ret > 0 && ret < sizeof(warning_msg));
+        }
+
         // Build a script pubkey for the passed parameters
         if (!wallet_build_descriptor_script(network_id, descriptor_name, descriptor, branch, pointer, script,
                 sizeof(script), &script_len, &errmsg)) {
