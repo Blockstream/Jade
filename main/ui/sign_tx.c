@@ -135,7 +135,11 @@ static bool get_asset_display_info(const network_t network_id, const asset_info_
         JADE_ASSERT(ret > 0 && ret < amount_len);
 
         // Ticker
-        ret = snprintf(ticker, ticker_len, "%.*s", (int)asset_info.ticker_len, asset_info.ticker);
+        if (!asset_info.ticker_len) {
+            ret = snprintf(ticker, ticker_len, "%s", make_empty_none(NULL));
+        } else {
+            ret = snprintf(ticker, ticker_len, "%.*s", (int)asset_info.ticker_len, asset_info.ticker);
+        }
         JADE_ASSERT(ret > 0 && ret < ticker_len);
     } else {
         JADE_LOGW("Asset data for asset-id: '%s' not found!", asset_id_hex);
