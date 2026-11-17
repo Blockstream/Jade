@@ -322,9 +322,13 @@ bool wallet_derive_pubkey(const uint8_t* serialised_key, const size_t key_len, c
             return false;
         }
 
-        // Apply any additional path
+        // Apply the additional path
         flags |= BIP32_FLAG_KEY_PUBLIC;
-        JADE_WALLY_VERIFY(bip32_key_from_parent_path(&root, path, path_len, flags, hdkey));
+        if (bip32_key_from_parent_path(&root, path, path_len, flags, hdkey) != WALLY_OK) {
+            JADE_LOGE("Failed to derive key");
+            SENSITIVE_POP(&root);
+            return false;
+        }
         SENSITIVE_POP(&root);
     } else {
         // De-serialise the key directly into the output
