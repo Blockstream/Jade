@@ -303,6 +303,7 @@ static bool test_bcur_decode_bad_cases(void)
         "this is not even a ur message at all!", "ur:has prefix but still not a ur message?",
         "ur:crypto-bip39/looks like a bip39 message but bad payload encoding",
         "ur:bytes/1-3/multipart bad payload encoding, it would seem", "ur:bytes/1,2/multipart bad sequence numbers",
+        "ur:bytes/\200eadaolazmjendeoti", // bytewords payload contains a non-ASCII byte
 
         // Singlepart messages can have any payload, so long as it is bytewords encoded
 
