@@ -17,7 +17,6 @@
 #include "../utils/util.h"
 #include "../wallet.h"
 #include "usbhmsc.h"
-#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -811,7 +810,7 @@ static bool sign_usb_psbt(const usbstorage_action_context_t* ctx)
         // Try to interpret as base64 text file
 
         // Reduce length if file includes trailing whitespace
-        while (psbt_len && isspace(psbt_bytes[psbt_len - 1])) {
+        while (psbt_len && safe_isspace(psbt_bytes[psbt_len - 1])) {
             --psbt_len;
         }
 

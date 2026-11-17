@@ -17,8 +17,6 @@
 #include <esp_mac.h>
 #include <esp_ota_ops.h>
 
-#include <ctype.h>
-
 // The chip-info, mac-id, and running firmware-info, loaded at startup in main.c
 extern esp_app_desc_t running_app_info;
 extern esp_chip_info_t chip_info;
@@ -65,7 +63,7 @@ void build_version_info_reply(const void* ctx, CborEncoder* container)
     JADE_WALLY_VERIFY(wally_free_string(hexstr));
 
     JADE_WALLY_VERIFY(wally_hex_from_bytes(macid, 6, &hexstr));
-    map_string(hexstr, toupper);
+    map_string(hexstr, safe_toupper);
     add_string_to_map(&map_encoder, "EFUSEMAC", hexstr);
     JADE_WALLY_VERIFY(wally_free_string(hexstr));
 

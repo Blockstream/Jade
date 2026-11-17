@@ -1,6 +1,4 @@
 #ifndef AMALGAMATED_BUILD
-#include <ctype.h>
-
 #include "../jade_assert.h"
 #include "../keychain.h"
 #include "../process.h"
@@ -37,7 +35,7 @@ void get_identity_shared_key_process(void* process_ptr)
     }
 
     // Identity must be a string of printable characters (it is shown to the user for confirmation)
-    if (!string_n_all(identity, identity_len, isprint)) {
+    if (!string_n_all(identity, identity_len, safe_isprint)) {
         jade_process_reject_message(process, CBOR_RPC_BAD_PARAMETERS, "Invalid identity string");
         goto cleanup;
     }

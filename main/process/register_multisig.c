@@ -15,7 +15,6 @@
 
 #include "process_utils.h"
 
-#include <ctype.h>
 #include <sodium/utils.h>
 
 bool show_multisig_activity(const char* multisig_name, bool is_sorted, uint32_t threshold, size_t num_signers,
@@ -197,7 +196,7 @@ static bool split_line(
     *name_len = p - ptr;
 
     // Skip delimiter and any white space
-    while (p < eol && isspace((unsigned char)*++p)) {
+    while (p < eol && safe_isspace(*++p)) {
         // Skip
     }
 
@@ -306,7 +305,7 @@ int register_multisig_file(const char* multisig_file, const size_t multisig_file
                     break; // Embedded NUL character
                 }
                 // Copy, sanitizing spaces to underscores
-                multisig_name[i] = isspace((unsigned char)value[i]) ? '_' : value[i];
+                multisig_name[i] = safe_isspace(value[i]) ? '_' : value[i];
             }
             multisig_name[i] = '\0';
 

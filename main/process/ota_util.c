@@ -5,10 +5,10 @@
 #include "../jade_wally_verify.h"
 #include "../qrmode.h"
 #include "../utils/malloc_ext.h"
+#include "../utils/util.h"
 #include "ota_defines.h"
 #include "process_utils.h"
 
-#include <ctype.h>
 #include <esp_efuse.h>
 #include <sodium/utils.h>
 #include <stdint.h>
@@ -460,7 +460,7 @@ void ota_user_validate(jade_ota_ctx_t* joctx, const uint8_t* uncompressed)
 
     char new_config[sizeof(custom_info->config) + 1];
     for (size_t i = 0; i < sizeof(custom_info->config); ++i) {
-        new_config[i] = tolower((unsigned char)custom_info->config[i]);
+        new_config[i] = safe_tolower(custom_info->config[i]);
         if (!new_config[i]) {
             break;
         }

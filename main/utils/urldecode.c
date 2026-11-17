@@ -1,14 +1,14 @@
 #ifndef AMALGAMATED_BUILD
 #include "urldecode.h"
 #include "../jade_assert.h"
+#include "util.h"
 
-#include <ctype.h>
 #include <stdio.h>
 
 static char map_char(char c)
 {
     // Helper to map url-encoded %-escaped character
-    JADE_ASSERT(isxdigit(c));
+    JADE_ASSERT(safe_isxdigit(c));
 
     if (c >= 'a') {
         c -= ('a' - 'A');
@@ -60,7 +60,7 @@ static bool try_urldecode(
         int decoded;
         if (*src == '%') {
             // Ensure we have at least 2 more characters in the input string and both are hex digits
-            if ((src_end - src <= 2) || !isxdigit((unsigned char)src[1]) || !isxdigit((unsigned char)src[2])) {
+            if ((src_end - src <= 2) || !safe_isxdigit(src[1]) || !safe_isxdigit(src[2])) {
                 return false;
             }
 
@@ -134,7 +134,7 @@ bool urlencode(const char* src, const size_t src_len, char* dest, const size_t d
             return false;
         }
 
-        if (isalnum((unsigned char)*src) || *src == '-' || *src == '_' || *src == '.' || *src == '~') {
+        if (safe_isalnum(*src) || *src == '-' || *src == '_' || *src == '.' || *src == '~') {
             // Non-encoded character - copy across
             *dest++ = *src++;
         } else if (*src == ' ') {

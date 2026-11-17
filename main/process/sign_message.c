@@ -5,13 +5,13 @@
 #include "../ui.h"
 #include "../utils/cbor_rpc.h"
 #include "../utils/malloc_ext.h"
+#include "../utils/util.h"
 #include "../wallet.h"
 
 #include "../button_events.h"
 
 #include "process_utils.h"
 
-#include <ctype.h>
 #include <wally_anti_exfil.h>
 
 bool show_sign_message_activity(const char* msg_str, const char* hashhex, const char* path_as_str);
@@ -42,7 +42,7 @@ static char* get_sign_msg_display_text(const char* msg, const size_t msg_len)
 
     for (size_t i = 0; i < msg_len; ++i) {
         const char c = msg[i];
-        if (isprint(c) || c == ' ' || c == '\n') {
+        if (safe_isprint(c) || c == ' ' || c == '\n') {
             *out++ = c;
         } else {
             JADE_ASSERT(c != '\0');

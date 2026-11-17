@@ -50,7 +50,6 @@ static inline bool awaiting_attestation_data(void) { return false; }
 
 #include <esp_ota_ops.h>
 
-#include <ctype.h>
 #include <sodium/utils.h>
 #include <time.h>
 
@@ -320,7 +319,7 @@ static void update_home_screen(gui_view_node_t* status_light, gui_view_node_t* s
         uint8_t fingerprint[BIP32_KEY_FINGERPRINT_LEN];
         wallet_get_fingerprint(fingerprint, sizeof(fingerprint));
         JADE_WALLY_VERIFY(wally_hex_from_bytes(fingerprint, sizeof(fingerprint), &fphex));
-        map_string(fphex, toupper);
+        map_string(fphex, safe_toupper);
         gui_update_text(label, fphex);
         JADE_WALLY_VERIFY(wally_free_string(fphex));
     } else if (home_screen_type == HOME_SCREEN_TYPE_LOCKED) {
@@ -2045,23 +2044,23 @@ static void handle_display_mac_address(void)
     char* hexout = NULL;
     JADE_WALLY_VERIFY(wally_hex_from_bytes((uint8_t*)macid, 6, &hexout));
 
-    mac[0] = toupper((int)hexout[0]);
-    mac[1] = toupper((int)hexout[1]);
+    mac[0] = safe_toupper(hexout[0]);
+    mac[1] = safe_toupper(hexout[1]);
     mac[2] = ':';
-    mac[3] = toupper((int)hexout[2]);
-    mac[4] = toupper((int)hexout[3]);
+    mac[3] = safe_toupper(hexout[2]);
+    mac[4] = safe_toupper(hexout[3]);
     mac[5] = ':';
-    mac[6] = toupper((int)hexout[4]);
-    mac[7] = toupper((int)hexout[5]);
+    mac[6] = safe_toupper(hexout[4]);
+    mac[7] = safe_toupper(hexout[5]);
     mac[8] = ':';
-    mac[9] = toupper((int)hexout[6]);
-    mac[10] = toupper((int)hexout[7]);
+    mac[9] = safe_toupper(hexout[6]);
+    mac[10] = safe_toupper(hexout[7]);
     mac[11] = ':';
-    mac[12] = toupper((int)hexout[8]);
-    mac[13] = toupper((int)hexout[9]);
+    mac[12] = safe_toupper(hexout[8]);
+    mac[13] = safe_toupper(hexout[9]);
     mac[14] = ':';
-    mac[15] = toupper((int)hexout[10]);
-    mac[16] = toupper((int)hexout[11]);
+    mac[15] = safe_toupper(hexout[10]);
+    mac[16] = safe_toupper(hexout[11]);
     mac[17] = '\0';
 
     JADE_WALLY_VERIFY(wally_free_string(hexout));

@@ -1,6 +1,7 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -16,6 +17,16 @@
 #define jmemcpy memcpy
 #define jmemset memset
 #endif
+
+static inline int safe_isalnum(int c) { return isalnum((unsigned char)c); }
+static inline int safe_isdigit(int c) { return isdigit((unsigned char)c); }
+static inline int safe_isgraph(int c) { return isgraph((unsigned char)c); }
+static inline int safe_isprint(int c) { return isprint((unsigned char)c); }
+static inline int safe_isspace(int c) { return isspace((unsigned char)c); }
+static inline int safe_isupper(int c) { return isupper((unsigned char)c); }
+static inline int safe_isxdigit(int c) { return isxdigit((unsigned char)c); }
+static inline int safe_tolower(int c) { return tolower((unsigned char)c); }
+static inline int safe_toupper(int c) { return toupper((unsigned char)c); }
 
 static inline uint16_t min_u16(uint16_t a, uint16_t b) { return a < b ? a : b; }
 

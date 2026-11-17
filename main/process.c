@@ -7,6 +7,7 @@
 #include "process/process_utils.h"
 #include "utils/cbor_rpc.h"
 #include "utils/malloc_ext.h"
+#include "utils/util.h"
 
 #include <esp_mac.h>
 #include <freertos/FreeRTOS.h>
@@ -14,7 +15,6 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 
-#include <ctype.h>
 #include <stdlib.h>
 
 // Interface names shared by the version-info RPC and UI screens
@@ -243,12 +243,12 @@ static void deduce_jade_id(void)
     jade_id[2] = 'd';
     jade_id[3] = 'e';
     jade_id[4] = ' ';
-    jade_id[5] = toupper((int)hexout[6]);
-    jade_id[6] = toupper((int)hexout[7]);
-    jade_id[7] = toupper((int)hexout[8]);
-    jade_id[8] = toupper((int)hexout[9]);
-    jade_id[9] = toupper((int)hexout[10]);
-    jade_id[10] = toupper((int)hexout[11]);
+    jade_id[5] = safe_toupper(hexout[6]);
+    jade_id[6] = safe_toupper(hexout[7]);
+    jade_id[7] = safe_toupper(hexout[8]);
+    jade_id[8] = safe_toupper(hexout[9]);
+    jade_id[9] = safe_toupper(hexout[10]);
+    jade_id[10] = safe_toupper(hexout[11]);
     jade_id[11] = '\0';
 
     JADE_WALLY_VERIFY(wally_free_string(hexout));

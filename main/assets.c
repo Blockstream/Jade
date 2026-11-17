@@ -1,5 +1,4 @@
 #ifndef AMALGAMATED_BUILD
-#include <ctype.h>
 #include <inttypes.h>
 
 #include "assets.h"
@@ -32,7 +31,7 @@ static bool is_valid_asset_ticker(const char* ticker, const size_t ticker_len)
 
     for (size_t i = 0; i < ticker_len; ++i) {
         const uint8_t c = (uint8_t)ticker[i];
-        const bool valid = isalnum(c) || c == '.' || c == '-';
+        const bool valid = safe_isalnum(c) || c == '.' || c == '-';
         if (!valid) {
             return false;
         }

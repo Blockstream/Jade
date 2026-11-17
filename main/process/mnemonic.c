@@ -20,7 +20,6 @@
 #include "process_utils.h"
 
 #include <cdecoder.h>
-#include <ctype.h>
 
 #define MAX_NUM_FINAL_WORDS 128
 #define NUM_WORDS_SELECT 10
@@ -825,7 +824,7 @@ static wordlist_word_result_t select_wordlist_word(const bool is_mnemonic, const
                 // Character/letter was clicked
                 const char letter_selected = ev_id - BTN_KEYBOARD_ASCII_OFFSET;
                 if (letter_selected >= 'A' && letter_selected <= 'Z') {
-                    word[char_index] = tolower(letter_selected);
+                    word[char_index] = safe_tolower(letter_selected);
                     word[++char_index] = '\0';
                 }
             }
@@ -1178,7 +1177,7 @@ static bool expand_words(const uint8_t* bytes, const size_t bytes_len, char* buf
     const char* end_ptr = read_ptr;
 
     // Must be a string of printable characters
-    if (!string_all((const char*)bytes, isprint)) {
+    if (!string_all((const char*)bytes, safe_isprint)) {
         return false;
     }
 
@@ -1255,7 +1254,7 @@ static bool import_seedqr(
     JADE_INIT_OUT_SIZE(written);
 
     // Must be a string of appropriate length and all digits
-    if ((bytes_len != 48 && bytes_len != 96) || !string_all((const char*)bytes, isdigit)) {
+    if ((bytes_len != 48 && bytes_len != 96) || !string_all((const char*)bytes, safe_isdigit)) {
         return false;
     }
 

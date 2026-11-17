@@ -1,8 +1,8 @@
-#include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 
 #include "main/utils/urldecode.h"
+#include "main/utils/util.h"
 #include "selfcheck.h"
 
 #include <wally_core.h>
@@ -39,8 +39,8 @@ const char short_percent_padded_nul[] = { '%', '2', '\0' };
 static const urldecode_test_t urldecode_tests[] = {
     { "valid: printable characters", "abc-_.~", strlen("abc-_.~"), 8, NO_FN, VALID | PASS_DECODE, "abc-_.~" },
     { "valid: space and mixed-case hex", "a%20b+%7a%5A", strlen("a%20b+%7a%5A"), 7, NO_FN, VALID | PASS_DECODE, "a b zZ" },
-    { "valid: printable hex with isprint", "%41%4a%4A", strlen("%41%4a%4A"), 4, isprint, VALID | PASS_DECODE, "AJJ" },
-    { "valid: length-specified source", bounded_str, sizeof(bounded_str), 4, isprint, VALID | PASS_DECODE, "A1Z" },
+    { "valid: printable hex with isprint", "%41%4a%4A", strlen("%41%4a%4A"), 4, safe_isprint, VALID | PASS_DECODE, "AJJ" },
+    { "valid: length-specified source", bounded_str, sizeof(bounded_str), 4, safe_isprint, VALID | PASS_DECODE, "A1Z" },
     { "valid: all-nul source padding", all_nuls, sizeof(all_nuls), 1, NO_FN, VALID | PASS_DECODE, "" },
     { "valid: nul-padded source", padded_nuls, sizeof(padded_nuls), sizeof(padded_nuls), NO_FN, VALID | PASS_DECODE, "abc" },
     { "invalid-nul: encoded nul", "%00abc", strlen("%00abc"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
@@ -64,10 +64,10 @@ static const urldecode_test_t urldecode_tests[] = {
     { "invalid-percent: bad first hex digit", "%x2", strlen("%x2"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
     { "invalid-percent: bad second hex digit", "%2x", strlen("%2x"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
     { "invalid-percent: bad hex digits", "%xx", strlen("%xx"), 8, NO_FN, INVALID | FAIL_DECODE, "" },
-    { "user-check: valid string filtered by isupper", "TEST", strlen("TEST"), 8, isupper, VALID | PASS_DECODE, "TEST" },
-    { "user-check: letter rejected by isupper", "TEsT", strlen("TEsT"), 8, isupper, INVALID | PASS_DECODE, "TEsT" },
-    { "user-check: valid string with percent filtered by isupper", "TE%53T", strlen("TE%53T"), 8, isupper, VALID | PASS_DECODE, "TEST" },
-    { "user-check: percent-encoded letter rejected by isupper", "TE%73T", strlen("TE%73T"), 8, isupper, INVALID | PASS_DECODE, "TEsT" },
+    { "user-check: valid string filtered by isupper", "TEST", strlen("TEST"), 8, safe_isupper, VALID | PASS_DECODE, "TEST" },
+    { "user-check: letter rejected by isupper", "TEsT", strlen("TEsT"), 8, safe_isupper, INVALID | PASS_DECODE, "TEsT" },
+    { "user-check: valid string with percent filtered by isupper", "TE%53T", strlen("TE%53T"), 8, safe_isupper, VALID | PASS_DECODE, "TEST" },
+    { "user-check: percent-encoded letter rejected by isupper", "TE%73T", strlen("TE%73T"), 8, safe_isupper, INVALID | PASS_DECODE, "TEsT" },
     { "input-buffer: null source", NULL, 1, 8, NO_FN, INVALID, "" },
     { "input-buffer: zero source length", "", 0, 8, NO_FN, INVALID, "" },
     { "output-buffer: output buffer too short", "abc", strlen("abc"), 3, NO_FN, INVALID | FAIL_DECODE, "" },
@@ -82,7 +82,7 @@ static bool check_urldecode_case(const urldecode_test_t* test)
     JADE_ASSERT(!((test->flags & PASS_DECODE) && (test->flags & FAIL_DECODE)));
 
     if (test->src) {
-        if (string_n_all(test->src, test->src_len, isprint)) {
+        if (string_n_all(test->src, test->src_len, safe_isprint)) {
             JADE_LOGI("URL decode %s: \"%.*s\"", test->name, (int)test->src_len, test->src);
         } else {
             char* src_hex = NULL;

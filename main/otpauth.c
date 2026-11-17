@@ -15,7 +15,6 @@
 #include <mbedtls/md.h>
 #include <pb_decode.h>
 
-#include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,11 +57,13 @@ bool otp_is_valid(const otpauth_ctx_t* otp_ctx)
     // Optional fields
     OTP_CHECK_BOOL_RETURN(!otp_ctx->label_len || otp_ctx->label);
     if (otp_ctx->label_len) {
-        OTP_CHECK_BOOL_RETURN(is_valid_urlencoding(otp_ctx->label, otp_ctx->label_len, OTP_MAX_LABEL_LEN, isprint));
+        OTP_CHECK_BOOL_RETURN(
+            is_valid_urlencoding(otp_ctx->label, otp_ctx->label_len, OTP_MAX_LABEL_LEN, safe_isprint));
     }
     OTP_CHECK_BOOL_RETURN(!otp_ctx->issuer_len || otp_ctx->issuer);
     if (otp_ctx->issuer_len) {
-        OTP_CHECK_BOOL_RETURN(is_valid_urlencoding(otp_ctx->issuer, otp_ctx->issuer_len, OTP_MAX_NAME_LEN, isprint));
+        OTP_CHECK_BOOL_RETURN(
+            is_valid_urlencoding(otp_ctx->issuer, otp_ctx->issuer_len, OTP_MAX_NAME_LEN, safe_isprint));
     }
 
     return true;

@@ -2,8 +2,8 @@
 #include "storage.h"
 #include "jade_assert.h"
 #include "keychain.h"
+#include "utils/util.h"
 
-#include <ctype.h>
 #include <esp_system.h>
 #include <nvs_flash.h>
 #include <string.h>
@@ -426,7 +426,7 @@ bool storage_key_name_valid(const char* name)
             return false;
         }
         const unsigned char c = *pch;
-        if (!isgraph(c)) {
+        if (!safe_isgraph(c)) {
             return false;
         }
         ++pch;
@@ -447,7 +447,7 @@ void storage_key_name_make_valid(char* name)
             return;
         }
         const unsigned char c = *pch;
-        if (!isgraph(c)) {
+        if (!safe_isgraph(c)) {
             *pch = '_';
         }
         ++pch;
