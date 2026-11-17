@@ -222,7 +222,7 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
 
     char display_str[128];
     const bool show_help_btn = false;
-    gui_view_node_t* node;
+    gui_view_node_t* ticker_node;
 
     // First row, address
     gui_view_node_t* splitaddr;
@@ -261,9 +261,9 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
     gui_set_align(amountvalue, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(amountvalue, splitamount);
 
-    gui_make_text(&node, ticker, TFT_WHITE);
-    gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
-    gui_set_parent(node, splitamount);
+    gui_make_text(&ticker_node, ticker, TFT_WHITE);
+    gui_set_align(ticker_node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
+    gui_set_parent(ticker_node, splitamount);
 
     int ret = snprintf(display_str, sizeof(display_str), "%s\n%s", amount, ticker);
     JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
@@ -315,6 +315,7 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
 
     // NOTE: can only set scrolling *after* gui tree created
     gui_set_text_scroll_selected(amountvalue, true, TFT_BLACK, gui_get_highlight_color());
+    gui_set_text_scroll_selected(ticker_node, true, TFT_BLACK, gui_get_highlight_color());
     gui_set_text_scroll_selected(addr, true, TFT_BLACK, gui_get_highlight_color());
     if (assetinfo) {
         gui_set_text_scroll_selected(assetinfo, true, TFT_BLACK, gui_get_highlight_color());
