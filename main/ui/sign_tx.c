@@ -13,7 +13,10 @@
 #include "../ui/sign_tx.h"
 #include "../utils/address.h"
 #include "../utils/event.h"
+#include "../utils/malloc_ext.h"
 #include "../utils/util.h"
+
+void await_qr_help_activity(const char* url);
 
 // from confirm_address
 gui_activity_t* make_display_address_activities(const char* title, bool show_one_screen_tick, const char* address,
@@ -203,9 +206,31 @@ static gui_activity_t* make_display_assetinfo_activities(
     return act;
 }
 
+static char* join_warnings(const char** warnings)
+{
+    size_t n = 0;
+    for (size_t i = 0; warnings[i]; ++i) {
+        n += strlen(warnings[i]) + 3;
+    }
+    char *ret = JADE_MALLOC(n + 1), *out = ret;
+    *out = '\0';
+    for (size_t i = 0; warnings[i]; ++i) {
+        n = strlen(warnings[i]);
+        memcpy(out, warnings[i], n);
+        out += n;
+        *out++ = ',';
+        *out++ = ' ';
+        *out = '\0';
+    }
+    if (out != ret) {
+        out[-2] = '\0';
+    }
+    return ret;
+}
+
 static gui_activity_t* make_input_output_activities(const char* title, const bool is_wallet_output,
     const bool is_address, const char* address_label, const char* amount, const char* ticker, const char* issuer,
-    const char* asset_id_hex, const char* warning_msg, gui_activity_t** acttickeramt, gui_activity_t** actaddr1,
+    const char* asset_id_hex, const char** warnings, gui_activity_t** acttickeramt, gui_activity_t** actaddr1,
     gui_activity_t** actaddr2, gui_activity_t** actassetinfo1, gui_activity_t** actassetinfo2,
     gui_activity_t** actwarning)
 {
@@ -216,7 +241,7 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
     // asset info is both or neither
     JADE_ASSERT(asset_id_hex);
     JADE_ASSERT(!issuer == !strlen(asset_id_hex));
-    // warning_msg is optional
+    JADE_ASSERT(warnings);
     JADE_INIT_OUT_PPTR(acttickeramt);
     JADE_INIT_OUT_PPTR(actaddr1);
     JADE_INIT_OUT_PPTR(actaddr2);
@@ -225,7 +250,7 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
     JADE_INIT_OUT_PPTR(actwarning);
 
     char display_str[128];
-    const bool show_help_btn = false;
+    const bool show_help = false;
     gui_view_node_t* ticker_node;
 
     // First row, address
@@ -272,7 +297,7 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
     int ret = snprintf(display_str, sizeof(display_str), "%s\n%s", amount, ticker);
     JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
 
-    *acttickeramt = make_show_single_value_activity("Amount", display_str, show_help_btn);
+    *acttickeramt = make_show_single_value_activity("Amount", display_str, show_help);
 
     // Third row, asset-info
     gui_view_node_t* assetinfo = NULL;
@@ -288,11 +313,13 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
 
     // Fourth row, warning
     gui_view_node_t* warning = NULL;
-    if (warning_msg) {
+    if (warnings[0]) {
+        char* warning_msg = join_warnings(warnings);
         gui_make_text(&warning, warning_msg, TFT_WHITE);
         gui_set_align(warning, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
-        *actwarning = make_show_single_value_activity("Warning", warning_msg, show_help_btn);
+        *actwarning = make_show_single_value_activity("Warning", warning_msg, show_help);
+        free(warning_msg);
     }
 
     // Buttons - Cancel and Next
@@ -343,7 +370,7 @@ static gui_activity_t* make_input_output_activities(const char* title, const boo
 
 static bool show_input_output_activity(const char* title, const bool is_wallet_output, const bool is_address,
     const char* address_label, const char* amount, const char* ticker, const char* issuer, const char* asset_id_hex,
-    const char* warning_msg)
+    const char** warnings)
 {
     JADE_ASSERT(title);
     JADE_ASSERT(address_label);
@@ -351,7 +378,7 @@ static bool show_input_output_activity(const char* title, const bool is_wallet_o
     JADE_ASSERT(ticker);
     // asset info is both or neither
     JADE_ASSERT(!issuer == !asset_id_hex);
-    // warning_msg is optional
+    JADE_ASSERT(warnings);
 
     char assethex[96];
     if (asset_id_hex) {
@@ -370,9 +397,9 @@ static bool show_input_output_activity(const char* title, const bool is_wallet_o
     gui_activity_t* act_assetinfo1 = NULL;
     gui_activity_t* act_assetinfo2 = NULL;
     gui_activity_t* act_warning = NULL;
-    gui_activity_t* act_summary = make_input_output_activities(title, is_wallet_output, is_address, address_label,
-        amount, ticker, issuer, assethex, warning_msg, &act_tickeramt, &act_addr1, &act_addr2, &act_assetinfo1,
-        &act_assetinfo2, &act_warning);
+    gui_activity_t* act_summary
+        = make_input_output_activities(title, is_wallet_output, is_address, address_label, amount, ticker, issuer,
+            assethex, warnings, &act_tickeramt, &act_addr1, &act_addr2, &act_assetinfo1, &act_assetinfo2, &act_warning);
     gui_activity_t* act = act_summary;
 
     while (true) {
@@ -469,9 +496,12 @@ bool show_btc_transaction_outputs_activity(
         const bool is_address = true;
 
         // Show output info
-        const char* msg = (output_info && strlen(output_info[i].message) > 0) ? output_info[i].message : NULL;
+        const char* warnings[2] = { NULL, NULL };
+        if (output_info && strlen(output_info[i].message) > 0) {
+            warnings[0] = output_info[i].message;
+        }
         if (!show_input_output_activity(
-                title, is_wallet_output, is_address, address, amount, TICKER_BTC, NULL, NULL, msg)) {
+                title, is_wallet_output, is_address, address, amount, TICKER_BTC, NULL, NULL, warnings)) {
             // User pressed 'cancel'
             return false;
         }
@@ -533,8 +563,9 @@ bool show_elements_transaction_outputs_activity(const network_t network_id, cons
         // ATM assert that we always have unblinded info when displaying an output
         JADE_ASSERT(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED);
         if (!(output_info[i].flags & OUTPUT_FLAG_HAS_UNBLINDED)) {
-            if (!show_input_output_activity(title, is_wallet_output, is_address, address, "????", "????", "????",
-                    "????????????", BLINDED_OUTPUT)) {
+            const char* warnings[2] = { BLINDED_OUTPUT, NULL };
+            if (!show_input_output_activity(
+                    title, is_wallet_output, is_address, address, "????", "????", "????", "????????????", warnings)) {
                 // User pressed 'cancel'
                 return false;
             }
@@ -554,18 +585,22 @@ bool show_elements_transaction_outputs_activity(const network_t network_id, cons
         // Insert extra screen to display warning if the asset registry information is missing
         if (!have_asset_info) {
             // Make activity with no asset-id but with the warning message
-            if (!show_input_output_activity(title, is_wallet_output, is_address, address, amount, ticker, issuer,
-                    asset_id_hex, MISSING_ASSET_DATA)) {
+            const char* warnings[2] = { MISSING_ASSET_DATA, NULL };
+            if (!show_input_output_activity(
+                    title, is_wallet_output, is_address, address, amount, ticker, issuer, asset_id_hex, warnings)) {
                 // User pressed 'cancel'
                 return false;
             }
         }
 
         // Normal output screen - with issuer and asset-id
-        const char* msg = (output_info && strlen(output_info[i].message) > 0) ? output_info[i].message : NULL;
-        if (have_asset_info || msg) {
+        const char* warnings[2] = { NULL, NULL };
+        if (output_info && strlen(output_info[i].message) > 0) {
+            warnings[0] = output_info[i].message;
+        }
+        if (have_asset_info || warnings[0]) {
             if (!show_input_output_activity(
-                    title, is_wallet_output, is_address, address, amount, ticker, issuer, asset_id_hex, msg)) {
+                    title, is_wallet_output, is_address, address, amount, ticker, issuer, asset_id_hex, warnings)) {
                 // User pressed 'cancel'
                 return false;
             }
@@ -612,9 +647,9 @@ static bool show_elements_asset_summary_activity(const char* title, const char* 
             sizeof(amount), ticker, sizeof(ticker));
 
         // Normal output screen - with issuer and asset-id etc
-        const char* msg = !have_asset_info ? MISSING_ASSET_DATA : NULL;
+        const char* warnings[2] = { have_asset_info ? NULL : MISSING_ASSET_DATA, NULL };
         if (!show_input_output_activity(
-                title, is_wallet_output, is_address, label, amount, ticker, issuer, asset_id_hex, msg)) {
+                title, is_wallet_output, is_address, label, amount, ticker, issuer, asset_id_hex, warnings)) {
             // User pressed 'cancel'
             return false;
         }
@@ -655,7 +690,7 @@ bool show_elements_swap_activity(const network_t network_id, const bool initial_
 
 // Screens to confirm the fee / signing the tx
 static gui_activity_t* make_final_confirmation_activities(const char* title, const char* feeamount, const char* ticker,
-    const char* warning_msg, gui_activity_t** actfeeamt, gui_activity_t** actwarning)
+    const char** warnings, gui_activity_t** actfeeamt, gui_activity_t** actwarning)
 {
     JADE_ASSERT(title);
     JADE_ASSERT(feeamount);
@@ -665,7 +700,6 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
     JADE_INIT_OUT_PPTR(actwarning);
 
     char display_str[160];
-    const bool show_help_btn = false;
     gui_view_node_t* node;
 
     // First row, fee amount + ticker
@@ -677,8 +711,16 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
     gui_set_align(node, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(node, splitfee);
 
+    color_t fee_color = TFT_WHITE;
+    size_t num_warnings = 0;
+    for (/* no-op */; warnings[num_warnings]; ++num_warnings) {
+        if (!strcmp(warnings[num_warnings], WARN_FEE_NOT_FINAL)) {
+            fee_color = TFT_RED; // Highligh non-final fees
+        }
+    }
     gui_view_node_t* amountvalue;
-    gui_make_text(&amountvalue, feeamount, TFT_WHITE);
+    gui_make_text(&amountvalue, feeamount, fee_color);
+
     gui_set_align(amountvalue, GUI_ALIGN_CENTER, GUI_ALIGN_MIDDLE);
     gui_set_parent(amountvalue, splitfee);
 
@@ -689,20 +731,22 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
     int ret = snprintf(display_str, sizeof(display_str), "%s\n%s", feeamount, ticker);
     JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
 
-    *actfeeamt = make_show_single_value_activity("Fee Amount", display_str, show_help_btn);
+    const bool show_help = num_warnings != 0;
+    *actfeeamt = make_show_single_value_activity("Fee Amount", display_str, show_help);
 
     // Second row, warning
     gui_view_node_t* warning = NULL;
-    if (warning_msg) {
+    if (num_warnings) {
+        char* warning_msg = join_warnings(warnings);
         gui_make_text(&warning, warning_msg, TFT_WHITE);
+        free(warning_msg);
         gui_set_align(warning, GUI_ALIGN_LEFT, GUI_ALIGN_MIDDLE);
 
         btn_data_t warning_hdrbtns[] = { { .txt = "=", .font = JADE_SYMBOLS_16x16_FONT, .ev_id = BTN_BACK },
-            { .txt = NULL, .font = GUI_DEFAULT_FONT, .ev_id = GUI_BUTTON_EVENT_NONE } };
-        ret = snprintf(display_str, sizeof(display_str), "%s\n", warning_msg);
-        JADE_ASSERT(ret > 0 && ret < sizeof(display_str));
-        const char* message[] = { display_str };
-        *actwarning = make_show_message_activity(message, 1, "Warning", warning_hdrbtns, 2, NULL, 0);
+            { .txt = "?", .font = GUI_DEFAULT_FONT, .ev_id = BTN_SIGNTX_WARNING_HELP } };
+
+        const char* warn_title = num_warnings == 1 ? "Warning" : "Warnings";
+        *actwarning = make_show_message_activity(warnings, num_warnings, warn_title, warning_hdrbtns, 2, NULL, 0);
     }
 
     // Buttons - Cancel and Confirm
@@ -726,18 +770,18 @@ static gui_activity_t* make_final_confirmation_activities(const char* title, con
 }
 
 static bool show_final_confirmation_activity(
-    const char* title, const char* feeamount, const char* ticker, const char* warning_msg)
+    const char* title, const char* feeamount, const char* ticker, const char** warnings)
 {
     JADE_ASSERT(title);
     JADE_ASSERT(feeamount);
     JADE_ASSERT(ticker);
-    // warning_msg is optional
+    JADE_ASSERT(warnings);
 
     // final confirmation screen
     gui_activity_t* act_feeamt = NULL;
     gui_activity_t* act_warning = NULL;
     gui_activity_t* const act_summary
-        = make_final_confirmation_activities(title, feeamount, ticker, warning_msg, &act_feeamt, &act_warning);
+        = make_final_confirmation_activities(title, feeamount, ticker, warnings, &act_feeamt, &act_warning);
     gui_activity_t* act = act_summary;
 
     while (true) {
@@ -757,6 +801,14 @@ static bool show_final_confirmation_activity(
             act = act_warning;
             break;
 
+        case BTN_SIGNTX_WARNING_HELP:
+            await_qr_help_activity("blkstrm.com/signtx");
+            break;
+
+        case BTN_HELP:
+            await_qr_help_activity("blkstrm.com/fees");
+            break;
+
         case BTN_SIGNTX_REJECT:
             return false;
 
@@ -767,20 +819,21 @@ static bool show_final_confirmation_activity(
 }
 
 bool show_btc_final_confirmation_activity(
-    const network_t network_id, const uint64_t fee, const char* warning_msg, const bool is_minimum_fee)
+    const network_t network_id, const uint64_t fee, const char** warnings, const bool have_unverified_inputs)
 {
     JADE_ASSERT(!network_is_liquid(network_id));
-    JADE_ASSERT(!is_minimum_fee || warning_msg);
+    JADE_ASSERT(warnings && (!have_unverified_inputs || warnings[0]));
 
+    const char* suffix = have_unverified_inputs ? "+" : "";
     char feeamount[33];
-    const int ret = snprintf(feeamount, sizeof(feeamount), "%.08f%s", 1.0 * fee / 1e8, is_minimum_fee ? "+" : "");
+    const int ret = snprintf(feeamount, sizeof(feeamount), "%.08f%s", 1.0 * fee / 1e8, suffix);
     JADE_ASSERT(ret > 0 && ret < sizeof(feeamount));
 
-    return show_final_confirmation_activity("Send Transaction", feeamount, TICKER_BTC, warning_msg);
+    return show_final_confirmation_activity("Sign Transaction", feeamount, TICKER_BTC, warnings);
 }
 
 bool show_elements_final_confirmation_activity(
-    const network_t network_id, const char* title, const uint64_t fee, const char* warning_msg)
+    const network_t network_id, const char* title, const uint64_t fee, const char** warnings)
 {
     JADE_ASSERT(network_is_liquid(network_id));
     JADE_ASSERT(title);
@@ -805,6 +858,6 @@ bool show_elements_final_confirmation_activity(
     ret = snprintf(feeamount, sizeof(feeamount), "%.*f", asset_info.precision, 1.0 * fee / scale_factor);
     JADE_ASSERT(ret > 0 && ret < sizeof(feeamount));
 
-    return show_final_confirmation_activity(title, feeamount, ticker, warning_msg);
+    return show_final_confirmation_activity(title, feeamount, ticker, warnings);
 }
 #endif // AMALGAMATED_BUILD

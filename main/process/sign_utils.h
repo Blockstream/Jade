@@ -25,6 +25,11 @@ typedef struct _asset_summary {
 #define MAX_TX_INPUTS 256
 #define MAX_TX_OUTPUTS 64
 
+// Signing Warnings
+#define WARN_FEE_ABOVE_SPEND "Fee above spend"
+#define WARN_FEE_NOT_FINAL "Fee not final"
+#define WARN_MIXED_INPUT_TYPES "Mixed input types"
+
 WARN_UNUSED_RESULT bool params_txn_validate(network_t network_id, bool for_liquid, const struct wally_tx* const tx,
     uint64_t* explicit_fee, const char** errmsg);
 
@@ -67,7 +72,7 @@ void params_genesis_hash(network_t network_id, bool for_liquid, const uint8_t* g
 
 bool show_btc_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx, const output_info_t* outinfo,
     script_flavour_t aggregate_inputs_scripts_flavour, uint64_t input_amount, uint64_t output_amount,
-    size_t num_unverified_inputs);
+    bool have_unverified_inputs);
 
 bool show_elements_fee_confirmation_activity(network_t network_id, const struct wally_tx* tx,
     const output_info_t* outinfo, script_flavour_t aggregate_inputs_scripts_flavour, uint64_t fees, TxType_t txtype,

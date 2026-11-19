@@ -120,9 +120,6 @@ typedef enum {
     SCRIPT_FLAVOUR_MIXED
 } script_flavour_t;
 
-#define WARN_MSG_HIGH_FEES "Fee amount higher than spend amount!"
-#define WARN_MSG_MIXED_INPUTS "Your transaction inputs are of varying types."
-
 // Sanity check extended-data payload fields
 bool check_extended_data_fields(CborValue* params, const char* expected_origid, const char* expected_orig,
     size_t expected_seqnum, size_t expected_seqlen);
