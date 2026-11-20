@@ -193,6 +193,15 @@ static bool params_signing_outputs(jade_process_t* process, const CborValue* par
                     goto cleanup;
                 }
 
+                if (!wallet_is_expected_descriptor_child_num(pointer)) {
+                    JADE_LOGW("Unexpected output child: %" PRIu32, pointer);
+                    const int ret = snprintf(outinfo->message, sizeof(outinfo->message),
+                        "This wallet output has a non-standard child number (%" PRIu32
+                        "), so it may be difficult to find.  Proceed at your own risk.",
+                        pointer);
+                    JADE_ASSERT(ret > 0 && ret < sizeof(outinfo->message));
+                }
+
                 // Build a script pubkey for the passed parameters
                 if (!wallet_build_descriptor_script(network_id, descriptor_name, descriptor, branch, pointer, script,
                         sizeof(script), &script_len, &errmsg)) {
