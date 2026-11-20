@@ -86,6 +86,31 @@ def get_fw_metadata(release_data):
     return selectedfw
 
 
+def check_and_write_fw(fwdata, fwcmp, write_compressed):
+    logger.info(f'Downloaded {len(fwcmp)} byte firmware')
+
+    fwname = fwdata['filename']
+    fwhash = fwdata.get('fwhash')
+    cmphash = fwdata.get('cmphash')
+
+    if cmphash:
+        # Check the downloaded file hash
+        assert hashlib.sha256(fwcmp).hexdigest() == cmphash
+        logger.info(f'Downloaded file hash verified')
+    else:
+        logger.warning(f'Downloaded file hash NOT verified - no hash file available')
+
+    # If passed --write-compressed we write a copy of the compressed file
+    if write_compressed:
+        cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
+        fwtools.write(fwcmp, cmpfilename)
+        if fwhash:
+            fwtools.write(fwhash, cmpfilename + '.hash', text=True)
+
+    # Return
+    return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
+
+
 # Download compressed firmware file from Firmware Server using 'requests'
 def download_file(hw_target, write_compressed, release):
     import requests
@@ -104,8 +129,6 @@ def download_file(hw_target, write_compressed, release):
 
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
-    fwhash = fwdata.get('fwhash')
-    cmphash = fwdata.get('cmphash')
 
     # GET the selected firmware from the server
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -114,25 +137,7 @@ def download_file(hw_target, write_compressed, release):
     assert rslt.status_code == 200, f'Cannot download firmware file {url}: {rslt.status_code}'
 
     fwcmp = rslt.content
-    logger.info(f'Downloaded {len(fwcmp)} byte firmware')
-
-    # Check the downloaded file hash if available
-    if cmphash:
-        # Compute the sha256 hash of the downloaded file
-        cmphasher = hashlib.sha256()
-        cmphasher.update(fwcmp)
-        assert cmphasher.digest() == bytes.fromhex(cmphash)
-        logger.info(f'Downloaded file hash verified')
-
-    # If passed --write-compressed we write a copy of the compressed file
-    if write_compressed:
-        cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
-        fwtools.write(fwcmp, cmpfilename)
-        if fwhash:
-            fwtools.write(fwhash, cmpfilename + '.hash', text=True)
-
-    # Return
-    return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
+    return check_and_write_fw(fwdata, fwcmp, write_compressed)
 
 
 # Download compressed firmware file from Firmware Server using GDK
@@ -141,7 +146,8 @@ def download_file_gdk(hw_target, write_compressed, release):
     import base64
 
     gdk.init({})
-    session = gdk.Session({'name': 'mainnet'})
+    # Use a testnet session: We don't actually connect to it
+    session = gdk.Session({'name': 'electrum-testnet'})
 
     # GET the index file from the firmware server which lists the
     # available firmwares
@@ -159,7 +165,6 @@ def download_file_gdk(hw_target, write_compressed, release):
 
     fwdata = get_fw_metadata(release_data)
     fwname = fwdata['filename']
-    fwhash = fwdata.get('fwhash')
 
     # GET the selected firmware from the server in base64 encoding
     url = f'{FWSERVER_URL_ROOT}/{hw_target}/{fwname}'
@@ -169,19 +174,8 @@ def download_file_gdk(hw_target, write_compressed, release):
     rslt = json.loads(rslt)
     assert 'body' in rslt, f'Cannot download firmware file {url}: {rslt.get("error")}'
 
-    fw_b64 = rslt['body']
-    fwcmp = base64.b64decode(fw_b64)
-    logger.info(f'Downloaded {len(fwcmp)} byte firmware')
-
-    # If passed --write-compressed we write a copy of the compressed file
-    if write_compressed:
-        cmpfilename = f'{COMP_FW_DIR}/{os.path.basename(fwname)}'
-        fwtools.write(fwcmp, cmpfilename)
-        if fwhash:
-            fwtools.write(fwhash, cmpfilename + '.hash', text=True)
-
-    # Return
-    return fwdata['fwsize'], fwdata.get('patch_size'), fwhash, fwcmp
+    fwcmp = base64.b64decode(rslt['body'])
+    return check_and_write_fw(fwdata, fwcmp, write_compressed)
 
 
 # Use a local uncompressed full firmware file - can deduce the compressed firmware
