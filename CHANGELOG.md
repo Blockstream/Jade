@@ -4,6 +4,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.42] - 2026-11-25
+
+Note: This release contains important security updates; All users should
+upgrade as soon as possible. The developers would like to thank:
+
+@oroderico, Gustavo Cateim, @wmelonw, @Bitrom, Luke Pollard, @ammann, Darrell, Bota,
+@kkdao, Phummarin, Yuan of CertiK, Nuhiat Arefin, floppy, Moin, Guillermo Rodas,
+@habakan, Gleb Lizunov and Connor Avila
+
+for their help investigating and fixing important issues for this release.
+
+### Added
+- mnemonic: Allow recovery via BIP39 word indices.
+- bip85: Expose `get_bip85_bip39_entropy` over RPC in addition to QR.
+- RPC: Show which connection interface holds the unlocked wallet in `get_version_info`.
+- Liquid: Support asset tickers up to 24 characters with improved empty ticker handling.
+- libjade: Add macOS support.
+- jade_cli: Allow connecting over BLE with `--device ble:address`.
+- DIY: Add support for M5Stack StickS3 and Waveshare Touch LCD 3.5.
+- DIY: Add support for direct touch interaction.
+- DIY: Add support for TTGO T-Display S3 Pro camera power management.
+- docs: Add SECURITY.md describing how to report security issues.
+
+### Changed
+- identity: The `get_identity_shared_key` RPC now requires the user to approve the request.
+- descriptor: Warn for unusual child numbers when fetching addresses or signing
+  via descriptor.
+- sign: Improve warning presentation/require approval of unverified inputs.
+- auth: Reject auth and logout requests from non-unlocked interfaces.
+- auth: Show which interface is requesting auth when the user is confirming.
+- BLE: Update Bluetooth status icons to follow existing standards.
+- UI: Make text scrolling smoother. Minor gui cleanups.
+- sign_message: limit message signing to 4kb. Show unprintable characters as '?'.
+- memory: Various optimizations to reduce memory use and heap fragmentation.
+- random: Include per-device data into the initial random seed for v2 devices.
+- deps: Update ESP-IDF to v5.5.5.
+- deps: Update bootloader, components, wally and build images to their latest releases.
+- docs: Various documentation improvements and typo fixes.
+
+### Fixed
+- descriptor: Improve error handling and descriptor cross-compatability.
+- descriptor: Fix truncated xpub export for larger descriptors.
+- ota: Fix handling of unavailable releases and the default download target.
+- USB: Fix hang on read/write failures.
+- RPC: Improve validation of RPC message structure and content.
+- jadepy: Fix retrying closed TCP streams.
+- memory: Clear temporary buffers holding sensitive data more diligently.
+- misc: Fix device reboots on erroneous input to gracefully fail instead.
+- misc: Fix a large number of issues resulting from internal AI scanning.
+- DIY: Fix camera preview and QR guide on portrait displays.
+- Various build, CI and test infrastructure fixes and cleanups.
+
 ## [1.0.41] - 2026-08-22
 
 Note: This release contains important security updates; All users should
@@ -17,7 +69,7 @@ upgrade as soon as possible. The developers would like to thank:
 - Damir, odudex, ZatoshiX, @erickcestari, @popodai and Bitcoin Red Team for
   help investigating and fixing several important issues for this release.
 
-Added:
+### Added:
 - Improve stack protection for production devices.
 - Add support for registering and signing with Liquid descriptors (development devices only).
 - Add support for custom genesis blockhashes when signing Liquid transactions.
@@ -26,7 +78,7 @@ Added:
 - Add additional per-device entropy to the initial random seed.
 - Increment secure version to prevent firmware downgrades from this release.
 
-Changed:
+### Changed:
 - Update IDF framework to version 5.5.4.
 - Update Python dependencies to the latest known-good versions.
 - Update libwally and libsecp256k1-zkp to their latest releases.
@@ -37,7 +89,7 @@ Changed:
 - Optimizations to reduce firmware size, stack and memory usage.
 - Bump jadepy to release 1.0.41.
 
-Fixed:
+### Fixed:
 - Fix device reboot when restarting while connected to an overly-chatty host.
 - Fix jade_ota.py in "download-only" mode.
 - Fix device hang instead of reboot in certain circumstances.
