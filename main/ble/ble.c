@@ -602,8 +602,10 @@ static int ble_gap_event(struct ble_gap_event* event, void* arg)
             ble_print_conn_desc(&desc);
 
             // enable ble security
+            // NOTE: nimble defers this event until it has read the peer's version
+            // and features, so the peer may have already started pairing.
             rc = ble_gap_security_initiate(event->connect.conn_handle);
-            JADE_ASSERT(rc == 0);
+            JADE_ASSERT(rc == 0 || rc == BLE_HS_EALREADY);
         }
 
         if (event->connect.status != 0) {
