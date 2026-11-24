@@ -41,7 +41,6 @@ int sign_psbt(
     jade_process_t* process, CborValue* params, network_t network_id, struct wally_psbt* psbt, const char** errmsg);
 
 // xpub helpers
-script_variant_t xpub_script_variant_from_flags(uint32_t qr_flags);
 bool handle_xpub_options(uint32_t* qr_flags, bool for_descriptor);
 
 #define MAX_FILENAME_SIZE 256
@@ -918,7 +917,7 @@ static gui_activity_t* make_export_xpub_prompt_activity(void)
 static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx)
 {
     uint32_t qr_flags = storage_get_qr_flags();
-    qr_flags &= ~QR_XPUB_MULTISIG; // Disallow multisig
+    qr_flags &= ~(QR_XPUB_MULTISIG | QR_XPUB_CASA); // Disallow multisig and Casa preset
 
     gui_activity_t* act = make_export_xpub_prompt_activity();
     gui_set_current_activity(act);
@@ -939,7 +938,7 @@ static bool export_usb_xpub_fn(const usbstorage_action_context_t* ctx)
         }
     }
 
-    JADE_ASSERT(!(qr_flags & QR_XPUB_MULTISIG));
+    JADE_ASSERT(!(qr_flags & (QR_XPUB_MULTISIG | QR_XPUB_CASA)));
     char descriptor[512], *p = descriptor; // sufficient
     const script_variant_t script_variant = xpub_script_variant_from_flags(qr_flags);
     bool is_wrapped = false;

@@ -19,6 +19,7 @@ typedef enum {
     KB_UPPER_CASE_CHARS,
     KB_NUMBERS_SYMBOLS,
     KB_REMAINING_SYMBOLS,
+    KB_BIP32_PATH,
     NUM_KBS
 } keyboard_type_t;
 

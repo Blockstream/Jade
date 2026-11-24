@@ -57,6 +57,10 @@ static void make_keyboard_screen(link_activity_t* kb_screen_activity, const char
         lines[0] = ":;<=>?@";
         lines[1] = "[\\]^_`~";
         lines[2] = "{|} |>S";
+    } else if (kb_type == KB_BIP32_PATH) {
+        lines[0] = "1234567890";
+        lines[1] = "m/'";
+        lines[2] = "|>S";
     } else {
         JADE_ASSERT_MSG(false, "Unhandled keyboard type: %d", kb_type);
     }
