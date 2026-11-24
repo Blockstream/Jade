@@ -466,6 +466,77 @@ static bool contains_bytes(const uint8_t* data, const size_t data_len, const uin
     return false;
 }
 
+// Test the Casa xpub export preset: wallet type rotation, script type, path, and the resulting 'crypto-account'
+static bool test_xpub_casa_preset(jade_process_t* process)
+{
+    JADE_ASSERT(process);
+
+    // Wallet types rotate Singlesig -> Multisig -> Casa -> Singlesig (and reverse),
+    // leaving any script type flags unchanged
+    const uint32_t script_bits = QR_XPUB_WITNESS | QR_XPUB_LEGACY;
+    const uint32_t wallet_mask = QR_XPUB_MULTISIG | QR_XPUB_CASA;
+    const uint32_t wallettypes[] = { 0, QR_XPUB_MULTISIG, QR_XPUB_CASA };
+    const size_t num_wallettypes = sizeof(wallettypes) / sizeof(wallettypes[0]);
+    for (size_t i = 0; i < num_wallettypes; ++i) {
+        uint32_t flags = script_bits | wallettypes[i];
+        rotate_wallettypes(&flags, false);
+        if ((flags & wallet_mask) != wallettypes[(i + 1) % num_wallettypes] || (flags & ~wallet_mask) != script_bits) {
+            FAIL();
+        }
+        rotate_wallettypes(&flags, true);
+        if (flags != (script_bits | wallettypes[i])) {
+            FAIL();
+        }
+    }
+
+    // Casa is p2sh-wrapped segwit multisig, regardless of other script type flags
+    const uint32_t script_flags[] = { 0, QR_XPUB_WITNESS, QR_XPUB_LEGACY, QR_XPUB_WITNESS | QR_XPUB_LEGACY,
+        QR_XPUB_TAPROOT, QR_XPUB_MULTISIG };
+    for (size_t i = 0; i < sizeof(script_flags) / sizeof(script_flags[0]); ++i) {
+        if (xpub_script_variant_from_flags(script_flags[i] | QR_XPUB_CASA) != MULTI_P2WSH_P2SH) {
+            FAIL();
+        }
+    }
+
+    // Casa path is m/45'
+    uint32_t path[EXPORT_XPUB_PATH_LEN];
+    size_t path_len = 0;
+    get_casa_xpub_export_path(path, EXPORT_XPUB_PATH_LEN, &path_len);
+    if (path_len != 1 || path[0] != BIP32_INITIAL_HARDENED_CHILD + 45) {
+        FAIL();
+    }
+
+    // Set standard test wallet
+    keychain_t keydata = { 0 };
+    if (!keychain_derive_from_mnemonic(TEST_MNEMONIC, NULL, &keydata)) {
+        FAIL();
+    }
+    keychain_set(&keydata, process->ctx.source, true);
+
+    uint8_t cbor[EXPORT_XPUB_CBOR_BUFLEN];
+    size_t written = 0;
+    bcur_build_cbor_crypto_account(
+        xpub_script_variant_from_flags(QR_XPUB_CASA), path, path_len, cbor, sizeof(cbor), &written);
+    if (!written) {
+        FAIL();
+    }
+
+    // Single-element descriptor array, script tags sh(400) and wsh(401), then hdkey tag (303)
+    const uint8_t script_tags[] = { 0x81, 0xd9, 0x01, 0x90, 0xd9, 0x01, 0x91, 0xd9, 0x01, 0x2f };
+    if (!contains_bytes(cbor, written, script_tags, sizeof(script_tags))) {
+        FAIL();
+    }
+
+    // Keypath tag (304), map with components [45, true] ie. m/45'
+    const uint8_t keypath[] = { 0xd9, 0x01, 0x30, 0xa3, 0x01, 0x82, 0x18, 0x2d, 0xf5 };
+    if (!contains_bytes(cbor, written, keypath, sizeof(keypath))) {
+        FAIL();
+    }
+
+    keychain_clear();
+    return true;
+}
+
 // Test parsing of user-entered custom xpub export paths, that the 'crypto-account'
 // bcur for the longest supported custom path fits in the xpub export buffer, and
 // that the custom path is tagged with the selected script type.
@@ -755,6 +826,11 @@ bool debug_selfcheck(jade_process_t* process)
 
     // Test custom xpub export path parsing, and the export buffer size for the longest path
     if (!test_xpub_custom_path(process)) {
+        FAIL();
+    }
+
+    // Test the Casa xpub export preset script type
+    if (!test_xpub_casa_preset(process)) {
         FAIL();
     }
 

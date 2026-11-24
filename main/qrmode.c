@@ -198,9 +198,39 @@ static const char* qr_density_desc_from_flags(const uint32_t qr_flags)
                                                                       : "Medium";
 }
 
+// Rotate between the wallet types: Singlesig -> Multisig -> Casa -> Singlesig
+void rotate_wallettypes(uint32_t* flags, const bool reverse)
+{
+    JADE_ASSERT(flags);
+
+    if (contains_flags(*flags, QR_XPUB_CASA)) {
+        *flags &= ~QR_XPUB_CASA;
+        *flags |= reverse ? QR_XPUB_MULTISIG : 0;
+    } else if (contains_flags(*flags, QR_XPUB_MULTISIG)) {
+        *flags &= ~QR_XPUB_MULTISIG;
+        *flags |= reverse ? 0 : QR_XPUB_CASA;
+    } else { // ie. currently 0/default/uninitialised - treat as 'singlesig'
+        *flags |= reverse ? QR_XPUB_CASA : QR_XPUB_MULTISIG;
+    }
+}
+
+// The Casa preset always uses wrapped segwit m/45' only
+void get_casa_xpub_export_path(uint32_t* path, const size_t path_len, size_t* written)
+{
+    JADE_ASSERT(path);
+    JADE_ASSERT(path_len >= EXPORT_XPUB_PATH_LEN);
+    JADE_INIT_OUT_SIZE(written);
+
+    path[0] = harden(45);
+    *written = 1;
+}
+
 // We support native segwit and p2sh-wrapped segwit, singlesig and multisig
 script_variant_t xpub_script_variant_from_flags(const uint32_t qr_flags)
 {
+    if (contains_flags(qr_flags, QR_XPUB_CASA)) {
+        return MULTI_P2WSH_P2SH;
+    }
     // unset/default is treated as 'high' (ie. the middle value)
     if (contains_flags(qr_flags, QR_XPUB_TAPROOT)) {
         return P2TR;
@@ -216,6 +246,9 @@ script_variant_t xpub_script_variant_from_flags(const uint32_t qr_flags)
 }
 static inline const char* xpub_scripttype_desc_from_flags(const uint32_t qr_flags)
 {
+    if (contains_flags(qr_flags, QR_XPUB_CASA)) {
+        return "Wrapped Segwit";
+    }
     // unset/default is treated as 'high' (ie. the middle value)
     return contains_flags(qr_flags, QR_XPUB_WITNESS | QR_XPUB_LEGACY) ? "Wrapped Segwit"
         : contains_flags(qr_flags, QR_XPUB_LEGACY)                    ? "Legacy"
@@ -225,7 +258,9 @@ static inline const char* xpub_scripttype_desc_from_flags(const uint32_t qr_flag
 static inline const char* xpub_wallettype_desc_from_flags(const uint32_t qr_flags)
 {
     // unset/default is treated as singlesig
-    return contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig" : "Singlesig";
+    return contains_flags(qr_flags, QR_XPUB_CASA)       ? "Casa"
+        : contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig"
+                                                     : "Singlesig";
 }
 
 static gui_activity_t* create_display_xpub_qr_activity(
@@ -239,13 +274,17 @@ static gui_activity_t* create_display_xpub_qr_activity(
     const script_variant_t script_variant = xpub_script_variant_from_flags(qr_flags);
     const uint16_t account_index = qr_flags >> ACCOUNT_INDEX_FLAGS_SHIFT;
 
-    // Use the custom derivation path the user has entered, otherwise
+    // The Casa preset always uses its fixed path, ignoring any custom path.
+    // Otherwise use the custom derivation path the user has entered, or
     // deduce path based on script type and main/test network restrictions
     // Default path is 3 or 4 - purpose'/cointype'/account'/[multisig bip48 script type']
     uint32_t path[EXPORT_XPUB_PATH_LEN];
     size_t path_len = 0;
-    const bool is_custom_path = custom_path_len > 0;
-    if (is_custom_path) {
+    const bool is_casa = contains_flags(qr_flags, QR_XPUB_CASA);
+    const bool is_custom_path = !is_casa && custom_path_len > 0;
+    if (is_casa) {
+        get_casa_xpub_export_path(path, EXPORT_XPUB_PATH_LEN, &path_len);
+    } else if (is_custom_path) {
         memcpy(path, custom_path, custom_path_len * sizeof(custom_path[0]));
         path_len = custom_path_len;
     } else {
@@ -273,9 +312,7 @@ static gui_activity_t* create_display_xpub_qr_activity(
     const bool path_only = false;
     const bool ret = wallet_bip32_path_as_str(path, path_len, pathstr, sizeof(pathstr), path_only);
     JADE_ASSERT(ret);
-    const char* label = is_custom_path               ? "Custom"
-        : contains_flags(qr_flags, QR_XPUB_MULTISIG) ? "Multisig"
-                                                     : "Singlesig";
+    const char* label = is_custom_path ? "Custom" : xpub_wallettype_desc_from_flags(qr_flags);
     const uint8_t frames_per_qr = qr_framerate_from_flags(QR_SPEED_LOW); // always use slow framerate for xpub export
     return make_show_xpub_qr_activity(label, pathstr, icons, num_icons, frames_per_qr);
 }
@@ -289,23 +326,41 @@ static void set_menu_item_enabled(gui_view_node_t* item, const bool enabled)
     gui_set_active(item->parent, enabled);
 }
 
-// Update the menu items to reflect any custom path.
+// Update the menu items to reflect any custom path or the Casa preset.
 // A custom path replaces the default path's account index, so when one is set that item is disabled.
 // The script and wallet types remain selectable, as they determine the script tags exported with the path.
+// The Casa preset hardcodes the script type and path.
+// They then show the Casa path, with no account index.
 // No custom path can be set when exporting a descriptor, in which case there is no 'Path' item (NULL).
-static void update_xpub_path_menu_items(gui_view_node_t* account_item, gui_view_node_t* path_item,
-    const uint16_t account_index, const uint32_t* custom_path, const size_t custom_path_len)
+static void update_xpub_menu_items(gui_view_node_t* script_item, gui_view_node_t* account_item,
+    gui_view_node_t* path_item, const bool is_casa, const uint16_t account_index, const uint32_t* custom_path,
+    const size_t custom_path_len)
 {
+    JADE_ASSERT(script_item);
     JADE_ASSERT(account_item);
     JADE_ASSERT(path_item || !custom_path_len);
     JADE_ASSERT(custom_path);
 
-    char buf[8];
-    const int ret = snprintf(buf, sizeof(buf), "%u", account_index);
-    JADE_ASSERT(ret > 0 && ret < sizeof(buf));
-    update_menu_item(account_item, "Account Index", buf);
+    if (is_casa) {
+        gui_update_text(account_item, "Account Index");
+    } else {
+        char buf[8];
+        const int ret = snprintf(buf, sizeof(buf), "%u", account_index);
+        JADE_ASSERT(ret > 0 && ret < sizeof(buf));
+        update_menu_item(account_item, "Account Index", buf);
+    }
 
-    if (custom_path_len) {
+    if (is_casa && path_item) {
+        uint32_t casa_path[EXPORT_XPUB_PATH_LEN];
+        size_t casa_path_len = 0;
+        get_casa_xpub_export_path(casa_path, EXPORT_XPUB_PATH_LEN, &casa_path_len);
+        char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
+        const bool path_only = false;
+        const bool have_pathstr
+            = wallet_bip32_path_as_str(casa_path, casa_path_len, pathstr, sizeof(pathstr), path_only);
+        JADE_ASSERT(have_pathstr);
+        update_menu_item(path_item, "Path", pathstr);
+    } else if (custom_path_len) {
         char pathstr[MAX_PATH_STR_LEN(EXPORT_XPUB_PATH_LEN)];
         const bool path_only = false;
         const bool have_pathstr
@@ -316,7 +371,11 @@ static void update_xpub_path_menu_items(gui_view_node_t* account_item, gui_view_
         gui_update_text(path_item, "Custom Path");
     }
 
-    set_menu_item_enabled(account_item, !custom_path_len);
+    set_menu_item_enabled(script_item, !is_casa);
+    set_menu_item_enabled(account_item, !is_casa && !custom_path_len);
+    if (path_item) {
+        set_menu_item_enabled(path_item, !is_casa);
+    }
 }
 
 xpub_path_err_t parse_custom_xpub_export_path(const char* str, const size_t str_len, uint32_t* path,
@@ -488,7 +547,7 @@ static bool handle_xpub_options_with_path(
     JADE_ASSERT(qr_flags);
     JADE_ASSERT(for_descriptor || (custom_path && custom_path_len));
     if (for_descriptor) {
-        *qr_flags &= ~QR_XPUB_MULTISIG; // Disallow multisig
+        *qr_flags &= ~(QR_XPUB_MULTISIG | QR_XPUB_CASA); // Disallow multisig (including Casa preset)
     }
 
     uint16_t account_index = (*qr_flags) >> ACCOUNT_INDEX_FLAGS_SHIFT;
@@ -514,7 +573,12 @@ static bool handle_xpub_options_with_path(
         = make_xpub_qr_options_activity(&script_item, &wallet_item, &account_item, show_path, &path_item);
     update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
     update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
-    update_xpub_path_menu_items(account_item, path_item, account_index, path, path_len);
+    update_xpub_menu_items(script_item, account_item, path_item, contains_flags(*qr_flags, QR_XPUB_CASA),
+        account_index, path, path_len);
+    if (contains_flags(*qr_flags, QR_XPUB_CASA)) {
+        // The script type is disabled, so start on the wallet type
+        gui_set_activity_initial_selection(wallet_item->parent);
+    }
     gui_set_current_activity(act);
 
     gui_view_node_t* script_textbox = NULL;
@@ -561,8 +625,10 @@ static bool handle_xpub_options_with_path(
             while (true) {
                 gui_update_text(wallet_textbox, xpub_wallettype_desc_from_flags(*qr_flags));
                 if (gui_activity_wait_event(act_wallettype, GUI_EVENT, ESP_EVENT_ANY_ID, NULL, &ev_id, NULL, 0)) {
-                    if (ev_id == GUI_WHEEL_LEFT_EVENT || ev_id == GUI_WHEEL_RIGHT_EVENT) {
-                        *qr_flags ^= QR_XPUB_MULTISIG; // toggle
+                    if (ev_id == GUI_WHEEL_LEFT_EVENT) {
+                        rotate_wallettypes(qr_flags, true);
+                    } else if (ev_id == GUI_WHEEL_RIGHT_EVENT) {
+                        rotate_wallettypes(qr_flags, false);
                     } else if (ev_id == gui_get_click_event()) {
                         // Done
                         break;
@@ -570,6 +636,9 @@ static bool handle_xpub_options_with_path(
                 }
             }
             update_menu_item(wallet_item, "Wallet", xpub_wallettype_desc_from_flags(*qr_flags));
+            update_menu_item(script_item, "Script", xpub_scripttype_desc_from_flags(*qr_flags));
+            update_xpub_menu_items(script_item, account_item, path_item, contains_flags(*qr_flags, QR_XPUB_CASA),
+                account_index, path, path_len);
         } else if (ev_id == BTN_XPUB_OPTIONS_ACCOUNT) {
 
             while (true) {
@@ -598,6 +667,7 @@ static bool handle_xpub_options_with_path(
                 }
             }
         } else if (!for_descriptor && ev_id == BTN_XPUB_OPTIONS_PATH) {
+            // NOTE: the path item is disabled for the Casa preset, so it cannot be set here
             // If a custom path is already set, offer to edit it or to revert to the default path
             custom_path_action_t action = CUSTOM_PATH_EDIT;
             gui_activity_t* edit_act = NULL;
@@ -607,7 +677,8 @@ static bool handle_xpub_options_with_path(
 
             if (action == CUSTOM_PATH_DEFAULT) {
                 path_len = 0;
-                update_xpub_path_menu_items(account_item, path_item, account_index, path, path_len);
+                const bool is_casa = false;
+                update_xpub_menu_items(script_item, account_item, path_item, is_casa, account_index, path, path_len);
             } else if (action == CUSTOM_PATH_EDIT) {
                 if (!kb_entry.activity) {
                     make_keyboard_entry_activity(&kb_entry, "Xpub Path");
@@ -624,7 +695,9 @@ static bool handle_xpub_options_with_path(
 
                 if (path_set) {
                     // New custom path set - update the menu with the account index disabled
-                    update_xpub_path_menu_items(account_item, path_item, account_index, path, path_len);
+                    const bool is_casa = false;
+                    update_xpub_menu_items(
+                        script_item, account_item, path_item, is_casa, account_index, path, path_len);
 
                     // Move to the script type, which the user should now choose
                     gui_view_node_t* script_btn = script_item->parent;

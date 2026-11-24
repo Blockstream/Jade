@@ -9,6 +9,7 @@
 
 #include "jade_assert.h"
 #include "otpauth.h"
+#include "wallet.h"
 
 // NOTE: Jade only supports the bip39 English wordlist,
 // with a 12 or 24 word mnemonic phrase.
@@ -46,6 +47,16 @@ typedef enum {
 // XPUB_PATH_ERR_TOO_LONG 'pathstr' holds the normalised path string (with 'm/' prefix).
 WARN_UNUSED_RESULT xpub_path_err_t parse_custom_xpub_export_path(const char* str, size_t str_len, uint32_t* path,
     size_t path_len, size_t* written, char* pathstr, size_t pathstr_len);
+
+// Xpub export script type, as selected by the qr flags
+script_variant_t xpub_script_variant_from_flags(uint32_t qr_flags);
+
+// Rotate between the xpub export wallet types: Singlesig -> Multisig -> Casa -> Singlesig
+void rotate_wallettypes(uint32_t* flags, bool reverse);
+
+// The fixed xpub export path used by the Casa preset
+// 'path' must hold at least EXPORT_XPUB_PATH_LEN elements
+void get_casa_xpub_export_path(uint32_t* path, size_t path_len, size_t* written);
 
 // Display singlesig xpub qr code
 void display_xpub_qr(void);
