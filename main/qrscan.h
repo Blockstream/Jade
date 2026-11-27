@@ -11,7 +11,7 @@
 // An extracted QR code string
 #define QR_MAX_PAYLOAD_LENGTH 1024
 
-struct quirc;
+struct k_quirc;
 typedef struct _qr_data_t qr_data_t;
 
 // Function to tell whether the extracted qr data is valid for the callers purposes
@@ -32,9 +32,8 @@ struct _qr_data_t {
     // Any progress-bar associated with this (potentially multi-frame) scanning
     progress_bar_t* progress_bar;
 
-    // Cached internal quirc structs - caller should set to NULL
-    struct quirc* q;
-    struct datastream* ds;
+    // Cached internal quirc decoder - caller should set to NULL
+    struct k_quirc* q;
 };
 
 #ifdef CONFIG_DEBUG_MODE
